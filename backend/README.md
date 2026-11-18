@@ -1,45 +1,164 @@
 # AI Math Comics backend
 
-FastAPI demo implementing [the API contract](../docs/api-contract.md). Requires Python 3.10+.
-All commands below run from `backend/`.
+FastAPI backend implementing [the API contract](../docs/api-contract.md), with the original
+Pizza for Everyone demo and real AI generation. Requires Python 3.10+. Commands run from `backend/`.
 
-## Install and start
+## Install and configure
 
 ```powershell
 python -m venv .venv
 .venv\Scripts\python -m pip install -r requirements-dev.txt
+Copy-Item .env.example .env
+```
+
+Set `OPENAI_API_KEY` in `backend/.env`. API keys stay on the server; neither API responses nor
+image URLs contain them. `.env` and local data are ignored by Git. Existing process environment
+variables override `.env`. On macOS/Linux use `.venv/bin/python`; use `cp` to copy the example.
+For a runtime-only installation, install `requirements.txt`.
+
+The static pizza comic works without credentials or a worker and still uses frontend assets
+`pizza-01` through `pizza-06`. Its existing response fields, answer check, and hints are preserved.
+
+## Start API and worker
+
+Start the API in one terminal:
+
+```powershell
 .venv\Scripts\python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-On macOS/Linux use `.venv/bin/python` instead of `.venv\Scripts\python`.
-For a runtime-only installation, install `requirements.txt`.
+Start the worker in another terminal, also from `backend/`:
 
-The API runs at `http://127.0.0.1:8000`; interactive API documentation is at
-`http://127.0.0.1:8000/docs`. CORS allows the frontend at `http://localhost:5173`.
-No API keys, database, external services, or image downloads are required.
-The frontend supplies illustrations for `pizza-01` through `pizza-06`.
+```powershell
+.venv\Scripts\python -m app.worker
+```
 
-## Requests
+The API is at `http://127.0.0.1:8000`, with interactive docs at `/docs`.
+CORS allows `http://localhost:5173`, including generated PNG responses. Both processes must
+use the same `COMIC_DATA_DIR`. Generation runs in the separate worker process, independently
+of HTTP connections and API restarts. Without a worker, accepted jobs remain `queued`.
+`python -m app.worker --once` processes at most one job and exits.
 
-- `GET /api/comics/pizza-fractions?lang=ru` returns six panels and the exercise at panel 4.
-- `POST /api/exercises/pizza-share/check` with JSON `{"answer":"6/8","lang":"kk"}`
-  returns `{"status":"correct","message":"Дұрыс! Әр досқа пиццаның тең үлесі тиеді. Жарайсың!"}`.
-- `GET /api/exercises/pizza-share/hints?lang=kk&step=1` returns a hint and `hasMore`.
-  Step 2 is the last hint; neither hint states the answer.
+## Generate and read a comic
 
-`lang` defaults to `ru` and supports only `ru` and `kk`. Hint `step` defaults to 1
-and supports only 1 and 2. Unsupported parameters or malformed request bodies return
-HTTP 422. Answers must be strings of at most 256 characters in integer fraction form
-(`a/b`); surrounding whitespace, spaces around `/`, and integer signs are accepted.
-Exact arithmetic accepts `3/4`, `6/8`, and all equivalent fractions, including large
-integers. Valid but unequal fractions return `incorrect`; malformed fraction strings,
-decimal strings, and zero denominators return `invalid`. These exercise outcomes all
-use HTTP 200 with localized feedback; numeric JSON answers are rejected with HTTP 422.
+```powershell
+$body = @{grade=5; topic="fractions"; lang="ru"; difficulty="basic"} | ConvertTo-Json
+$job = Invoke-RestMethod http://127.0.0.1:8000/api/comic-jobs -Method Post -ContentType application/json -Body $body
+Invoke-RestMethod "http://127.0.0.1:8000/api/comic-jobs/$($job.jobId)"
+```
 
-## Backend checks
+Creation returns HTTP 202 with `{"jobId":"...","status":"queued"}`. Poll the job endpoint
+until `ready` or `failed`. Every poll includes `jobId`, `status`, `comicId`, and `errorCode`;
+the latter two are null until the corresponding terminal status. Once ready, fetch
+`GET /api/comics/{comicId}?lang=ru` or `?lang=kk`. Each comic has both translations and six
+shared illustrations, with absolute `imageUrl` fields alongside unique `imageKey` fields.
+Use `imageUrl` for generated comics and the existing local asset mapping for the pizza demo.
+
+Supported creation inputs are integer grades **5, 6**, topic **fractions**, languages **ru, kk**,
+and difficulties **basic, intermediate, advanced**. All creation fields are required.
+Unsupported values, extra fields, and malformed bodies return HTTP 422. Unknown IDs return 404.
+
+The exercise ID in each generated comic is unique. Reuse:
+
+- `POST /api/exercises/{exerciseId}/check` with `{"answer":"6/8","lang":"ru"}`.
+- `GET /api/exercises/{exerciseId}/hints?lang=kk&step=1` (steps 1 and 2).
+
+These also retain the static `pizza-share` exercise, whose expected answer remains `3/4`.
+`lang` defaults to `ru` on read/check endpoints. Hints default to step 1. Answers are strings
+of at most 256 characters in integer fraction form (`a/b`); surrounding whitespace, spaces
+around `/`, signs, and equivalent fractions are accepted with exact `Fraction` arithmetic.
+Unequal fractions return `incorrect`; malformed input and zero denominators return `invalid`.
+These outcomes use HTTP 200 with localized feedback; numeric JSON answers return HTTP 422.
+
+## Provider configuration
+
+See [`.env.example`](.env.example) for all settings:
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `OPENAI_API_KEY` | empty | Required only for AI generation; key with text/image model access and billing |
+| `OPENAI_BASE_URL` | `https://api.openai.com/v1` | Server-controlled REST base URL |
+| `OPENAI_TEXT_MODEL` | `gpt-6-luna` | Chat Completions model supporting strict JSON Schema |
+| `OPENAI_TEXT_REASONING_EFFORT` | `none` | Set empty to omit for models that do not accept this field |
+| `OPENAI_IMAGE_MODEL` | `gpt-image-2.5-flare` | Image generations and reference-image edits with base64 PNG output |
+| `PROVIDER_TIMEOUT_SECONDS` | `180` | Wall-clock limit per upstream request |
+| `JOB_TIMEOUT_SECONDS` | `1500` | Wall-clock limit for the complete job |
+| `WORKER_POLL_SECONDS` | `1` | Idle queue polling interval |
+| `COMIC_DATA_DIR` | `data` | Shared SQLite and image directory; relative to `backend/` |
+| `PUBLIC_BASE_URL` | `http://127.0.0.1:8000` | Externally reachable API base, including any reverse-proxy prefix |
+
+The adapters use OpenAI [structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs)
+and the [Image API](https://developers.openai.com/api/docs/guides/image-generation).
+Defaults use [GPT-6 Luna](https://developers.openai.com/api/docs/models/gpt-6-luna) and
+[GPT-Image-2.5 Flare](https://developers.openai.com/api/docs/models/gpt-image-2.5-flare).
+Alternative endpoints must implement the same REST contracts. Each job makes one bilingual
+text request and six image requests at low quality, 1024×1024: an initial generation followed
+by five edits using the same first image as the character reference. No automatic retries
+are made, so failures do not silently repeat paid calls. Re-submit a new job to retry.
+
+## Math, validation, and persistence
+
+The server chooses and persists fixed operands at enqueue time. Basic problems divide whole
+pizzas among friends, intermediate problems divide a fractional quantity, and advanced problems
+add unlike fractions before dividing. Grade 6 uses larger operands/denominators. The expected
+answer is computed with exact server-side fraction arithmetic and stored privately.
+
+The text provider receives only the fixed inputs, grade/difficulty, character descriptions,
+and trusted RU/KK exercise/hint text. It writes localized narrative and echoes the exercise
+and two hints. Validation requires exact trusted math text, ordered panels, fixed scene IDs,
+stable speaker IDs across translations, and no extra fields. Free narrative/title fields must
+be Cyrillic and exclude digits, fraction symbols, and common Russian/Kazakh number words.
+This deliberately conservative check may reject otherwise reasonable model wording; a rejection
+fails the job instead of publishing it. Exercise and hints are server-authored to keep all
+math instructions reliable without disclosing the final answer.
+
+Image prompts come from server-owned scene directions and a shared character description.
+They contain no dialogue, problem operands, or solution. They ask for text-free illustrations
+with a closed pizza box, without slices or distributions that could reveal the answer.
+Reference-image editing encourages consistent faces and clothes. Visual consistency and absence
+of accidental lettering still depend on the image model; deterministic checks cannot assess
+real artwork. Returned files are decoded, validated, normalized to PNG, and stripped of metadata.
+
+`data/comics.sqlite3` holds queued requests, statuses, bilingual comics, hints, and **private
+answers**. `data/images/` holds generated files. Only images belonging to a published comic
+are accessible through `/api/comic-images/{comicId}/{panelId}.png`; never statically expose
+the entire data directory. Publication of the comic, exercise, and `ready` status is one SQLite
+transaction, after all six PNGs are saved. Failed attempts clean up their files.
+
+Workers atomically claim jobs with SQLite transactions, preventing duplicate consumption even
+with multiple local worker processes. A lease lasts the job timeout plus 30 seconds. Graceful
+shutdown marks the current job `worker_interrupted`; after a crash, a worker marks expired
+running jobs failed on its next claim/poll. They are not reissued automatically. Abrupt crashes
+can leave unreferenced image files on disk, but these are not served. This is a single-host
+demo queue using local storage, without user authentication or per-user quotas.
+
+Safe failure codes are `provider_not_configured`, `provider_authentication`,
+`provider_rate_limited`, `provider_timeout`, `provider_unavailable`, `invalid_provider_output`,
+`job_timeout`, `worker_interrupted`, and `generation_failed`. Upstream error bodies, keys,
+model output, and private answers are excluded from public error responses and worker logs.
+
+## Automated checks
 
 ```powershell
 .venv\Scripts\python -m ruff check .
 .venv\Scripts\python -m ruff format --check .
 .venv\Scripts\python -m pytest
 ```
+
+The default suite requires no credentials and makes no real provider calls. It covers the
+original pizza demo, all supported input combinations, persistence/restarts, concurrent claims,
+crash recovery, partial failures, exact answer checks, localized hints, solution-leak rejection,
+HTTP provider request/response contracts, deadlines, and browser-loadable images. Deterministic
+provider substitutes and `httpx.MockTransport` verify the full flow.
+
+To run **one paid real generation** through the actual adapters and standalone worker:
+
+```powershell
+$env:RUN_LIVE_GENERATION = "1"
+.venv\Scripts\python -m pytest tests/test_live_generation.py -v -s
+Remove-Item Env:RUN_LIVE_GENERATION
+```
+
+This test skips if `OPENAI_API_KEY` is absent. It uses an isolated temporary data directory,
+verifies six image URLs, both translations, answer checking, and two hints, and prints the
+artifact directory for inspection. It does not prove visual quality; review the actual PNGs.

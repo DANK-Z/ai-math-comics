@@ -62,3 +62,70 @@ Response: {"step":1,"text":"...","hasMore":true}
 
 Return localized hints that guide the student without giving the answer.
 
+## AI generation: POST /api/comic-jobs
+
+Request (all fields required):
+
+```json
+{"grade":5,"topic":"fractions","lang":"ru","difficulty":"basic"}
+```
+
+Supported values: integer grades `5`, `6`; topic `fractions`; languages `ru`, `kk`;
+difficulties `basic`, `intermediate`, `advanced`. Unsupported values, extra fields,
+or malformed requests return HTTP 422.
+
+Return HTTP **202** immediately after persisting the job:
+
+```json
+{"jobId":"<unique-job-id>","status":"queued"}
+```
+
+Generation runs in the standalone backend worker, independently of the request.
+The original pizza demo remains available without a worker or credentials.
+
+## GET /api/comic-jobs/{jobId}
+
+```json
+{"jobId":"<unique-job-id>","status":"queued","comicId":null,"errorCode":null}
+```
+
+Statuses: `queued`, `running`, `ready`, `failed`. `comicId` is non-null only when
+ready. `errorCode` is non-null only when failed. Missing jobs return HTTP 404.
+Safe error codes: `provider_not_configured`, `provider_authentication`,
+`provider_rate_limited`, `provider_timeout`, `provider_unavailable`,
+`invalid_provider_output`, `job_timeout`, `worker_interrupted`, `generation_failed`.
+Provider response bodies and secrets are never returned.
+
+## GET /api/comics/{comicId}?lang=ru
+
+Reuse the existing comic shape, adding `imageUrl` to each **generated** panel:
+
+```json
+{
+  "id":"<comic-id>",
+  "lang":"ru",
+  "title":"...",
+  "panels":[
+    {"id":1,"speaker":"...","text":"...","imageKey":"<comic-id>-01",
+     "imageUrl":"http://127.0.0.1:8000/api/comic-images/<comic-id>/1.png"}
+  ],
+  "exercise":{"id":"fractions-<comic-id>","panelId":4,"prompt":"..."}
+}
+```
+
+Actual responses contain six ordered panels, with the exercise in panel 4.
+Each generated comic is available in both `ru` and `kk`, sharing six illustrations
+and the exercise ID. `lang` defaults to `ru`; unsupported languages return 422.
+Unknown/unpublished comics return 404. Image URLs are absolute backend URLs
+configured by `PUBLIC_BASE_URL`, serve PNG files, and need no provider credentials.
+Only published images can be fetched. The original `pizza-fractions` response
+continues to omit `imageUrl` and uses the existing local `imageKey` mapping.
+
+Generated exercises reuse `POST /api/exercises/{exerciseId}/check` and
+`GET /api/exercises/{exerciseId}/hints?lang=ru&step=1` with the same request/response
+shapes and validation as `pizza-share`. Every generated comic has a unique
+exercise ID and two progressive localized hints. Expected answers stay server-side;
+equivalent fractions are checked with exact arithmetic. Unknown exercises return 404.
+
+See [backend setup and provider configuration](../backend/README.md).
+
