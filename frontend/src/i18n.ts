@@ -1,8 +1,10 @@
 import type { CheckStatus, Lang } from './api'
+import type { CharacterId } from './characters'
 
 // UI chrome strings. Comic content, feedback and hints come from the API.
 export interface UiStrings {
   langName: string
+  langShort: string
   langLabel: string
   loading: string
   loadError: string
@@ -28,11 +30,17 @@ export interface UiStrings {
   noMoreHints: string
   hintN: (n: number) => string
   mockBadge: string
+  tagline: string
+  castTitle: string
+  cast: Record<CharacterId, { name: string; role: string; about: string }>
+  unlocked: string
+  comicPage: string
 }
 
 export const STRINGS: Record<Lang, UiStrings> = {
   ru: {
     langName: 'Русский',
+    langShort: 'РУС',
     langLabel: 'Язык',
     loading: 'Загружаем комикс…',
     loadError: 'Не удалось загрузить комикс.',
@@ -58,9 +66,19 @@ export const STRINGS: Record<Lang, UiStrings> = {
     noMoreHints: 'Подсказки закончились — у тебя получится!',
     hintN: (n) => `Подсказка ${n}`,
     mockBadge: 'демо-данные',
+    tagline: 'Математика в комиксах с AI',
+    castTitle: 'Герои',
+    cast: {
+      aldiyar: { name: 'Алдияр', role: 'главный герой', about: 'Любознательный, любит решать задачи.' },
+      aruna: { name: 'Аруна', role: 'подруга', about: 'Внимательная и креативная, помогает разобраться.' },
+      pifik: { name: 'Пифик', role: 'AI-помощник', about: 'Объясняет правила и даёт подсказки.' },
+    },
+    unlocked: 'Кадры 5–6 открыты! Читай дальше →',
+    comicPage: 'Комикс',
   },
   kk: {
     langName: 'Қазақша',
+    langShort: 'ҚАЗ',
     langLabel: 'Тіл',
     loading: 'Комикс жүктелуде…',
     loadError: 'Комиксті жүктеу мүмкін болмады.',
@@ -86,5 +104,14 @@ export const STRINGS: Record<Lang, UiStrings> = {
     noMoreHints: 'Кеңестер бітті — сенің қолыңнан келеді!',
     hintN: (n) => `${n}-кеңес`,
     mockBadge: 'демо деректер',
+    tagline: 'AI көмегімен комикстегі математика',
+    castTitle: 'Кейіпкерлер',
+    cast: {
+      aldiyar: { name: 'Алдияр', role: 'басты кейіпкер', about: 'Білуге құмар, есеп шығарғанды жақсы көреді.' },
+      aruna: { name: 'Аруна', role: 'құрбысы', about: 'Зейінді әрі шығармашыл, түсінуге көмектеседі.' },
+      pifik: { name: 'Пифик', role: 'AI-көмекші', about: 'Ережелерді түсіндіреді, кеңес береді.' },
+    },
+    unlocked: '5–6 кадрлар ашылды! Әрі қарай оқы →',
+    comicPage: 'Комикс',
   },
 }

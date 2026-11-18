@@ -2,6 +2,7 @@ import type { Comic, CheckStatus, Lang } from './types'
 
 // Contract-matching mock content: six panels, exercise on panel 4,
 // three identical pizzas shared equally among four friends.
+// Speakers are the cast from docs/visual-guide (Алдияр, Аруна, Пифик) so the art matches.
 export const MOCK_COMICS: Record<Lang, Comic> = {
   ru: {
     id: 'pizza-fractions',
@@ -9,11 +10,11 @@ export const MOCK_COMICS: Record<Lang, Comic> = {
     title: 'Пицца для четырёх друзей',
     panels: [
       { id: 1, speaker: 'Пифик', text: 'Привет! Я Пифик. Сегодня у четырёх друзей праздник!', imageKey: 'pizza-01' },
-      { id: 2, speaker: 'Айгерим', text: 'Мы заказали три одинаковые пиццы.', imageKey: 'pizza-02' },
-      { id: 3, speaker: 'Данияр', text: 'Но нас четверо! Как разделить пиццы поровну?', imageKey: 'pizza-03' },
+      { id: 2, speaker: 'Аруна', text: 'Мы заказали три одинаковые пиццы.', imageKey: 'pizza-02' },
+      { id: 3, speaker: 'Алдияр', text: 'Но нас четверо! Как разделить пиццы поровну?', imageKey: 'pizza-03' },
       { id: 4, speaker: 'Пифик', text: 'Помогите друзьям! Какую часть пиццы получит каждый?', imageKey: 'pizza-04' },
-      { id: 5, speaker: 'Мира', text: 'Можно разрезать каждую пиццу на одинаковые кусочки!', imageKey: 'pizza-05' },
-      { id: 6, speaker: 'Пифик', text: 'Каждый получил поровну — вот это настоящая дружба!', imageKey: 'pizza-06' },
+      { id: 5, speaker: 'Аруна', text: 'Можно разрезать каждую пиццу на одинаковые кусочки!', imageKey: 'pizza-05' },
+      { id: 6, speaker: 'Алдияр', text: 'Каждый получил поровну — вот это настоящая дружба!', imageKey: 'pizza-06' },
     ],
     exercise: {
       id: 'pizza-share',
@@ -28,11 +29,11 @@ export const MOCK_COMICS: Record<Lang, Comic> = {
     title: 'Төрт досқа арналған пицца',
     panels: [
       { id: 1, speaker: 'Пифик', text: 'Сәлем! Мен Пификпін. Бүгін төрт доста мереке!', imageKey: 'pizza-01' },
-      { id: 2, speaker: 'Әйгерім', text: 'Біз үш бірдей пицца тапсырыс бердік.', imageKey: 'pizza-02' },
-      { id: 3, speaker: 'Данияр', text: 'Бірақ біз төртеуміз! Пиццаларды қалай тең бөлеміз?', imageKey: 'pizza-03' },
+      { id: 2, speaker: 'Аруна', text: 'Біз үш бірдей пицца тапсырыс бердік.', imageKey: 'pizza-02' },
+      { id: 3, speaker: 'Алдияр', text: 'Бірақ біз төртеуміз! Пиццаларды қалай тең бөлеміз?', imageKey: 'pizza-03' },
       { id: 4, speaker: 'Пифик', text: 'Достарға көмектесіңдер! Әрқайсысы пиццаның қандай бөлігін алады?', imageKey: 'pizza-04' },
-      { id: 5, speaker: 'Мира', text: 'Әр пиццаны бірдей тілімдерге кесуге болады!', imageKey: 'pizza-05' },
-      { id: 6, speaker: 'Пифик', text: 'Әркім тең үлес алды — міне, нағыз достық!', imageKey: 'pizza-06' },
+      { id: 5, speaker: 'Аруна', text: 'Әр пиццаны бірдей тілімдерге кесуге болады!', imageKey: 'pizza-05' },
+      { id: 6, speaker: 'Алдияр', text: 'Әркім тең үлес алды — міне, нағыз достық!', imageKey: 'pizza-06' },
     ],
     exercise: {
       id: 'pizza-share',

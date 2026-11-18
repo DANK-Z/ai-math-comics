@@ -2,12 +2,13 @@ import { useId, useState, type FormEvent } from 'react'
 import type { CheckStatus, Exercise, Lang } from '../api'
 import { STRINGS } from '../i18n'
 import { PifikHints } from './PifikHints'
+import { RichText } from './RichText'
 import type { useAnswerCheck } from '../hooks'
 
 const STATUS_STYLE: Record<CheckStatus, { box: string; icon: string }> = {
-  correct: { box: 'border-emerald-600 bg-emerald-50 text-emerald-900', icon: '✓' },
-  incorrect: { box: 'border-rose-600 bg-rose-50 text-rose-900', icon: '✗' },
-  invalid: { box: 'border-amber-600 bg-amber-50 text-amber-900', icon: '!' },
+  correct: { box: 'border-emerald-700 bg-emerald-50 text-emerald-950', icon: '✓' },
+  incorrect: { box: 'border-rose-600 bg-rose-50 text-rose-950', icon: '✗' },
+  invalid: { box: 'border-amber-600 bg-amber-50 text-amber-950', icon: '!' },
 }
 
 interface Props {
@@ -30,52 +31,64 @@ export function ExerciseCard({ exercise, lang, check }: Props) {
   return (
     <section
       aria-labelledby={`${inputId}-title`}
-      className="rounded-2xl border-[3px] border-stone-900 bg-white p-4 shadow-[5px_5px_0_#1c1917] sm:p-5"
+      className="overflow-hidden rounded-[28px] border-[4px] border-ink bg-cream shadow-[0_6px_0_var(--color-ink)]"
     >
-      <h2 id={`${inputId}-title`} className="mb-2 text-xs font-black tracking-widest text-amber-600 uppercase">
+      <h2 id={`${inputId}-title`} className="flex items-center gap-2 bg-brand px-4 py-2 text-lg font-black text-white">
+        <span aria-hidden className="grid h-7 w-7 place-items-center rounded-full border-2 border-ink bg-sun text-sm text-ink">
+          ?
+        </span>
         {t.exerciseTitle}
       </h2>
-      <p className="mb-4 text-lg leading-snug font-semibold text-stone-900">{exercise.prompt}</p>
 
-      <form onSubmit={onSubmit} className="flex flex-col gap-2 sm:flex-row sm:items-end">
-        <label htmlFor={inputId} className="flex-1">
-          <span className="mb-1 block text-sm font-bold text-stone-700">{t.answerLabel}</span>
-          <input
-            id={inputId}
-            value={answer}
-            onChange={(e) => setAnswer(e.target.value)}
-            placeholder={t.answerPlaceholder}
-            inputMode="text"
-            autoComplete="off"
-            disabled={solved}
-            className="w-full rounded-xl border-2 border-stone-900 px-3 py-2 font-mono text-xl tabular-nums outline-none focus:ring-4 focus:ring-amber-300 disabled:bg-stone-100"
-          />
-        </label>
-        <button
-          type="submit"
-          disabled={!answer.trim() || checking || solved}
-          className="rounded-xl border-2 border-stone-900 bg-amber-400 px-5 py-2 text-lg font-black text-stone-900 shadow-[3px_3px_0_#1c1917] transition active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {checking ? t.checking : t.check}
-        </button>
-      </form>
+      <div className="p-4 sm:p-5">
+        <p className="mb-4 text-lg leading-snug font-bold text-ink">
+          <RichText text={exercise.prompt} />
+        </p>
 
-      <div aria-live="polite" className="mt-3 min-h-[1.5rem]">
-        {error && <p className="font-semibold text-rose-700">{t.checkError}</p>}
-        {result && !error && (
-          <div className={`flex items-start gap-3 rounded-xl border-2 p-3 ${STATUS_STYLE[result.status].box}`}>
-            <span aria-hidden className="text-2xl leading-none font-black">
-              {STATUS_STYLE[result.status].icon}
-            </span>
-            <div>
-              <p className="font-black">{t.status[result.status]}</p>
-              <p>{result.message}</p>
-            </div>
+        <form onSubmit={onSubmit} className="flex flex-col gap-2">
+          <label htmlFor={inputId} className="text-sm font-black text-ink/80">
+            {t.answerLabel}
+          </label>
+          <div className="flex gap-2">
+            <input
+              id={inputId}
+              value={answer}
+              onChange={(e) => setAnswer(e.target.value)}
+              placeholder={t.answerPlaceholder}
+              inputMode="text"
+              autoComplete="off"
+              disabled={solved}
+              className="min-h-12 w-full min-w-0 flex-1 rounded-2xl border-[3px] border-ink bg-white px-3 font-mono text-2xl font-bold tabular-nums outline-none placeholder:text-base placeholder:font-sans placeholder:font-semibold focus:ring-4 focus:ring-sun disabled:bg-stone-100"
+            />
+            <button
+              type="submit"
+              disabled={!answer.trim() || checking || solved}
+              className="min-h-12 shrink-0 rounded-2xl border-[3px] border-ink bg-sun px-4 text-lg font-black text-ink shadow-[0_4px_0_var(--color-ink)] transition active:translate-y-[3px] active:shadow-[0_1px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+            >
+              {checking ? t.checking : t.check}
+            </button>
           </div>
-        )}
-      </div>
+        </form>
 
-      {!solved && <PifikHints exerciseId={exercise.id} lang={lang} />}
+        <div aria-live="polite" className="mt-3 min-h-[1.5rem]">
+          {error && <p className="font-bold text-rose-700">{t.checkError}</p>}
+          {result && !error && (
+            <div className={`flex items-start gap-3 rounded-2xl border-[3px] p-3 ${STATUS_STYLE[result.status].box}`}>
+              <span aria-hidden className="text-2xl leading-none font-black">
+                {STATUS_STYLE[result.status].icon}
+              </span>
+              <div>
+                <p className="font-black">{t.status[result.status]}</p>
+                <p className="font-semibold">
+                  <RichText text={result.message} />
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {!solved && <PifikHints exerciseId={exercise.id} lang={lang} />}
+      </div>
     </section>
   )
 }

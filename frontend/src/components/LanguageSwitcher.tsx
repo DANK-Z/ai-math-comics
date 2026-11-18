@@ -3,7 +3,11 @@ import { STRINGS } from '../i18n'
 
 export function LanguageSwitcher({ lang, onChange }: { lang: Lang; onChange: (l: Lang) => void }) {
   return (
-    <div role="radiogroup" aria-label={STRINGS[lang].langLabel} className="inline-flex rounded-full border-2 border-stone-900 bg-white p-1 shadow-[3px_3px_0_#1c1917]">
+    <div
+      role="radiogroup"
+      aria-label={STRINGS[lang].langLabel}
+      className="inline-flex rounded-full border-[3px] border-ink bg-white p-1 shadow-[0_3px_0_var(--color-ink)]"
+    >
       {LANGS.map((l) => {
         const active = l === lang
         return (
@@ -14,11 +18,14 @@ export function LanguageSwitcher({ lang, onChange }: { lang: Lang; onChange: (l:
             aria-checked={active}
             lang={l}
             onClick={() => onChange(l)}
-            className={`rounded-full px-3 py-1 text-sm font-bold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 ${
-              active ? 'bg-stone-900 text-amber-50' : 'text-stone-700 hover:bg-amber-100'
+            className={`min-h-9 rounded-full px-2.5 text-sm sm:px-3 font-black transition-colors focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun ${
+              active ? 'bg-brand-dark text-white' : 'text-ink hover:bg-sky'
             }`}
           >
-            {STRINGS[l].langName}
+            <span className="sm:hidden" aria-hidden>
+              {STRINGS[l].langShort}
+            </span>
+            <span className="sr-only sm:not-sr-only">{STRINGS[l].langName}</span>
           </button>
         )
       })}

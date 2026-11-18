@@ -1,9 +1,38 @@
 @import 'tailwindcss';
 
+/* Palette sampled from the style sheet (docs/visual-guide.jpeg.jpeg). */
 @theme {
   --font-sans: 'Nunito', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --color-ink: #1d2766;
+  --color-brand: #3366e0;
+  --color-brand-dark: #24399f;
+  --color-grape: #8b62d6;
+  --color-sun: #f8cd45;
+  --color-cream: #fff9ec;
+  --color-paper: #f3ece0;
+  --color-sky: #e6f0ff;
 }
 
 html {
   font-family: var(--font-sans);
+  background: var(--color-sky);
+}
+
+/* Outlined comic lettering for the logo. */
+.comic-outline {
+  -webkit-text-stroke: 0.14em var(--color-ink);
+  paint-order: stroke fill;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .panel-enter {
+    animation: panel-in 220ms ease-out;
+  }
+}
+
+@keyframes panel-in {
+  from {
+    opacity: 0.4;
+    transform: scale(0.985);
+  }
 }
