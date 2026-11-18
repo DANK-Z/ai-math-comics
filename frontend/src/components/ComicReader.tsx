@@ -62,8 +62,8 @@ export function ComicReader({ comic, lang, index, onIndexChange }: Props) {
           className="panel-enter relative overflow-hidden rounded-2xl border-[5px] border-ink bg-sky-100"
           aria-label={`${panel.speaker}: ${panel.text}`}
         >
-          <PanelArt imageKey={panel.imageKey} speaker={panel.speaker} text={panel.text} priority />
-          <span className="absolute bottom-2 left-2 grid h-9 w-9 place-items-center rounded-full border-[3px] border-ink bg-sun text-lg font-black text-ink">
+          <PanelArt imageKey={panel.imageKey} imageUrl={panel.imageUrl} lang={lang} speaker={panel.speaker} text={panel.text} priority />
+          <span className={`absolute ${panel.imageUrl ? 'top-2' : 'bottom-2'} left-2 grid h-9 w-9 place-items-center rounded-full border-[3px] border-ink bg-sun text-lg font-black text-ink`}>
             {panel.id}
           </span>
         </figure>
@@ -90,7 +90,7 @@ export function ComicReader({ comic, lang, index, onIndexChange }: Props) {
                     }`}
                   >
                     <div className={reachable ? '' : 'blur-[3px] grayscale'}>
-                      <PanelArt imageKey={p.imageKey} speaker={p.speaker} text="" thumb />
+                      <PanelArt imageKey={p.imageKey} imageUrl={p.imageUrl} lang={lang} speaker={p.speaker} text="" thumb />
                     </div>
                     <span
                       className={`absolute top-0.5 left-0.5 grid h-4 min-w-4 place-items-center rounded-full border-[1.5px] border-ink px-0.5 text-[10px] font-black sm:top-1 sm:left-1 sm:h-5 sm:min-w-5 sm:border-2 sm:text-[11px] ${

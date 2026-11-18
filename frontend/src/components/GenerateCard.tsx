@@ -1,0 +1,253 @@
+import { useEffect, useId, useState, type FormEvent, type ReactNode } from 'react'
+import { DIFFICULTIES, GRADES, LANGS, TOPICS, type ComicJobRequest, type Difficulty, type Grade, type Lang, type Topic } from '../api'
+import { PORTRAITS } from '../art/sheet'
+import { STRINGS, type UiStrings } from '../i18n'
+import { useComicJob, type JobFailure, type JobState } from '../jobs'
+import { SheetCrop } from './SheetCrop'
+
+interface Option<T> {
+  value: T
+  label: string
+  lang?: string
+}
+
+/** Radio group styled as chunky comic buttons. Native radios keep keyboard + screen reader behaviour. */
+function Segmented<T extends string | number>({
+  legend,
+  options,
+  value,
+  onChange,
+}: {
+  legend: string
+  options: Option<T>[]
+  value: T
+  onChange: (v: T) => void
+}) {
+  const name = useId()
+  return (
+    <fieldset className="min-w-0">
+      <legend className="mb-1.5 text-sm font-black text-ink/80">{legend}</legend>
+      <div className="flex flex-wrap gap-2">
+        {options.map((o) => (
+          <label
+            key={String(o.value)}
+            lang={o.lang}
+            className="flex min-h-11 flex-auto cursor-pointer items-center justify-center rounded-2xl border-[3px] border-ink bg-white px-3 text-center leading-tight font-black text-ink shadow-[0_3px_0_var(--color-ink)] transition select-none hover:bg-sky has-checked:translate-y-[2px] has-checked:bg-brand-dark has-checked:text-white has-checked:shadow-[0_1px_0_var(--color-ink)] has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-sun has-disabled:cursor-not-allowed has-disabled:opacity-60"
+          >
+            <input
+              type="radio"
+              name={name}
+              value={String(o.value)}
+              checked={o.value === value}
+              onChange={() => onChange(o.value)}
+              className="sr-only"
+            />
+            {o.label}
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  )
+}
+
+function failureMessage(t: UiStrings, f: JobFailure): string {
+  switch (f.kind) {
+    case 'job':
+      return f.code === 'generation_failed' ? t.jobErrors.generation_failed : t.jobErrors.unknown
+    case 'api':
+      return t.jobErrors.api
+    case 'lost':
+      return t.jobErrors.lost
+    case 'timeout':
+      return t.jobErrors.timeout
+  }
+}
+
+function failureDetail(f: JobFailure): string | null {
+  if (f.kind === 'job') return f.code ? `errorCode: ${f.code}` : null
+  if (f.kind === 'api') return f.detail
+  return null
+}
+
+function useElapsed(since: number | null) {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    if (since === null) return
+    const id = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [since])
+  return since === null ? 0 : Math.max(0, Math.round((now - since) / 1000))
+}
+
+function JobProgress({ state, t, onStop }: { state: JobState; t: UiStrings; onStop: () => void }) {
+  const waiting = state.phase === 'waiting' ? state : null
+  const elapsed = useElapsed(waiting ? waiting.startedAt : null)
+  const step = state.phase === 'ready' ? 3 : waiting?.status === 'running' ? 2 : 1
+  const title =
+    state.phase === 'submitting' ? t.submitting : state.phase === 'ready' ? t.jobReady : waiting?.status === 'running' ? t.jobRunning : t.jobQueued
+
+  return (
+    <div role="status" aria-live="polite" className="rounded-2xl border-[3px] border-ink bg-sky p-4">
+      <div className="flex items-center gap-3">
+        <SheetCrop rect={PORTRAITS.pifikFace} className="w-14 shrink-0 animate-bounce rounded-full border-[3px] border-ink bg-white [animation-duration:1.6s] motion-reduce:animate-none" />
+        <div className="min-w-0 flex-1">
+          <p className="text-lg leading-tight font-black text-ink">{title}</p>
+          <p className="text-sm font-semibold text-ink/70">
+            {t.jobWaitNote}
+            {waiting && <span className="ml-1 tabular-nums">· {t.jobElapsed(elapsed)}</span>}
+          </p>
+        </div>
+      </div>
+      <ol className="mt-4 grid grid-cols-3 gap-2 text-center text-xs font-extrabold sm:text-sm">
+        {t.jobSteps.map((label, i) => {
+          const n = i + 1
+          const done = n < step || state.phase === 'ready'
+          const current = n === step && state.phase !== 'ready'
+          return (
+            <li key={label} aria-current={current ? 'step' : undefined} className="flex flex-col items-center gap-1">
+              <span
+                className={`grid h-8 w-8 place-items-center rounded-full border-[3px] border-ink text-sm font-black ${
+                  done ? 'bg-emerald-400 text-ink' : current ? 'bg-sun text-ink' : 'bg-white text-ink/40'
+                }`}
+              >
+                {done ? '✓' : current ? <span className="h-3 w-3 animate-spin rounded-full border-2 border-ink border-t-transparent" /> : n}
+              </span>
+              <span className={done || current ? 'text-ink' : 'text-ink/50'}>{label}</span>
+            </li>
+          )
+        })}
+      </ol>
+      {waiting && (
+        <div className="mt-4 text-center">
+          <button type="button" onClick={onStop} className="text-sm font-extrabold text-brand-dark underline underline-offset-4 hover:text-ink">
+            {t.stopWaiting}
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function JobFailed({ failure, t, onRetry, onEdit }: { failure: JobFailure; t: UiStrings; onRetry: () => void; onEdit: () => void }) {
+  const detail = failureDetail(failure)
+  return (
+    <div role="alert" className="rounded-2xl border-[3px] border-rose-700 bg-rose-50 p-4 text-rose-950">
+      <p className="text-lg font-black">{t.jobFailedTitle}</p>
+      <p className="mt-1 font-semibold">{failureMessage(t, failure)}</p>
+      {detail && (
+        <details className="mt-2 text-sm">
+          <summary className="cursor-pointer font-bold">{t.errorDetails}</summary>
+          <code className="mt-1 block rounded-lg bg-white/70 px-2 py-1 break-words">{detail}</code>
+        </details>
+      )}
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={onRetry}
+          className="min-h-11 rounded-2xl border-[3px] border-ink bg-sun px-4 font-black text-ink shadow-[0_3px_0_var(--color-ink)] active:translate-y-[2px] active:shadow-none"
+        >
+          ↻ {t.tryAgain}
+        </button>
+        <button type="button" onClick={onEdit} className="min-h-11 rounded-2xl border-[3px] border-ink bg-white px-4 font-black text-ink">
+          {t.changeParams}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function Field({ children }: { children: ReactNode }) {
+  return <div className="min-w-0">{children}</div>
+}
+
+export function GenerateCard({ lang, onReady }: { lang: Lang; onReady: (comicId: string, request: ComicJobRequest) => void }) {
+  const t = STRINGS[lang]
+  const { state, active, submit, reset } = useComicJob(onReady)
+  const resumed = state.phase === 'idle' ? null : state.request
+
+  const [grade, setGrade] = useState<Grade>(resumed?.grade ?? 5)
+  const [topic, setTopic] = useState<Topic>(resumed?.topic ?? 'fractions')
+  const [difficulty, setDifficulty] = useState<Difficulty>(resumed?.difficulty ?? 'basic')
+  const [comicLang, setComicLang] = useState<Lang>(resumed?.lang ?? lang)
+  const [langTouched, setLangTouched] = useState(resumed !== null)
+
+  // The comic language follows the UI language until the user picks one.
+  useEffect(() => {
+    if (!langTouched) setComicLang(lang)
+  }, [lang, langTouched])
+
+  function onSubmit(e: FormEvent) {
+    e.preventDefault()
+    if (active) return
+    submit({ grade, topic, lang: comicLang, difficulty })
+  }
+
+  const locked = active || state.phase === 'ready'
+
+  return (
+    <section
+      aria-labelledby="generate-title"
+      className="overflow-hidden rounded-[28px] border-[4px] border-ink bg-cream shadow-[0_6px_0_var(--color-ink)]"
+    >
+      <div className="flex items-center gap-3 bg-brand px-4 py-3 text-white sm:px-5">
+        <span aria-hidden className="grid h-9 w-9 shrink-0 place-items-center rounded-full border-[3px] border-ink bg-sun text-lg">
+          ✨
+        </span>
+        <div className="min-w-0">
+          <h2 id="generate-title" className="text-xl leading-tight font-black sm:text-2xl">
+            {t.createTitle}
+          </h2>
+          <p className="text-sm font-semibold text-white/90">{t.createLead}</p>
+        </div>
+      </div>
+
+      <form onSubmit={onSubmit} className="flex flex-col gap-4 p-4 sm:p-5" aria-busy={active}>
+        <fieldset disabled={locked} className="grid min-w-0 gap-4 sm:grid-cols-2">
+          <Field>
+            <Segmented<Grade>
+              legend={t.gradeLabel}
+              options={GRADES.map((g) => ({ value: g, label: t.gradeOption(g) }))}
+              value={grade}
+              onChange={setGrade}
+            />
+          </Field>
+          <Field>
+            <Segmented<Topic> legend={t.topicLabel} options={TOPICS.map((v) => ({ value: v, label: t.topics[v] }))} value={topic} onChange={setTopic} />
+          </Field>
+          <Field>
+            <Segmented<Lang>
+              legend={t.comicLangLabel}
+              options={LANGS.map((l) => ({ value: l, label: STRINGS[l].langName, lang: l }))}
+              value={comicLang}
+              onChange={(l) => {
+                setLangTouched(true)
+                setComicLang(l)
+              }}
+            />
+          </Field>
+          <div className="min-w-0 sm:col-span-2">
+            <Segmented<Difficulty>
+              legend={t.difficultyLabel}
+              options={DIFFICULTIES.map((d) => ({ value: d, label: t.difficulties[d] }))}
+              value={difficulty}
+              onChange={setDifficulty}
+            />
+          </div>
+        </fieldset>
+
+        {state.phase === 'failed' ? (
+          <JobFailed failure={state.failure} t={t} onRetry={() => submit(state.request)} onEdit={reset} />
+        ) : state.phase === 'idle' ? (
+          <button
+            type="submit"
+            className="min-h-14 rounded-2xl border-[3px] border-ink bg-sun px-5 text-xl font-black text-ink shadow-[0_5px_0_var(--color-ink)] transition hover:brightness-105 active:translate-y-[4px] active:shadow-[0_1px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          >
+            ✨ {t.generate}
+          </button>
+        ) : (
+          <JobProgress state={state} t={t} onStop={reset} />
+        )}
+      </form>
+    </section>
+  )
+}

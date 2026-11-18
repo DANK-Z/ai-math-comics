@@ -7,6 +7,8 @@ export interface Panel {
   speaker: string
   text: string
   imageKey: string
+  /** Generated comics: server-rendered artwork. May be relative to the API origin. */
+  imageUrl?: string | null
 }
 
 export interface Exercise {
@@ -43,7 +45,39 @@ export interface HintResponse {
   hasMore: boolean
 }
 
+export type Grade = 5 | 6
+export const GRADES: readonly Grade[] = [5, 6]
+export type Topic = 'fractions'
+export const TOPICS: readonly Topic[] = ['fractions']
+export type Difficulty = 'basic' | 'intermediate' | 'advanced'
+export const DIFFICULTIES: readonly Difficulty[] = ['basic', 'intermediate', 'advanced']
+
+export interface ComicJobRequest {
+  grade: Grade
+  topic: Topic
+  lang: Lang
+  difficulty: Difficulty
+}
+
+export type JobStatus = 'queued' | 'running' | 'ready' | 'failed'
+
+/** POST /api/comic-jobs → 202 */
+export interface ComicJobCreated {
+  jobId: string
+  status: JobStatus
+}
+
+/** GET /api/comic-jobs/{jobId} */
+export interface ComicJob {
+  jobId: string
+  status: JobStatus
+  comicId: string | null
+  errorCode: string | null
+}
+
 export interface Api {
+  createComicJob(req: ComicJobRequest, signal?: AbortSignal): Promise<ComicJobCreated>
+  getComicJob(jobId: string, signal?: AbortSignal): Promise<ComicJob>
   getComic(comicId: string, lang: Lang, signal?: AbortSignal): Promise<Comic>
   checkAnswer(exerciseId: string, req: CheckRequest, signal?: AbortSignal): Promise<CheckResponse>
   getHint(exerciseId: string, lang: Lang, step: HintStep, signal?: AbortSignal): Promise<HintResponse>

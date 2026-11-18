@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
-import { api, isAbortError } from './api'
+import { api, describeError, isAbortError } from './api'
 import type { CheckResponse, Comic, HintResponse, HintStep, Lang } from './api'
 
-type Async<T> = { data: T | null; loading: boolean; error: boolean }
+type Async<T> = { data: T | null; loading: boolean; error: boolean; errorDetail?: string }
 
 /** Loads the comic for `lang`. Keeps the previous language's data visible while switching. */
 export function useComic(comicId: string, lang: Lang) {
@@ -16,7 +16,7 @@ export function useComic(comicId: string, lang: Lang) {
       .getComic(comicId, lang, ctrl.signal)
       .then((data) => setState({ data, loading: false, error: false }))
       .catch((e) => {
-        if (!isAbortError(e)) setState((s) => ({ ...s, loading: false, error: true }))
+        if (!isAbortError(e)) setState((s) => ({ ...s, loading: false, error: true, errorDetail: describeError(e) }))
       })
     return () => ctrl.abort()
   }, [comicId, lang, nonce])

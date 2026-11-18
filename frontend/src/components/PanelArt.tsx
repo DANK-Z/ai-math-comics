@@ -1,7 +1,10 @@
+import { useState } from 'react'
+import { resolveImageUrl, type Lang } from '../api'
 import { PANEL_ASPECT, SCENES, type BubbleBox } from '../art/sheet'
 import { characterFor } from '../characters'
 import { RichText } from './RichText'
 import { SheetCrop } from './SheetCrop'
+import { STRINGS } from '../i18n'
 
 const TAIL_PATHS = {
   // Fill covers the bubble border where the tail joins; the stroke draws only the outer edges.
@@ -28,6 +31,9 @@ function Tail({ side, at }: { side: BubbleBox['tail']; at: number }) {
 
 interface Props {
   imageKey: string
+  /** Server artwork for generated comics; takes precedence over local scenes. */
+  imageUrl?: string | null
+  lang: Lang
   speaker: string
   text: string
   /** Thumbnail mode: art plus an empty bubble (hides baked-in lettering), no text. */
@@ -36,9 +42,25 @@ interface Props {
 }
 
 /** One comic panel: style-sheet artwork with a live, translatable speech bubble on top. */
-export function PanelArt({ imageKey, speaker, text, thumb = false, priority = false }: Props) {
+export function PanelArt({ imageKey, imageUrl, lang, speaker, text, thumb = false, priority = false }: Props) {
   const scene = SCENES[imageKey]
   const character = characterFor(speaker)
+
+  if (imageUrl) {
+    return (
+      <RemotePanel
+        key={imageUrl}
+        url={imageUrl}
+        imageKey={imageKey}
+        lang={lang}
+        speaker={speaker}
+        text={text}
+        thumb={thumb}
+        priority={priority}
+        tag={character?.tag}
+      />
+    )
+  }
 
   if (!scene) {
     return (
@@ -79,6 +101,80 @@ export function PanelArt({ imageKey, speaker, text, thumb = false, priority = fa
             </p>
           </>
         )}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Generated panel: server image (no lettering assumed) with the dialogue in a
+ * bubble beneath it, so the text never covers unknown artwork.
+ */
+function RemotePanel({
+  url,
+  imageKey,
+  lang,
+  speaker,
+  text,
+  thumb,
+  priority,
+  tag,
+}: {
+  url: string
+  imageKey: string
+  lang: Lang
+  speaker: string
+  text: string
+  thumb: boolean
+  priority: boolean
+  tag?: string
+}) {
+  const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>('loading')
+
+  const art = (
+    <div className="relative overflow-hidden bg-sky-100" style={{ aspectRatio: PANEL_ASPECT }}>
+      {status === 'loading' && <div aria-hidden className="absolute inset-0 animate-pulse bg-[linear-gradient(110deg,#dbe8ff_30%,#eef4ff_50%,#dbe8ff_70%)]" />}
+      {status === 'error' ? (
+        <div className="absolute inset-0 grid place-items-center p-2 text-center">
+          <span className={`font-bold text-ink/60 ${thumb ? 'text-lg' : 'text-sm'}`}>
+            {thumb ? '🖼️' : `🖼️ ${STRINGS[lang].imageError}`}
+            {!thumb && <span className="mt-1 block font-mono text-xs font-normal">{imageKey}</span>}
+          </span>
+        </div>
+      ) : (
+        <img
+          src={resolveImageUrl(url)}
+          alt=""
+          loading={priority ? 'eager' : 'lazy'}
+          decoding="async"
+          onLoad={() => setStatus('loaded')}
+          onError={() => setStatus('error')}
+          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${status === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
+        />
+      )}
+    </div>
+  )
+
+  if (thumb) return art
+
+  return (
+    <div className="@container">
+      {art}
+      <div className="border-t-[5px] border-ink bg-white px-3 pt-5 pb-3 sm:px-4">
+        <div className="relative rounded-[22px] border-[3px] border-ink bg-cream px-4 pt-4 pb-3 text-center text-ink shadow-[0_3px_0_rgb(29_39_102/0.25)]">
+          <svg aria-hidden viewBox="0 0 22 26" className="absolute -top-[23px] left-[14%] h-[26px] w-[22px]">
+            <path d="M0,26 L6,0 L18,26 Z" className="fill-cream" />
+            <path d="M1,25 L6,0 L17,25" className="fill-none stroke-ink" strokeWidth={3} strokeLinejoin="round" />
+          </svg>
+          <span
+            className={`absolute -top-[0.9em] left-1/2 -translate-x-1/2 rounded-full border-2 border-ink px-[0.7em] py-[0.1em] text-[clamp(10px,2.6cqw,15px)] font-black whitespace-nowrap uppercase ${tag ?? 'bg-sun text-ink'}`}
+          >
+            {speaker}
+          </span>
+          <p className="text-[clamp(15px,3.6cqw,24px)] leading-[1.25] font-extrabold text-balance">
+            <RichText text={text} />
+          </p>
+        </div>
       </div>
     </div>
   )

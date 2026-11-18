@@ -1,4 +1,4 @@
-import type { CheckStatus, Lang } from './api'
+import type { CheckStatus, Difficulty, Lang, Topic } from './api'
 import type { CharacterId } from './characters'
 
 // UI chrome strings. Comic content, feedback and hints come from the API.
@@ -35,6 +35,37 @@ export interface UiStrings {
   cast: Record<CharacterId, { name: string; role: string; about: string }>
   unlocked: string
   comicPage: string
+  // Generate flow
+  createTitle: string
+  createLead: string
+  gradeLabel: string
+  gradeOption: (n: number) => string
+  topicLabel: string
+  topics: Record<Topic, string>
+  comicLangLabel: string
+  difficultyLabel: string
+  difficulties: Record<Difficulty, string>
+  generate: string
+  submitting: string
+  jobQueued: string
+  jobRunning: string
+  jobWaitNote: string
+  jobSteps: [string, string, string]
+  jobElapsed: (s: number) => string
+  stopWaiting: string
+  jobReady: string
+  jobFailedTitle: string
+  jobErrors: { generation_failed: string; timeout: string; api: string; lost: string; unknown: string }
+  errorDetails: string
+  tryAgain: string
+  changeParams: string
+  demoBadge: string
+  demoTitle: string
+  demoLead: string
+  demoTeaser: string
+  readComic: string
+  backHome: string
+  imageError: string
 }
 
 export const STRINGS: Record<Lang, UiStrings> = {
@@ -75,6 +106,42 @@ export const STRINGS: Record<Lang, UiStrings> = {
     },
     unlocked: 'Кадры 5–6 открыты! Читай дальше →',
     comicPage: 'Комикс',
+    createTitle: 'Создай свой комикс',
+    createLead: 'Выбери класс и сложность — Пифик нарисует новую историю с задачей.',
+    gradeLabel: 'Класс',
+    gradeOption: (n) => `${n} класс`,
+    topicLabel: 'Тема',
+    topics: { fractions: 'Дроби' },
+    comicLangLabel: 'Язык комикса',
+    difficultyLabel: 'Сложность',
+    difficulties: { basic: 'Базовая', intermediate: 'Средняя', advanced: 'Продвинутая' },
+    generate: 'Создать комикс',
+    submitting: 'Отправляем…',
+    jobQueued: 'Задание в очереди…',
+    jobRunning: 'Пифик рисует комикс…',
+    jobWaitNote: 'Обычно это занимает меньше минуты.',
+    jobSteps: ['Задание принято', 'Рисуем кадры', 'Готово'],
+    jobElapsed: (s) => `${s} с`,
+    stopWaiting: 'Перестать ждать',
+    jobReady: 'Готово! Открываем комикс…',
+    jobFailedTitle: 'Не удалось создать комикс',
+    jobErrors: {
+      generation_failed: 'Генерация не удалась. Попробуй ещё раз.',
+      timeout: 'Генерация заняла слишком много времени.',
+      api: 'Сервер не ответил как ожидалось. Проверь подключение и попробуй снова.',
+      lost: 'Задание не найдено на сервере.',
+      unknown: 'Что-то пошло не так при создании комикса.',
+    },
+    errorDetails: 'Подробности',
+    tryAgain: 'Попробовать снова',
+    changeParams: 'Изменить параметры',
+    demoBadge: 'Демо',
+    demoTitle: 'Пицца для всех',
+    demoLead: 'Готовый комикс: три пиццы на четверых друзей.',
+    demoTeaser: 'Как разделить три пиццы на четверых?',
+    readComic: 'Читать комикс',
+    backHome: 'Все комиксы',
+    imageError: 'Картинка не загрузилась',
   },
   kk: {
     langName: 'Қазақша',
@@ -113,5 +180,41 @@ export const STRINGS: Record<Lang, UiStrings> = {
     },
     unlocked: '5–6 кадрлар ашылды! Әрі қарай оқы →',
     comicPage: 'Комикс',
+    createTitle: 'Өз комиксіңді жаса',
+    createLead: 'Сынып пен күрделілікті таңда — Пифик есебі бар жаңа оқиға салады.',
+    gradeLabel: 'Сынып',
+    gradeOption: (n) => `${n}-сынып`,
+    topicLabel: 'Тақырып',
+    topics: { fractions: 'Бөлшектер' },
+    comicLangLabel: 'Комикс тілі',
+    difficultyLabel: 'Күрделілігі',
+    difficulties: { basic: 'Базалық', intermediate: 'Орташа', advanced: 'Күрделі' },
+    generate: 'Комикс жасау',
+    submitting: 'Жіберілуде…',
+    jobQueued: 'Тапсырма кезекте…',
+    jobRunning: 'Пифик комикс салып жатыр…',
+    jobWaitNote: 'Әдетте бұл бір минуттан аз уақыт алады.',
+    jobSteps: ['Тапсырма қабылданды', 'Кадрлар салынуда', 'Дайын'],
+    jobElapsed: (s) => `${s} с`,
+    stopWaiting: 'Күтуді тоқтату',
+    jobReady: 'Дайын! Комикс ашылуда…',
+    jobFailedTitle: 'Комикс жасау мүмкін болмады',
+    jobErrors: {
+      generation_failed: 'Генерация сәтсіз аяқталды. Қайтадан байқап көр.',
+      timeout: 'Генерация тым ұзаққа созылды.',
+      api: 'Сервер күткендей жауап бермеді. Байланысты тексеріп, қайтадан байқап көр.',
+      lost: 'Тапсырма серверде табылмады.',
+      unknown: 'Комикс жасау кезінде бірдеңе дұрыс болмады.',
+    },
+    errorDetails: 'Толығырақ',
+    tryAgain: 'Қайтадан байқау',
+    changeParams: 'Параметрлерді өзгерту',
+    demoBadge: 'Демо',
+    demoTitle: 'Барлығына пицца',
+    demoLead: 'Дайын комикс: төрт досқа үш пицца.',
+    demoTeaser: 'Үш пиццаны төртеуге қалай бөлеміз?',
+    readComic: 'Комиксті оқу',
+    backHome: 'Барлық комикстер',
+    imageError: 'Сурет жүктелмеді',
   },
 }
