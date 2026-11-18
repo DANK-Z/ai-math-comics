@@ -172,8 +172,8 @@ def test_malformed_json():
     )
 
 
-def test_frontend_cors():
-    origin = "http://localhost:5173"
+@pytest.mark.parametrize("origin", ["http://localhost:5173", "http://127.0.0.1:5173"])
+def test_frontend_cors(origin):
     response = client.options(
         "/api/exercises/pizza-share/check",
         headers={

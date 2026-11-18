@@ -58,8 +58,6 @@ function failureMessage(t: UiStrings, f: JobFailure): string {
       return t.jobErrors.api
     case 'lost':
       return t.jobErrors.lost
-    case 'timeout':
-      return t.jobErrors.timeout
   }
 }
 
@@ -162,7 +160,7 @@ function Field({ children }: { children: ReactNode }) {
 
 export function GenerateCard({ lang, onReady }: { lang: Lang; onReady: (comicId: string, request: ComicJobRequest) => void }) {
   const t = STRINGS[lang]
-  const { state, active, submit, reset } = useComicJob(onReady)
+  const { state, active, submit, reset, resume, pauseWaiting } = useComicJob(onReady)
   const resumed = state.phase === 'idle' ? null : state.request
 
   const [grade, setGrade] = useState<Grade>(resumed?.grade ?? 5)
@@ -182,7 +180,7 @@ export function GenerateCard({ lang, onReady }: { lang: Lang; onReady: (comicId:
     submit({ grade, topic, lang: comicLang, difficulty })
   }
 
-  const locked = active || state.phase === 'ready'
+  const locked = active || state.phase === 'ready' || state.phase === 'paused'
 
   return (
     <section
@@ -237,6 +235,19 @@ export function GenerateCard({ lang, onReady }: { lang: Lang; onReady: (comicId:
 
         {state.phase === 'failed' ? (
           <JobFailed failure={state.failure} t={t} onRetry={() => submit(state.request)} onEdit={reset} />
+        ) : state.phase === 'paused' ? (
+          <div className="rounded-2xl border-[3px] border-ink bg-sky p-4">
+            <p role="status" className="font-semibold">{t.pollPaused}</p>
+            {state.reason.kind === 'api' && (
+              <details className="mt-2 text-sm">
+                <summary>{t.errorDetails}</summary>
+                <code className="break-words">{state.reason.detail}</code>
+              </details>
+            )}
+            <button type="button" onClick={resume} className="mt-3 min-h-11 rounded-2xl border-[3px] border-ink bg-sun px-4 font-black">
+              {t.resumeChecking}
+            </button>
+          </div>
         ) : state.phase === 'idle' ? (
           <button
             type="submit"
@@ -245,7 +256,7 @@ export function GenerateCard({ lang, onReady }: { lang: Lang; onReady: (comicId:
             ✨ {t.generate}
           </button>
         ) : (
-          <JobProgress state={state} t={t} onStop={reset} />
+          <JobProgress state={state} t={t} onStop={pauseWaiting} />
         )}
       </form>
     </section>

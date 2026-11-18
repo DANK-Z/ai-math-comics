@@ -23,7 +23,7 @@ Other scripts: `npm run build` (type-check + production build to `dist/`), `npm 
 
 `.env` sets mock mode; `.env.live` (loaded by `npm run dev:live`) sets live mode. Override
 locally with `.env.local` / `.env.live.local` (git-ignored). Live mode needs the backend to allow
-the `http://localhost:5173` origin in CORS.
+the `http://localhost:5173` or `http://127.0.0.1:5173` origin in CORS.
 
 The mocks (`src/api/mockApi.ts`, `src/api/mockData.ts`) follow the contract: six panels, exercise
 on panel 4, exact fraction checking (`3/4` and equivalents are correct, zero denominator is
@@ -45,9 +45,10 @@ integers; the backend is the source of truth for what else counts as valid input
    use the exercise id from that response.
 3. Only one job runs at a time: the form is locked and submit is guarded while a job is in flight.
    The active job is kept in `sessionStorage`, so leaving the screen stops polling and coming back
-   resumes the same job instead of creating a new one. Polling also pauses while the tab is hidden
-   and gives up after 3 minutes or 3 consecutive request errors.
-4. Failures show a localized message with *Try again* / *Change settings*; the technical detail
+   resumes the same job. After 3 minutes, 3 consecutive poll errors, or a manual pause, use
+   *Check status* to start a fresh polling window for the same job. This option survives reloads
+   in the same tab and only sends status GETs. Polling also waits while the tab is hidden.
+4. Terminal failures show a localized message with *Try again* / *Change settings*; the technical detail
    (HTTP status + FastAPI `detail`, or the job's `errorCode`) is under *Details*.
 
 Generated panels carry `imageUrl`. Absolute URLs are used as-is; relative ones are resolved

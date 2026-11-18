@@ -158,7 +158,7 @@ def test_generation_round_trip_and_restart(setup, grade, lang, difficulty):
             assert exercise_id != "pizza-share"
             expected = Fraction(store.exercise(exercise_id)["expected"])
             for answer, outcome in [
-                (str(expected), "correct"),
+                (f"{expected.numerator}/{expected.denominator}", "correct"),
                 (f"{expected.numerator * 7}/{expected.denominator * 7}", "correct"),
                 ("0/1", "incorrect"),
                 ("1/0", "invalid"),

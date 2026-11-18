@@ -4,6 +4,7 @@ import io
 import os
 import subprocess
 import sys
+from fractions import Fraction
 
 import pytest
 from fastapi.testclient import TestClient
@@ -57,12 +58,12 @@ def test_live_generation(tmp_path):
                 assert image.status_code == 200
                 Image.open(io.BytesIO(image.content)).verify()
             exercise_id = comic["exercise"]["id"]
-            expected = Store(tmp_path).exercise(exercise_id)["expected"]
+            expected = Fraction(Store(tmp_path).exercise(exercise_id)["expected"])
             assert (
                 api.post(
                     f"/api/exercises/{exercise_id}/check",
                     json={
-                        "answer": expected,
+                        "answer": f"{expected.numerator}/{expected.denominator}",
                         "lang": lang,
                     },
                 ).json()["status"]

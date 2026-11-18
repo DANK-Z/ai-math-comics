@@ -53,9 +53,11 @@ export interface UiStrings {
   jobSteps: [string, string, string]
   jobElapsed: (s: number) => string
   stopWaiting: string
+  pollPaused: string
+  resumeChecking: string
   jobReady: string
   jobFailedTitle: string
-  jobErrors: { generation_failed: string; timeout: string; api: string; lost: string; unknown: string }
+  jobErrors: { generation_failed: string; api: string; lost: string; unknown: string }
   errorDetails: string
   tryAgain: string
   changeParams: string
@@ -122,12 +124,13 @@ export const STRINGS: Record<Lang, UiStrings> = {
     jobWaitNote: 'Обычно это занимает меньше минуты.',
     jobSteps: ['Задание принято', 'Рисуем кадры', 'Готово'],
     jobElapsed: (s) => `${s} с`,
-    stopWaiting: 'Перестать ждать',
+    stopWaiting: 'Приостановить проверку',
+    pollPaused: 'Проверка приостановлена. Комикс может ещё создаваться.',
+    resumeChecking: 'Проверить статус',
     jobReady: 'Готово! Открываем комикс…',
     jobFailedTitle: 'Не удалось создать комикс',
     jobErrors: {
       generation_failed: 'Генерация не удалась. Попробуй ещё раз.',
-      timeout: 'Генерация заняла слишком много времени.',
       api: 'Сервер не ответил как ожидалось. Проверь подключение и попробуй снова.',
       lost: 'Задание не найдено на сервере.',
       unknown: 'Что-то пошло не так при создании комикса.',
@@ -196,12 +199,13 @@ export const STRINGS: Record<Lang, UiStrings> = {
     jobWaitNote: 'Әдетте бұл бір минуттан аз уақыт алады.',
     jobSteps: ['Тапсырма қабылданды', 'Кадрлар салынуда', 'Дайын'],
     jobElapsed: (s) => `${s} с`,
-    stopWaiting: 'Күтуді тоқтату',
+    stopWaiting: 'Тексеруді кідірту',
+    pollPaused: 'Тексеру кідіртілді. Комикс әлі жасалып жатуы мүмкін.',
+    resumeChecking: 'Күйін тексеру',
     jobReady: 'Дайын! Комикс ашылуда…',
     jobFailedTitle: 'Комикс жасау мүмкін болмады',
     jobErrors: {
       generation_failed: 'Генерация сәтсіз аяқталды. Қайтадан байқап көр.',
-      timeout: 'Генерация тым ұзаққа созылды.',
       api: 'Сервер күткендей жауап бермеді. Байланысты тексеріп, қайтадан байқап көр.',
       lost: 'Тапсырма серверде табылмады.',
       unknown: 'Комикс жасау кезінде бірдеңе дұрыс болмады.',

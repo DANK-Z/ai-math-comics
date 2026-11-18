@@ -29,6 +29,8 @@ export function ComicReader({ comic, lang, index, onIndexChange }: Props) {
   const current = Math.min(index, maxIndex)
   const panel = comic.panels[current]
   const isExercisePanel = panel.id === comic.exercise.panelId
+  const showCast = !comic.panels.some((p) => p.imageUrl)
+  const showSidebar = showCast || isExercisePanel
   const locked = current === maxIndex && maxIndex < total - 1
   const justUnlocked = check.solved && isExercisePanel && current < total - 1
 
@@ -43,7 +45,7 @@ export function ComicReader({ comic, lang, index, onIndexChange }: Props) {
   }, [current, maxIndex, onIndexChange])
 
   return (
-    <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(320px,380px)] lg:gap-7">
+    <div className={`grid items-start gap-5 lg:gap-7 ${showSidebar ? 'lg:grid-cols-[minmax(0,1fr)_minmax(320px,380px)]' : ''}`}>
       <section
         aria-label={comic.title}
         className="rounded-[28px] border-[3px] border-ink/10 bg-white p-3 shadow-[0_10px_30px_rgb(36_57_159/0.15)] sm:p-4"
@@ -148,12 +150,12 @@ export function ComicReader({ comic, lang, index, onIndexChange }: Props) {
         </nav>
       </section>
 
-      <aside className="flex flex-col gap-5">
+      <aside hidden={!showSidebar} className={showSidebar ? 'flex flex-col gap-5' : undefined}>
         {/* Kept mounted (hidden) off the exercise panel so the typed answer and hints survive navigation. */}
         <div hidden={!isExercisePanel}>
           <ExerciseCard exercise={comic.exercise} lang={lang} check={check} />
         </div>
-        <CastCard lang={lang} activeSpeaker={panel.speaker} compact={isExercisePanel} />
+        {showCast && <CastCard lang={lang} activeSpeaker={panel.speaker} compact={isExercisePanel} />}
       </aside>
     </div>
   )

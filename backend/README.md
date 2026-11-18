@@ -34,9 +34,10 @@ Start the worker in another terminal, also from `backend/`:
 ```
 
 The API is at `http://127.0.0.1:8000`, with interactive docs at `/docs`.
-CORS allows `http://localhost:5173`, including generated PNG responses. Both processes must
-use the same `COMIC_DATA_DIR`. Generation runs in the separate worker process, independently
-of HTTP connections and API restarts. Without a worker, accepted jobs remain `queued`.
+CORS allows `http://localhost:5173` and `http://127.0.0.1:5173`, including generated PNG
+responses. Both processes must use the same `COMIC_DATA_DIR`. The separate worker runs
+generation independently of HTTP connections and API restarts. Without a worker, accepted
+jobs remain `queued`.
 `python -m app.worker --once` processes at most one job and exits.
 
 ## Generate and read a comic

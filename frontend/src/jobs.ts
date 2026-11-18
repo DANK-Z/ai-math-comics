@@ -7,17 +7,19 @@ const TIMEOUT_MS = 3 * 60_000
 /** Consecutive poll errors tolerated before giving up (transient network blips). */
 const MAX_POLL_ERRORS = 3
 const STORAGE_KEY = 'amc.activeJob'
+type PollPause = { kind: 'timeout' } | { kind: 'api'; detail: string } | { kind: 'manual' }
+type PendingJob = { request: ComicJobRequest; jobId: string; status: 'queued' | 'running'; startedAt: number }
 
 export type JobFailure =
   | { kind: 'job'; code: string | null } // server says status=failed
   | { kind: 'api'; detail: string } // request failed
   | { kind: 'lost' } // job id unknown to the server
-  | { kind: 'timeout' }
 
 export type JobState =
   | { phase: 'idle' }
   | { phase: 'submitting'; request: ComicJobRequest }
-  | { phase: 'waiting'; request: ComicJobRequest; jobId: string; status: 'queued' | 'running'; startedAt: number }
+  | (PendingJob & { phase: 'waiting'; pollStartedAt: number })
+  | (PendingJob & { phase: 'paused'; reason: PollPause })
   | { phase: 'ready'; request: ComicJobRequest; jobId: string; comicId: string }
   | { phase: 'failed'; request: ComicJobRequest; failure: JobFailure }
 
@@ -25,6 +27,7 @@ interface Stored {
   jobId: string
   request: ComicJobRequest
   startedAt: number
+  reason?: PollPause
 }
 
 function loadStored(): JobState {
@@ -33,7 +36,10 @@ function loadStored(): JobState {
     if (!raw) return { phase: 'idle' }
     const s = JSON.parse(raw) as Stored
     if (typeof s.jobId !== 'string' || !s.request) return { phase: 'idle' }
-    return { phase: 'waiting', request: s.request, jobId: s.jobId, status: 'queued', startedAt: s.startedAt }
+    const job: PendingJob = { request: s.request, jobId: s.jobId, status: 'queued', startedAt: s.startedAt }
+    return s.reason
+      ? { ...job, phase: 'paused', reason: s.reason }
+      : { ...job, phase: 'waiting', pollStartedAt: Date.now() }
   } catch {
     return { phase: 'idle' }
   }
@@ -56,7 +62,7 @@ function store(s: Stored | null) {
  */
 export function useComicJob(onReady: (comicId: string, request: ComicJobRequest) => void) {
   const [state, setState] = useState<JobState>(loadStored)
-  const busy = useRef(state.phase === 'waiting')
+  const busy = useRef(state.phase === 'waiting' || state.phase === 'paused')
   const onReadyRef = useRef(onReady)
   onReadyRef.current = onReady
 
@@ -69,7 +75,7 @@ export function useComicJob(onReady: (comicId: string, request: ComicJobRequest)
       .then((created) => {
         const startedAt = Date.now()
         store({ jobId: created.jobId, request, startedAt })
-        setState({ phase: 'waiting', request, jobId: created.jobId, status: created.status === 'running' ? 'running' : 'queued', startedAt })
+        setState({ phase: 'waiting', request, jobId: created.jobId, status: created.status === 'running' ? 'running' : 'queued', startedAt, pollStartedAt: startedAt })
       })
       .catch((e) => {
         busy.current = false
@@ -83,11 +89,26 @@ export function useComicJob(onReady: (comicId: string, request: ComicJobRequest)
     setState({ phase: 'idle' })
   }, [])
 
+  const pause = useCallback((job: PendingJob, reason: PollPause) => {
+    const { jobId, request, startedAt } = job
+    store({ jobId, request, startedAt, reason })
+    setState({ ...job, phase: 'paused', reason })
+  }, [])
+
+  const resume = useCallback(() => {
+    if (state.phase !== 'paused') return
+    const { jobId, request, startedAt, status } = state
+    store({ jobId, request, startedAt })
+    setState({ phase: 'waiting', jobId, request, startedAt, status, pollStartedAt: Date.now() })
+  }, [state])
+
   const waitingJob = state.phase === 'waiting' ? state.jobId : null
+  const pollStartedAt = state.phase === 'waiting' ? state.pollStartedAt : null
 
   useEffect(() => {
     if (state.phase !== 'waiting') return
-    const { jobId, request, startedAt } = state
+    const waiting = state
+    const { jobId, request } = waiting
     const ctrl = new AbortController()
     let timer: ReturnType<typeof setTimeout> | undefined
     let paused = false
@@ -102,7 +123,7 @@ export function useComicJob(onReady: (comicId: string, request: ComicJobRequest)
     }
 
     const schedule = () => {
-      if (Date.now() - startedAt > TIMEOUT_MS) return finish({ phase: 'failed', request, failure: { kind: 'timeout' } })
+      if (Date.now() - waiting.pollStartedAt >= TIMEOUT_MS) return pause(waiting, { kind: 'timeout' })
       timer = setTimeout(tick, POLL_MS)
     }
 
@@ -117,7 +138,7 @@ export function useComicJob(onReady: (comicId: string, request: ComicJobRequest)
         errors = 0
         if (job.status === 'ready') {
           if (job.comicId) finish({ phase: 'ready', request, jobId, comicId: job.comicId })
-          else finish({ phase: 'failed', request, failure: { kind: 'api', detail: 'ready without comicId' } })
+          else pause(waiting, { kind: 'api', detail: 'ready without comicId' })
         } else if (job.status === 'failed') {
           finish({ phase: 'failed', request, failure: { kind: 'job', code: job.errorCode } })
         } else {
@@ -126,9 +147,9 @@ export function useComicJob(onReady: (comicId: string, request: ComicJobRequest)
           schedule()
         }
       } catch (e) {
-        if (isAbortError(e)) return
+        if (ctrl.signal.aborted || isAbortError(e)) return
         if (e instanceof ApiError && e.status === 404) return finish({ phase: 'failed', request, failure: { kind: 'lost' } })
-        if (++errors >= MAX_POLL_ERRORS) return finish({ phase: 'failed', request, failure: { kind: 'api', detail: describeError(e) } })
+        if (++errors >= MAX_POLL_ERRORS) return pause(waiting, { kind: 'api', detail: describeError(e) })
         schedule()
       }
     }
@@ -149,8 +170,11 @@ export function useComicJob(onReady: (comicId: string, request: ComicJobRequest)
     }
     // Re-run only when a different job starts; status updates don't restart polling.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [waitingJob])
+  }, [waitingJob, pollStartedAt, pause])
 
   const active = state.phase === 'submitting' || state.phase === 'waiting'
-  return { state, active, submit, reset }
+  const pauseWaiting = () => {
+    if (state.phase === 'waiting') pause(state, { kind: 'manual' })
+  }
+  return { state, active, submit, reset, resume, pauseWaiting }
 }
