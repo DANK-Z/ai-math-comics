@@ -1,5 +1,5 @@
 import { useEffect, useId, useState, type FormEvent, type ReactNode } from 'react'
-import { DIFFICULTIES, GRADES, LANGS, TOPICS, type ComicJobRequest, type Difficulty, type Grade, type Lang, type Topic } from '../api'
+import { ART_MODE, DIFFICULTIES, GRADES, LANGS, TOPICS, type ComicJobRequest, type Difficulty, type Grade, type Lang, type Topic } from '../api'
 import { PORTRAITS } from '../art/sheet'
 import { STRINGS, type UiStrings } from '../i18n'
 import { useComicJob, type JobFailure, type JobState } from '../jobs'
@@ -77,12 +77,18 @@ function useElapsed(since: number | null) {
   return since === null ? 0 : Math.max(0, Math.round((now - since) / 1000))
 }
 
+/** Generation copy for the configured art mode; prepared mode must not promise new drawings. */
+function generationCopy(t: UiStrings) {
+  return ART_MODE === 'prepared' ? t.prepared : { createLead: t.createLead, jobRunning: t.jobRunning, jobSteps: t.jobSteps }
+}
+
 function JobProgress({ state, t, onStop }: { state: JobState; t: UiStrings; onStop: () => void }) {
+  const copy = generationCopy(t)
   const waiting = state.phase === 'waiting' ? state : null
   const elapsed = useElapsed(waiting ? waiting.startedAt : null)
   const step = state.phase === 'ready' ? 3 : waiting?.status === 'running' ? 2 : 1
   const title =
-    state.phase === 'submitting' ? t.submitting : state.phase === 'ready' ? t.jobReady : waiting?.status === 'running' ? t.jobRunning : t.jobQueued
+    state.phase === 'submitting' ? t.submitting : state.phase === 'ready' ? t.jobReady : waiting?.status === 'running' ? copy.jobRunning : t.jobQueued
 
   return (
     <div role="status" aria-live="polite" className="rounded-2xl border-[3px] border-ink bg-sky p-4">
@@ -97,7 +103,7 @@ function JobProgress({ state, t, onStop }: { state: JobState; t: UiStrings; onSt
         </div>
       </div>
       <ol className="mt-4 grid grid-cols-3 gap-2 text-center text-xs font-extrabold sm:text-sm">
-        {t.jobSteps.map((label, i) => {
+        {copy.jobSteps.map((label, i) => {
           const n = i + 1
           const done = n < step || state.phase === 'ready'
           const current = n === step && state.phase !== 'ready'
@@ -195,7 +201,7 @@ export function GenerateCard({ lang, onReady }: { lang: Lang; onReady: (comicId:
           <h2 id="generate-title" className="text-xl leading-tight font-black sm:text-2xl">
             {t.createTitle}
           </h2>
-          <p className="text-sm font-semibold text-white/90">{t.createLead}</p>
+          <p className="text-sm font-semibold text-white/90">{generationCopy(t).createLead}</p>
         </div>
       </div>
 

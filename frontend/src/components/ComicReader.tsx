@@ -1,7 +1,9 @@
 import { useEffect } from 'react'
 import type { Comic, Lang } from '../api'
+import { PANEL_ASPECT } from '../art/sheet'
 import { useAnswerCheck } from '../hooks'
 import { STRINGS } from '../i18n'
+import { DEMO_COMIC_ID } from '../route'
 import { CastCard } from './CastCard'
 import { ExerciseCard } from './ExerciseCard'
 import { PanelArt } from './PanelArt'
@@ -29,7 +31,7 @@ export function ComicReader({ comic, lang, index, onIndexChange }: Props) {
   const current = Math.min(index, maxIndex)
   const panel = comic.panels[current]
   const isExercisePanel = panel.id === comic.exercise.panelId
-  const showCast = !comic.panels.some((p) => p.imageUrl)
+  const showCast = comic.id === DEMO_COMIC_ID || !comic.panels.some((p) => p.imageUrl)
   const showSidebar = showCast || isExercisePanel
   const locked = current === maxIndex && maxIndex < total - 1
   const justUnlocked = check.solved && isExercisePanel && current < total - 1
@@ -67,14 +69,14 @@ export function ComicReader({ comic, lang, index, onIndexChange }: Props) {
           className="panel-enter relative overflow-hidden rounded-2xl border-[5px] border-ink bg-sky-100"
           aria-label={`${panel.speaker}: ${panel.text}`}
         >
-          <PanelArt imageKey={panel.imageKey} imageUrl={panel.imageUrl} lang={lang} speaker={panel.speaker} text={panel.text} priority />
+          <PanelArt imageKey={panel.imageKey} imageUrl={panel.imageUrl} lang={lang} speaker={panel.speaker} text={panel.text} imageAspect={panel.imageAspect} priority />
           <span className={`absolute ${panel.imageUrl ? 'top-2' : 'bottom-2'} left-2 grid h-9 w-9 place-items-center rounded-full border-[3px] border-ink bg-sun text-lg font-black text-ink`}>
             {panel.id}
           </span>
         </figure>
 
         <nav aria-label={t.panelOf(current + 1, total)} className="mt-4 flex flex-col gap-3">
-          <ol className="mx-auto grid w-full max-w-xl grid-cols-6 gap-1.5 sm:gap-2.5">
+          <ol className="mx-auto grid w-full max-w-xl gap-1.5 sm:gap-2.5" style={{ gridTemplateColumns: `repeat(${total}, minmax(0, 1fr))` }}>
             {comic.panels.map((p, i) => {
               const reachable = i <= maxIndex
               const active = i === current
@@ -94,9 +96,11 @@ export function ComicReader({ comic, lang, index, onIndexChange }: Props) {
                           : 'cursor-not-allowed border-ink/30'
                     }`}
                   >
-                    <div className={reachable ? '' : 'blur-[3px] grayscale'}>
-                      <PanelArt imageKey={p.imageKey} imageUrl={p.imageUrl} lang={lang} speaker={p.speaker} text="" thumb />
-                    </div>
+                    {reachable ? (
+                      <PanelArt imageKey={p.imageKey} imageUrl={p.imageUrl} lang={lang} speaker={p.speaker} text="" imageAspect={p.imageAspect} thumb />
+                    ) : (
+                      <div aria-hidden className="bg-sky-100" style={{ aspectRatio: p.imageAspect ?? PANEL_ASPECT }} />
+                    )}
                     <span
                       className={`absolute top-0.5 left-0.5 grid h-4 min-w-4 place-items-center rounded-full border-[1.5px] border-ink px-0.5 text-[10px] font-black sm:top-1 sm:left-1 sm:h-5 sm:min-w-5 sm:border-2 sm:text-[11px] ${
                         active ? 'bg-sun text-ink' : 'bg-white text-ink'

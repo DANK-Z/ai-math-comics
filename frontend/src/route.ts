@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 export type Route = { name: 'home' } | { name: 'comic'; comicId: string }
 
 export const DEMO_COMIC_ID = 'pizza-fractions'
+export const SCHOOL_STORE_COMIC_ID = 'school-store-discount'
 
 function parse(hash: string): Route {
   const m = /^#\/comic\/([^/?#]+)/.exec(hash)

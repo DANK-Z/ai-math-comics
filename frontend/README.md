@@ -32,8 +32,12 @@ integers; the backend is the source of truth for what else counts as valid input
 
 ## Screens
 
-- `#/` — **home**: the Generate Comic form plus the ready-to-play *Pizza for Everyone* demo.
-- `#/comic/{comicId}` — **reader** for the demo (`pizza-fractions`) or any generated comic.
+- `#/` — **home**: the ready-to-read comic catalog, followed by the Generate Comic form.
+- `#/comic/{comicId}` — **reader** for *Pizza for Everyone* (`pizza-fractions`),
+  *School Store Discount* (`school-store-discount`), or a generated comic.
+
+Both catalog entries are independent of the generation worker. School Store Discount bundles
+its four panels and whole-number exercise in the frontend, so it works in both API modes.
 
 ## Generate Comic flow
 
@@ -73,32 +77,12 @@ their parameters, so the mock is stateless and survives reloads. Failure paths:
   language. UI strings live in `src/i18n.ts`.
 - **Answer feedback** — `correct` / `incorrect` / `invalid` states with the server's message.
 - **Pifik's hints** — step 1 then step 2, driven by `hasMore`.
-- **Illustrations** — art direction follows the style sheet in `docs/visual-guide.jpeg.jpeg`
-  (copied to `src/assets/reference-sheet.jpg`). `imageKey` maps to a region of that sheet in
-  `src/art/sheet.ts`; `PanelArt` crops it and draws a live speech bubble on top, so dialogue,
-  fractions (`a/b` is rendered stacked by `RichText`) and the problem statement stay real UI text
-  in both languages. Each bubble is positioned to fully cover the Russian lettering baked into the
-  source art. Unknown keys render a placeholder.
+- **Illustrations** — Pizza for Everyone and School Store Discount use their own bundled panels
+  and covers. Generated comics use their own image URLs. `PanelArt` displays the dialogue beneath
+  these images, and `RichText` renders fractions as stacked numerators and denominators.
 - **Cast** — Aldiyar, Aruna and Pifik portraits come from the same sheet; the current speaker is
   highlighted. Speakers are matched by name (`src/characters.ts`), so the backend should use
   `Алдияр` / `Аруна` / `Пифик`.
-
-### Artwork status
-
-There are no dedicated panel images yet; every panel is cropped from the 1280×720 style sheet,
-so art is upscaled (~2.5× on desktop) and slightly soft.
-
-| imageKey   | Source on the sheet                         | Needed                                   |
-| ---------- | ------------------------------------------- | ---------------------------------------- |
-| `pizza-01` | Pifik from the cast poster                  | **New panel**: Pifik greets the reader    |
-| `pizza-02` | Aruna from the cast poster                  | **New panel**: Aruna ordering 3 pizzas    |
-| `pizza-03` | Comic frame 1 (Aldiyar, three pizzas)       | Clean hi-res frame without lettering      |
-| `pizza-04` | Comic frame 3 (Pifik)                       | Clean hi-res frame without lettering      |
-| `pizza-05` | Comic frame 2 (Aruna at the board, 3/4)     | Clean hi-res frame without lettering      |
-| `pizza-06` | Comic frame 4 (Aldiyar celebrates)          | **New panel**: four friends sharing pizza |
-
-The story has four friends but the sheet only defines two kids; the other two have no design.
-Drop clean frames (4:3, no speech bubbles) into `src/assets/` and point the scene at them.
 
 ## Layout
 
@@ -106,7 +90,7 @@ Drop clean frames (4:3, no speech bubbles) into `src/assets/` and point the scen
 src/
   api/          contract types, HTTP client, mocks (incl. generated comics), mode switch
   art/          style-sheet regions and bubble placement per imageKey
-  assets/       reference-sheet.jpg (all artwork)
+  assets/       catalog covers and panels, plus the cast reference sheet
   components/   HomeScreen, GenerateCard, ReaderScreen, ComicReader, PanelArt, SheetCrop,
                 RichText, CastCard, ExerciseCard, PifikHints, LanguageSwitcher
   jobs.ts       generation job submit + polling hook
@@ -115,3 +99,13 @@ src/
   hooks.ts      data hooks (comic, answer check, hints, language)
   i18n.ts       UI strings for ru / kk
 ```
+
+### Catalog covers and art mode
+
+- Catalog entries live in `src/components/HomeScreen.tsx` (`CATALOG`). Each cover keeps its original
+  file and gets its own `framing` (phone and wide aspect ratio + object-position focal point), so the
+  cast and the story object stay visible. Show a grade only if the comic's metadata provides one.
+  Vary cover compositions as comics are added rather than repeating one layout.
+- `VITE_COMIC_ART_MODE` (`prepared` by default, or `live`) must match the backend's
+  `COMIC_ART_MODE`. In prepared mode the generation form says Pifik writes a story and a fractions
+  problem with prepared illustrations, and never promises new drawings.

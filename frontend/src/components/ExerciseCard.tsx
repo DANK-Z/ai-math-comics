@@ -22,6 +22,7 @@ export function ExerciseCard({ exercise, lang, check }: Props) {
   const [answer, setAnswer] = useState('')
   const inputId = useId()
   const { result, checking, error, submit, solved } = check
+  const wholeNumber = exercise.answerFormat === 'whole-number'
 
   function onSubmit(e: FormEvent) {
     e.preventDefault()
@@ -54,7 +55,7 @@ export function ExerciseCard({ exercise, lang, check }: Props) {
               id={inputId}
               value={answer}
               onChange={(e) => setAnswer(e.target.value)}
-              placeholder={t.answerPlaceholder}
+              placeholder={wholeNumber ? t.wholeNumberPlaceholder : t.answerPlaceholder}
               inputMode="text"
               autoComplete="off"
               disabled={solved}

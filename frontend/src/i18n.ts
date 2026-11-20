@@ -19,6 +19,7 @@ export interface UiStrings {
   exerciseTitle: string
   answerLabel: string
   answerPlaceholder: string
+  wholeNumberPlaceholder: string
   check: string
   checking: string
   checkError: string
@@ -63,9 +64,17 @@ export interface UiStrings {
   tryAgain: string
   changeParams: string
   demoBadge: string
+  catalogTitle: string
+  /** One-line explanation of the interactive format, shown under the catalog heading. */
+  catalogLead: string
+  catalogTopics: { fractions: string; percentages: string }
+  pizzaHook: string
+  schoolStoreHook: string
+  createOwn: string
+  hideForm: string
+  /** Generation copy when the backend runs COMIC_ART_MODE=prepared (no new images are drawn). */
+  prepared: { createLead: string; jobRunning: string; jobSteps: [string, string, string] }
   demoTitle: string
-  demoLead: string
-  demoTeaser: string
   readComic: string
   backHome: string
   imageError: string
@@ -89,6 +98,7 @@ export const STRINGS: Record<Lang, UiStrings> = {
     exerciseTitle: 'Задание',
     answerLabel: 'Твой ответ',
     answerPlaceholder: 'например, 1/2',
+    wholeNumberPlaceholder: 'например, 1 500',
     check: 'Проверить',
     checking: 'Проверяем…',
     checkError: 'Не удалось проверить ответ. Попробуй ещё раз.',
@@ -108,7 +118,7 @@ export const STRINGS: Record<Lang, UiStrings> = {
       aruna: { name: 'Аруна', role: 'подруга', about: 'Внимательная и креативная, помогает разобраться.' },
       pifik: { name: 'Пифик', role: 'AI-помощник', about: 'Объясняет правила и даёт подсказки.' },
     },
-    unlocked: 'Кадры 5–6 открыты! Читай дальше →',
+    unlocked: 'Читай дальше →',
     comicPage: 'Комикс',
     createTitle: 'Создай свой комикс',
     createLead: 'Выбери класс и сложность — Пифик нарисует новую историю с задачей.',
@@ -142,8 +152,18 @@ export const STRINGS: Record<Lang, UiStrings> = {
     changeParams: 'Изменить параметры',
     demoBadge: 'Демо',
     demoTitle: 'Пицца для всех',
-    demoLead: 'Готовый комикс: три пиццы на четверых друзей.',
-    demoTeaser: 'Как разделить три пиццы на четверых?',
+    catalogTitle: 'Каталог комиксов',
+    catalogLead: 'Реши задачу, чтобы открыть финал истории.',
+    catalogTopics: { fractions: 'Дроби', percentages: 'Проценты' },
+    pizzaHook: 'Три пиццы, четверо друзей. Как поделить поровну?',
+    schoolStoreHook: 'Рюкзак со скидкой. Сколько нужно заплатить?',
+    createOwn: 'Создать свой комикс',
+    hideForm: 'Свернуть',
+    prepared: {
+      createLead: 'Выбери класс и сложность — Пифик придумает историю и задачу на дроби с готовыми иллюстрациями.',
+      jobRunning: 'Пифик сочиняет историю…',
+      jobSteps: ['Задание принято', 'Пишем историю', 'Готово'],
+    },
     readComic: 'Читать комикс',
     backHome: 'Все комиксы',
     imageError: 'Картинка не загрузилась',
@@ -165,6 +185,7 @@ export const STRINGS: Record<Lang, UiStrings> = {
     exerciseTitle: 'Тапсырма',
     answerLabel: 'Сенің жауабың',
     answerPlaceholder: 'мысалы, 1/2',
+    wholeNumberPlaceholder: 'мысалы, 1 500',
     check: 'Тексеру',
     checking: 'Тексерілуде…',
     checkError: 'Жауапты тексеру мүмкін болмады. Қайтадан байқап көр.',
@@ -184,7 +205,7 @@ export const STRINGS: Record<Lang, UiStrings> = {
       aruna: { name: 'Аруна', role: 'құрбысы', about: 'Зейінді әрі шығармашыл, түсінуге көмектеседі.' },
       pifik: { name: 'Пифик', role: 'AI-көмекші', about: 'Ережелерді түсіндіреді, кеңес береді.' },
     },
-    unlocked: '5–6 кадрлар ашылды! Әрі қарай оқы →',
+    unlocked: 'Әрі қарай оқы →',
     comicPage: 'Комикс',
     createTitle: 'Өз комиксіңді жаса',
     createLead: 'Сынып пен күрделілікті таңда — Пифик есебі бар жаңа оқиға салады.',
@@ -218,8 +239,18 @@ export const STRINGS: Record<Lang, UiStrings> = {
     changeParams: 'Параметрлерді өзгерту',
     demoBadge: 'Демо',
     demoTitle: 'Барлығына пицца',
-    demoLead: 'Дайын комикс: төрт досқа үш пицца.',
-    demoTeaser: 'Үш пиццаны төртеуге қалай бөлеміз?',
+    catalogTitle: 'Комикстер каталогы',
+    catalogLead: 'Оқиғаның соңын ашу үшін есепті шеш.',
+    catalogTopics: { fractions: 'Бөлшектер', percentages: 'Пайыздар' },
+    pizzaHook: 'Үш пицца, төрт дос. Қалай тең бөлеміз?',
+    schoolStoreHook: 'Жеңілдіктегі арқа сөмкесі. Қанша төлеу керек?',
+    createOwn: 'Өз комиксіңді жасау',
+    hideForm: 'Жасыру',
+    prepared: {
+      createLead: 'Сынып пен күрделілікті таңда — Пифик дайын иллюстрациялармен оқиға мен бөлшектерге есеп құрастырады.',
+      jobRunning: 'Пифик оқиға құрастырып жатыр…',
+      jobSteps: ['Тапсырма қабылданды', 'Оқиға жазылуда', 'Дайын'],
+    },
     readComic: 'Комиксті оқу',
     backHome: 'Барлық комикстер',
     imageError: 'Сурет жүктелмеді',

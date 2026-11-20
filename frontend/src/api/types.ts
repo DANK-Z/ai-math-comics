@@ -9,12 +9,14 @@ export interface Panel {
   imageKey: string
   /** Generated comics: server-rendered artwork. May be relative to the API origin. */
   imageUrl?: string | null
+  imageAspect?: number
 }
 
 export interface Exercise {
   id: string
   panelId: number
   prompt: string
+  answerFormat?: 'whole-number'
 }
 
 export interface Comic {

@@ -39,10 +39,11 @@ interface Props {
   /** Thumbnail mode: art plus an empty bubble (hides baked-in lettering), no text. */
   thumb?: boolean
   priority?: boolean
+  imageAspect?: number
 }
 
 /** One comic panel: style-sheet artwork with a live, translatable speech bubble on top. */
-export function PanelArt({ imageKey, imageUrl, lang, speaker, text, thumb = false, priority = false }: Props) {
+export function PanelArt({ imageKey, imageUrl, lang, speaker, text, thumb = false, priority = false, imageAspect }: Props) {
   const scene = SCENES[imageKey]
   const character = characterFor(speaker)
 
@@ -57,6 +58,7 @@ export function PanelArt({ imageKey, imageUrl, lang, speaker, text, thumb = fals
         text={text}
         thumb={thumb}
         priority={priority}
+        imageAspect={imageAspect ?? PANEL_ASPECT}
         tag={character?.tag}
       />
     )
@@ -118,6 +120,7 @@ function RemotePanel({
   text,
   thumb,
   priority,
+  imageAspect,
   tag,
 }: {
   url: string
@@ -127,12 +130,13 @@ function RemotePanel({
   text: string
   thumb: boolean
   priority: boolean
+  imageAspect: number
   tag?: string
 }) {
   const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>('loading')
 
   const art = (
-    <div className="relative overflow-hidden bg-sky-100" style={{ aspectRatio: PANEL_ASPECT }}>
+    <div className="relative overflow-hidden bg-sky-100" style={{ aspectRatio: imageAspect }}>
       {status === 'loading' && <div aria-hidden className="absolute inset-0 animate-pulse bg-[linear-gradient(110deg,#dbe8ff_30%,#eef4ff_50%,#dbe8ff_70%)]" />}
       {status === 'error' ? (
         <div className="absolute inset-0 grid place-items-center p-2 text-center">
