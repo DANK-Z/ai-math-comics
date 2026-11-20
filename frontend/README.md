@@ -67,6 +67,15 @@ their parameters, so the mock is stateless and survives reloads. Failure paths:
 - `http://localhost:5173/?mockJob=fail` — the job ends `failed` with `errorCode: generation_failed`
 - `http://localhost:5173/?mockJob=reject` — `POST /api/comic-jobs` answers HTTP 503
 
+## Chapter 3 continuations
+
+Solve Chapter 3 and open its ending. The library-key preview offers a Create my episode
+action in live mode. It uses the same queue status endpoint and polling controls as regular
+generation, with a separate saved job ID. You can reopen the preview to resume checking or
+read a finished episode. A failed job leaves the preview available and offers an explicit retry.
+The reader reuses the existing library illustrations with localized dialogue and an equation.
+The episode links to Chapter 3 and canonical Chapter 4 and never changes season progress.
+
 ## Features
 
 - **Comic reader** — one panel at a time, prev/next buttons, dot navigation, ← / → keys.

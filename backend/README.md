@@ -73,6 +73,23 @@ around `/`, signs, and equivalent fractions are accepted with exact `Fraction` a
 Unequal fractions return `incorrect`; malformed input and zero denominators return `invalid`.
 These outcomes use HTTP 200 with localized feedback; numeric JSON answers return HTTP 422.
 
+### Chapter 3 continuation jobs
+
+In the library-key preview, live mode sends `POST /api/continuation-jobs` with
+`{"sourceChapterId":"school-quest-map","choiceId":"library-cabinet-key","locale":"kk"}`.
+The response is the same HTTP 202 job shape used by regular comics. Poll
+`GET /api/comic-jobs/{jobId}` and open the ready comic using the normal reader API.
+The server rejects other IDs and resolves the story context itself.
+
+The worker makes one bilingual text request with the configured story provider (Gemini
+when `COMIC_PROVIDER=gemini`). It always reuses the four bundled library panels,
+even if the regular Create Comic flow uses live image generation. The server keeps
+the six pictured loose books and three boxes fixed, chooses the total, and owns the
+equation and answer. Gemini writes dialogue and Pifik's clues. The server adds the
+two mathematical steps to the clues and validates the model's text before publication.
+The comic response identifies the continuation and its prepared panel keys. Its
+exercise uses the existing check and hint endpoints with a whole-number answer.
+
 ## Provider configuration
 
 See [`.env.example`](.env.example) for all settings:

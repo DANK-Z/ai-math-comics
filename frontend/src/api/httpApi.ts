@@ -1,5 +1,5 @@
 import { ApiError } from './errors'
-import type { Api, CheckResponse, Comic, ComicJob, ComicJobCreated, HintResponse } from './types'
+import type { Api, CheckResponse, Comic, ComicJob, ComicJobCreated, ContinuationJobRequest, HintResponse } from './types'
 
 /** Pulls `detail` / `message` / `errorCode` out of an error body (FastAPI uses `detail`). */
 async function readError(res: Response): Promise<ApiError> {
@@ -20,7 +20,7 @@ async function readError(res: Response): Promise<ApiError> {
   return new ApiError(res.status, `${res.status} ${res.statusText}`.trim(), { code, detail })
 }
 
-export function createHttpApi(baseUrl: string): Api {
+export function createHttpApi(baseUrl: string): Api & { createContinuationJob(body: ContinuationJobRequest): Promise<ComicJobCreated> } {
   const base = baseUrl.replace(/\/+$/, '')
 
   async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -57,6 +57,9 @@ export function createHttpApi(baseUrl: string): Api {
     createComicJob(req, signal) {
       // Contract: HTTP 202 Accepted. Any 2xx with a jobId is accepted.
       return request<ComicJobCreated>('/api/comic-jobs', { method: 'POST', body: JSON.stringify(req), signal })
+    },
+    createContinuationJob(body) {
+      return request<ComicJobCreated>('/api/continuation-jobs', { method: 'POST', body: JSON.stringify(body) })
     },
     getComicJob(jobId, signal) {
       return request<ComicJob>(`/api/comic-jobs/${encodeURIComponent(jobId)}`, { signal })

@@ -128,5 +128,26 @@ shapes and validation as `pizza-share`. Every generated comic has a unique
 exercise ID and two progressive localized hints. Expected answers stay server-side;
 equivalent fractions are checked with exact arithmetic. Unknown exercises return 404.
 
+## POST /api/continuation-jobs
+
+```json
+{"sourceChapterId":"school-quest-map","choiceId":"library-cabinet-key","locale":"kk"}
+```
+
+Only this chapter and choice pair is supported. `locale` is `ru` or `kk`; each
+episode is available in both. Extra fields are rejected. The server resolves the
+story context and chooses the equation operands. The endpoint returns the regular
+HTTP 202 job response and uses the same job status URL.
+
+Ready episodes use the same comic endpoint. They have four panels with bundled
+artwork (`imageKey` values `library-boxes-1` through `library-boxes-4`), no
+`imageUrl`, and `"artwork":"prepared"`. The response includes
+`continuation: { sourceChapterId, choiceId, nextChapterId }`, with
+`nextChapterId` set to `library-boxes`.
+
+The exercise is on panel 3 with `"answerFormat":"whole-number"`. It uses the
+existing check and hint endpoints; the answer is still sent as a string, and
+the expected answer stays on the server.
+
 See [backend setup and provider configuration](../backend/README.md).
 

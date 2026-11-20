@@ -1,4 +1,15 @@
-import type { Lang } from './api/types'
+import { createContinuationJob, type ContinuationJobRequest, type Lang } from './api'
+import { useComicJob } from './jobs'
+
+export function useContinuationJob() {
+  return useComicJob<ContinuationJobRequest>(undefined, {
+    createJob: createContinuationJob,
+    storageKey: 'amc.continuationJob',
+    rememberReady: true,
+  })
+}
+
+export type ContinuationJob = ReturnType<typeof useContinuationJob>
 
 type Localized<T> = Record<Lang, T>
 
@@ -44,33 +55,6 @@ export const CONTINUATION_CHOICES = {
 export type ContinuationChoiceId = keyof typeof CONTINUATION_CHOICES
 export const CONTINUATION_CHOICE_IDS = Object.keys(CONTINUATION_CHOICES) as ContinuationChoiceId[]
 
-const fixedStoryFacts = {
-  heroes: ['aldiyar', 'aruna', 'pifik'],
-  setting: 'school-fair',
-  backpack: 'yellow school backpack carrying the fair route map',
-  envelope: 'an envelope found during the fair route',
-  canonicalEnvelopeClue: 'the library is the next station',
-} as const
-
-export interface ContinuationInput {
-  sourceChapterId: string
-  choiceId: ContinuationChoiceId
-  locale: Lang
-  fixedStoryFacts: typeof fixedStoryFacts
-}
-
-export function continuationInput(
-  sourceChapterId: string,
-  choiceId: ContinuationChoiceId,
-  locale: Lang,
-): ContinuationInput {
-  return { sourceChapterId, choiceId, locale, fixedStoryFacts }
-}
-
-export function preparedPreview(input: ContinuationInput): string {
-  return CONTINUATION_CHOICES[input.choiceId].preview[input.locale]
-}
-
 export const CONTINUATION_COPY = {
   ru: {
     create: 'Придумать продолжение',
@@ -81,6 +65,12 @@ export const CONTINUATION_COPY = {
     chooseDifferent: 'Выбрать другой вариант',
     back: 'Вернуться к финалу главы',
     canonical: 'Перейти к главе 4',
+    source: 'Вернуться к главе 3',
+    generate: 'Создать мой эпизод',
+    openEpisode: 'Читать мой эпизод',
+    unavailable: 'Создание эпизода доступно при подключении к серверу.',
+    failed: 'Не удалось создать эпизод. Отрывок по-прежнему доступен.',
+    generationNote: 'ИИ напишет историю на русском и казахском. Иллюстрации уже готовы.',
   },
   kk: {
     create: 'Оқиғаны жалғастыру',
@@ -91,5 +81,11 @@ export const CONTINUATION_COPY = {
     chooseDifferent: 'Басқа нұсқаны таңдау',
     back: 'Тараудың соңына оралу',
     canonical: '4-тарауға өту',
+    source: '3-тарауға оралу',
+    generate: 'Өз эпизодымды жасау',
+    openEpisode: 'Өз эпизодымды оқу',
+    unavailable: 'Эпизод жасау үшін серверге қосылу керек.',
+    failed: 'Эпизод жасалмады. Дайын үзіндіні әлі де оқуға болады.',
+    generationNote: 'ЖИ оқиғаны қазақша және орысша жазады. Суреттер дайын.',
   },
 } satisfies Localized<Record<string, string>>

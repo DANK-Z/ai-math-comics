@@ -102,6 +102,15 @@ NUMBER_WORDS = re.compile(
 )
 
 
+def validate_narrative(text: str, path: str):
+    if not re.search(r"[А-Яа-яӘәҒғҚқҢңӨөҰұҮүҺһІі]", text) or re.search(r"[A-Za-z]", text):
+        raise StoryRuleError(path, "cyrillic_narrative")
+    if any(c.isnumeric() or c in "/=⁄¼½¾⅓⅔%" for c in text):
+        raise StoryRuleError(path, "no_numeric_characters_or_math_symbols")
+    if NUMBER_WORDS.search(text):
+        raise StoryRuleError(path, "no_number_words")
+
+
 def validate_story(raw: dict, problem: Problem, *, prepared: bool = False) -> Story | PreparedStory:
     story = (PreparedStory if prepared else Story).model_validate(raw)
     for lang in ("ru", "kk"):
@@ -126,12 +135,7 @@ def validate_story(raw: dict, problem: Problem, *, prepared: bool = False) -> St
             if p.id != 4
         ]
         for path, text in narrative:
-            if not re.search(r"[А-Яа-яӘәҒғҚқҢңӨөҰұҮүҺһІі]", text) or re.search(r"[A-Za-z]", text):
-                raise StoryRuleError(path, "cyrillic_narrative")
-            if any(c.isnumeric() or c in "/=⁄¼½¾⅓⅔%" for c in text):
-                raise StoryRuleError(path, "no_numeric_characters_or_math_symbols")
-            if NUMBER_WORDS.search(text):
-                raise StoryRuleError(path, "no_number_words")
+            validate_narrative(text, path)
     for index, (ru, kk) in enumerate(zip(story.ru.panels, story.kk.panels, strict=True)):
         if ru.speaker != kk.speaker:
             raise StoryRuleError(f"kk.panels[{index}].speaker", "same_speaker_across_translations")

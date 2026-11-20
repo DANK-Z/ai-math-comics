@@ -1,5 +1,5 @@
 import { useEffect, useId, useState, type FormEvent, type ReactNode } from 'react'
-import { ART_MODE, DIFFICULTIES, GRADES, LANGS, TOPICS, type ComicJobRequest, type Difficulty, type Grade, type Lang, type Topic } from '../api'
+import { api, ART_MODE, DIFFICULTIES, GRADES, LANGS, TOPICS, type ComicJobRequest, type Difficulty, type Grade, type Lang, type Topic } from '../api'
 import { PORTRAITS } from '../art/sheet'
 import { STRINGS, type UiStrings } from '../i18n'
 import { useComicJob, type JobFailure, type JobState } from '../jobs'
@@ -166,7 +166,7 @@ function Field({ children }: { children: ReactNode }) {
 
 export function GenerateCard({ lang, onReady }: { lang: Lang; onReady: (comicId: string, request: ComicJobRequest) => void }) {
   const t = STRINGS[lang]
-  const { state, active, submit, reset, resume, pauseWaiting } = useComicJob(onReady)
+  const { state, active, submit, reset, resume, pauseWaiting } = useComicJob(onReady, { createJob: api.createComicJob })
   const resumed = state.phase === 'idle' ? null : state.request
 
   const [grade, setGrade] = useState<Grade>(resumed?.grade ?? 5)

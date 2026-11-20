@@ -1,23 +1,24 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import type { Lang } from '../api/types'
+import { API_MODE, type Lang } from '../api'
+import { STRINGS } from '../i18n'
 import {
   CONTINUATION_CHOICE_IDS,
   CONTINUATION_CHOICES,
   CONTINUATION_COPY,
-  continuationInput,
-  preparedPreview,
+  type ContinuationJob,
   type ContinuationChoiceId,
 } from '../continuation'
-import { comicHref } from '../route'
+import { comicHref, SCHOOL_MAP_COMIC_ID } from '../route'
 
 interface Props {
-  sourceChapterId: string
+  sourceChapterId: typeof SCHOOL_MAP_COMIC_ID
   nextComicId: string
   lang: Lang
   buttonClass: string
+  job: ContinuationJob
 }
 
-export function Continuation({ sourceChapterId, nextComicId, lang, buttonClass }: Props) {
+export function Continuation({ sourceChapterId, nextComicId, lang, buttonClass, job }: Props) {
   const t = CONTINUATION_COPY[lang]
   const [view, setView] = useState<'closed' | 'choices' | 'preview'>('closed')
   const [choice, setChoice] = useState<ContinuationChoiceId | null>(null)
@@ -91,15 +92,67 @@ export function Continuation({ sourceChapterId, nextComicId, lang, buttonClass }
           <>
             <h3 id={headingId} ref={heading} tabIndex={-1} className="text-lg font-black text-ink">{t.preview}</h3>
             <p className="mt-2 font-extrabold text-brand-dark">{CONTINUATION_CHOICES[choice].label[lang]}</p>
-            <p className="mt-1 font-semibold leading-relaxed text-ink">{preparedPreview(continuationInput(sourceChapterId, choice, lang))}</p>
+            <p className="mt-1 font-semibold leading-relaxed text-ink">{CONTINUATION_CHOICES[choice].preview[lang]}</p>
             <div className="mt-4 flex flex-wrap gap-2">
               <button type="button" onClick={() => setView('choices')} className={`${buttonClass} bg-white`}>{t.chooseDifferent}</button>
               <button type="button" onClick={close} className={`${buttonClass} bg-white`}>{t.back}</button>
               <a href={comicHref(nextComicId)} className={`${buttonClass} bg-sun`}>{t.canonical}</a>
             </div>
+            {choice === 'library-cabinet-key' && (
+              <EpisodeAction lang={lang} sourceChapterId={sourceChapterId} buttonClass={buttonClass} job={job} />
+            )}
           </>
         )}
       </section>
     </>
+  )
+}
+
+function EpisodeAction({ lang, sourceChapterId, buttonClass, job }: Pick<Props, 'lang' | 'sourceChapterId' | 'buttonClass' | 'job'>) {
+  const copy = CONTINUATION_COPY[lang]
+  const t = STRINGS[lang]
+  const { state, submit, resume, pauseWaiting } = job
+  const wasPending = useRef(false)
+  const readyComicId = state.phase === 'ready' ? state.comicId : null
+  const pending = state.phase === 'submitting' || state.phase === 'waiting' || state.phase === 'paused'
+
+  useEffect(() => {
+    if (readyComicId && wasPending.current) {
+      window.location.hash = comicHref(readyComicId)
+    }
+    wasPending.current = pending
+  }, [pending, readyComicId])
+
+  if (API_MODE !== 'live') {
+    return <p className="mt-4 text-sm font-semibold">{copy.unavailable}</p>
+  }
+
+  const failure = state.phase === 'failed' ? state.failure : null
+  let message = copy.generationNote
+  if (state.phase === 'submitting') message = t.submitting
+  if (state.phase === 'waiting') message = state.status === 'queued' ? t.jobQueued : t.prepared.jobRunning
+  if (state.phase === 'paused') message = t.pollPaused
+  if (state.phase === 'ready') message = t.jobReady
+
+  return (
+    <div className="mt-4 rounded-xl border-2 border-ink bg-sky p-3">
+      {failure ? <p role="alert" className="font-semibold">{copy.failed}</p> : <p role="status" className="font-semibold">{message}</p>}
+      <div className="mt-2 flex flex-wrap gap-2">
+        {(state.phase === 'idle' || failure) && (
+          <button type="button" className={`${buttonClass} bg-white`} onClick={() => submit({
+            sourceChapterId, choiceId: 'library-cabinet-key', locale: lang,
+          })}>{failure ? t.tryAgain : copy.generate}</button>
+        )}
+        {state.phase === 'waiting' && (
+          <button type="button" onClick={pauseWaiting} className={`${buttonClass} bg-white`}>{t.stopWaiting}</button>
+        )}
+        {state.phase === 'paused' && (
+          <button type="button" onClick={resume} className={`${buttonClass} bg-white`}>{t.resumeChecking}</button>
+        )}
+        {state.phase === 'ready' && (
+          <a href={comicHref(state.comicId)} className={`${buttonClass} bg-white`}>{copy.openEpisode}</a>
+        )}
+      </div>
+    </div>
   )
 }

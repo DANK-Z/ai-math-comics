@@ -4,10 +4,11 @@ import { HomeScreen } from './components/HomeScreen'
 import { GuardianScreen } from './components/GuardianScreen'
 import { LanguageSwitcher } from './components/LanguageSwitcher'
 import { ReaderScreen } from './components/ReaderScreen'
+import { useContinuationJob } from './continuation'
 import { useGuardianChallenge } from './guardian'
 import { useLang } from './hooks'
 import { STRINGS } from './i18n'
-import { comicHref, useRoute } from './route'
+import { comicHref, SCHOOL_MAP_COMIC_ID, useRoute } from './route'
 import { useSeasonProgress } from './seasonProgress'
 import { SCHOOL_FAIR_CHAPTER_COUNT } from './schoolFair'
 
@@ -38,6 +39,7 @@ export default function App() {
   const [route, navigate] = useRoute()
   const { completedChapters, completeChapter } = useSeasonProgress()
   const guardian = useGuardianChallenge()
+  const continuationJob = useContinuationJob()
   const remaining = SCHOOL_FAIR_CHAPTER_COUNT - completedChapters.size
   const t = STRINGS[lang]
 
@@ -67,7 +69,15 @@ export default function App() {
 
       <main className="mx-auto max-w-6xl px-3 py-5 sm:px-4 sm:py-8">
         {route.name === 'comic' ? (
-          <ReaderScreen key={route.comicId} comicId={route.comicId} lang={lang} onChapterComplete={completeChapter} />
+          <ReaderScreen
+            key={comicHref(route.comicId, route.ending)}
+            comicId={route.comicId}
+            lang={lang}
+            onChapterComplete={completeChapter}
+            continuationJob={continuationJob}
+            chapterThreeSolved={route.comicId === SCHOOL_MAP_COMIC_ID && completedChapters.has(route.comicId)}
+            openEnding={route.ending}
+          />
         ) : route.name === 'guardian' ? (
           <GuardianScreen lang={lang} remaining={remaining} challenge={guardian} />
         ) : (

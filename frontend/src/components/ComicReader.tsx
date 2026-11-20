@@ -2,9 +2,10 @@ import { useCallback, useEffect } from 'react'
 import type { Comic, Lang } from '../api'
 import { PANEL_ASPECT } from '../art/sheet'
 import { CHARACTERS } from '../characters'
+import type { ContinuationJob } from '../continuation'
 import { useAnswerCheck } from '../hooks'
 import { STRINGS } from '../i18n'
-import { comicHref, DEMO_COMIC_ID, GARLAND_COMIC_ID, GUARDIAN_HREF } from '../route'
+import { comicHref, DEMO_COMIC_ID, GARLAND_COMIC_ID, GUARDIAN_HREF, SCHOOL_MAP_COMIC_ID } from '../route'
 import { schoolFairChapter } from '../schoolFair'
 import { CastCard } from './CastCard'
 import { Continuation } from './Continuation'
@@ -21,19 +22,22 @@ interface Props {
   index: number
   onIndexChange: (i: number) => void
   onChapterComplete: (comicId: string) => void
+  continuationJob: ContinuationJob
+  chapterThreeSolved: boolean
 }
 
 const BTN =
   'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-2xl border-[3px] border-ink px-4 py-2 font-black shadow-[0_4px_0_var(--color-ink)] transition active:translate-y-[3px] active:shadow-[0_1px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none'
 
-export function ComicReader({ comic, lang, index, onIndexChange, onChapterComplete }: Props) {
+export function ComicReader({ comic, lang, index, onIndexChange, onChapterComplete, continuationJob, chapterThreeSolved }: Props) {
   const t = STRINGS[lang]
   const comicId = comic.id
   const onCorrect = useCallback(() => onChapterComplete(comicId), [comicId, onChapterComplete])
   const check = useAnswerCheck(comic.exercise.id, lang, onCorrect)
+  const solved = check.solved || chapterThreeSolved
   const total = comic.panels.length
   const exerciseIndex = comic.panels.findIndex((p) => p.id === comic.exercise.panelId)
-  const maxIndex = GATE_AFTER_EXERCISE && exerciseIndex >= 0 && !check.solved ? exerciseIndex : total - 1
+  const maxIndex = GATE_AFTER_EXERCISE && exerciseIndex >= 0 && !solved ? exerciseIndex : total - 1
   const current = Math.min(index, maxIndex)
   const panel = comic.panels[current]
   const isExercisePanel = panel.id === comic.exercise.panelId
@@ -41,7 +45,7 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
   const showSidebar = showCast || isExercisePanel
   const locked = current === maxIndex && maxIndex < total - 1
   const justUnlocked = check.solved && isExercisePanel && current < total - 1
-  const ending = check.solved && current === total - 1 ? schoolFairChapter(comic.id) : undefined
+  const ending = solved && current === total - 1 ? schoolFairChapter(comic.id) : undefined
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -99,12 +103,13 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
               {comicId === GARLAND_COMIC_ID && (
                 <a href={GUARDIAN_HREF} className={`${BTN} w-full bg-white sm:w-auto`}>{t.guardian.title}</a>
               )}
-              {ending.number === 3 && ending.nextComicId && (
+              {comicId === SCHOOL_MAP_COMIC_ID && ending.nextComicId && (
                 <Continuation
-                  sourceChapterId={comic.id}
+                  sourceChapterId={SCHOOL_MAP_COMIC_ID}
                   nextComicId={ending.nextComicId}
                   lang={lang}
                   buttonClass={BTN}
+                  job={continuationJob}
                 />
               )}
             </div>

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 
-export type Route = { name: 'home' } | { name: 'comic'; comicId: string } | { name: 'guardian' }
+export type Route = { name: 'home' } | { name: 'comic'; comicId: string; ending: boolean } | { name: 'guardian' }
 export const GUARDIAN_HREF = '#/guardian'
 
 export const DEMO_COMIC_ID = 'pizza-fractions'
@@ -15,7 +15,8 @@ function parse(hash: string): Route {
   const m = /^#\/comic\/([^/?#]+)/.exec(hash)
   if (m) {
     try {
-      return { name: 'comic', comicId: decodeURIComponent(m[1]) }
+      const comicId = decodeURIComponent(m[1])
+      return { name: 'comic', comicId, ending: hash === comicHref(SCHOOL_MAP_COMIC_ID, true) }
     } catch {
       /* malformed id: fall through */
     }
@@ -23,8 +24,8 @@ function parse(hash: string): Route {
   return { name: 'home' }
 }
 
-export function comicHref(comicId: string) {
-  return `#/comic/${encodeURIComponent(comicId)}`
+export function comicHref(comicId: string, ending = false) {
+  return `#/comic/${encodeURIComponent(comicId)}${ending ? '?ending' : ''}`
 }
 
 /** Hash routes for the catalog, reader and final challenge. */

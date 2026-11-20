@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, ApiError, describeError, isAbortError } from './api'
-import type { ComicJobRequest } from './api'
+import type { ComicJobCreated, ComicJobRequest } from './api'
 
 const POLL_MS = 1500
 const TIMEOUT_MS = 3 * 60_000
@@ -8,35 +8,37 @@ const TIMEOUT_MS = 3 * 60_000
 const MAX_POLL_ERRORS = 3
 const STORAGE_KEY = 'amc.activeJob'
 type PollPause = { kind: 'timeout' } | { kind: 'api'; detail: string } | { kind: 'manual' }
-type PendingJob = { request: ComicJobRequest; jobId: string; status: 'queued' | 'running'; startedAt: number }
+type PendingJob<Request> = { request: Request; jobId: string; status: 'queued' | 'running'; startedAt: number }
 
 export type JobFailure =
   | { kind: 'job'; code: string | null } // server says status=failed
   | { kind: 'api'; detail: string } // request failed
   | { kind: 'lost' } // job id unknown to the server
 
-export type JobState =
+export type JobState<Request = ComicJobRequest> =
   | { phase: 'idle' }
-  | { phase: 'submitting'; request: ComicJobRequest }
-  | (PendingJob & { phase: 'waiting'; pollStartedAt: number })
-  | (PendingJob & { phase: 'paused'; reason: PollPause })
-  | { phase: 'ready'; request: ComicJobRequest; jobId: string; comicId: string }
-  | { phase: 'failed'; request: ComicJobRequest; failure: JobFailure }
+  | { phase: 'submitting'; request: Request }
+  | (PendingJob<Request> & { phase: 'waiting'; pollStartedAt: number })
+  | (PendingJob<Request> & { phase: 'paused'; reason: PollPause })
+  | { phase: 'ready'; request: Request; jobId: string; comicId: string }
+  | { phase: 'failed'; request: Request; failure: JobFailure }
 
-interface Stored {
+interface Stored<Request> {
   jobId: string
-  request: ComicJobRequest
+  request: Request
   startedAt: number
   reason?: PollPause
+  comicId?: string
 }
 
-function loadStored(): JobState {
+function loadStored<Request>(storageKey: string): JobState<Request> {
   try {
-    const raw = sessionStorage.getItem(STORAGE_KEY)
+    const raw = sessionStorage.getItem(storageKey)
     if (!raw) return { phase: 'idle' }
-    const s = JSON.parse(raw) as Stored
+    const s = JSON.parse(raw) as Stored<Request>
     if (typeof s.jobId !== 'string' || !s.request) return { phase: 'idle' }
-    const job: PendingJob = { request: s.request, jobId: s.jobId, status: 'queued', startedAt: s.startedAt }
+    if (typeof s.comicId === 'string') return { phase: 'ready', jobId: s.jobId, request: s.request, comicId: s.comicId }
+    const job: PendingJob<Request> = { request: s.request, jobId: s.jobId, status: 'queued', startedAt: s.startedAt }
     return s.reason
       ? { ...job, phase: 'paused', reason: s.reason }
       : { ...job, phase: 'waiting', pollStartedAt: Date.now() }
@@ -45,10 +47,10 @@ function loadStored(): JobState {
   }
 }
 
-function store(s: Stored | null) {
+function store<Request>(storageKey: string, s: Stored<Request> | null) {
   try {
-    if (s) sessionStorage.setItem(STORAGE_KEY, JSON.stringify(s))
-    else sessionStorage.removeItem(STORAGE_KEY)
+    if (s) sessionStorage.setItem(storageKey, JSON.stringify(s))
+    else sessionStorage.removeItem(storageKey)
   } catch {
     /* storage unavailable: the job just won't resume after a reload */
   }
@@ -60,47 +62,57 @@ function store(s: Stored | null) {
  * - Polling stops when the owning component unmounts (leaving the screen),
  *   pauses while the tab is hidden, and resumes from sessionStorage on return.
  */
-export function useComicJob(onReady: (comicId: string, request: ComicJobRequest) => void) {
-  const [state, setState] = useState<JobState>(loadStored)
+export function useComicJob<Request = ComicJobRequest>(
+  onReady: ((comicId: string, request: Request) => void) | undefined,
+  {
+    createJob,
+    storageKey = STORAGE_KEY,
+    rememberReady = false,
+  }: {
+    createJob: (request: Request) => Promise<ComicJobCreated>
+    storageKey?: string
+    rememberReady?: boolean
+  },
+) {
+  const [state, setState] = useState<JobState<Request>>(() => loadStored(storageKey))
   const busy = useRef(state.phase === 'waiting' || state.phase === 'paused')
   const onReadyRef = useRef(onReady)
   onReadyRef.current = onReady
 
-  const submit = useCallback((request: ComicJobRequest) => {
+  const submit = useCallback((request: Request) => {
     if (busy.current) return // synchronous guard against double clicks
     busy.current = true
     setState({ phase: 'submitting', request })
-    api
-      .createComicJob(request)
+    createJob(request)
       .then((created) => {
         const startedAt = Date.now()
-        store({ jobId: created.jobId, request, startedAt })
+        store(storageKey, { jobId: created.jobId, request, startedAt })
         setState({ phase: 'waiting', request, jobId: created.jobId, status: created.status === 'running' ? 'running' : 'queued', startedAt, pollStartedAt: startedAt })
       })
       .catch((e) => {
         busy.current = false
         setState({ phase: 'failed', request, failure: { kind: 'api', detail: describeError(e) } })
       })
-  }, [])
+  }, [createJob, storageKey])
 
   const reset = useCallback(() => {
     busy.current = false
-    store(null)
+    store(storageKey, null)
     setState({ phase: 'idle' })
-  }, [])
+  }, [storageKey])
 
-  const pause = useCallback((job: PendingJob, reason: PollPause) => {
+  const pause = useCallback((job: PendingJob<Request>, reason: PollPause) => {
     const { jobId, request, startedAt } = job
-    store({ jobId, request, startedAt, reason })
+    store(storageKey, { jobId, request, startedAt, reason })
     setState({ ...job, phase: 'paused', reason })
-  }, [])
+  }, [storageKey])
 
   const resume = useCallback(() => {
     if (state.phase !== 'paused') return
     const { jobId, request, startedAt, status } = state
-    store({ jobId, request, startedAt })
+    store(storageKey, { jobId, request, startedAt })
     setState({ phase: 'waiting', jobId, request, startedAt, status, pollStartedAt: Date.now() })
-  }, [state])
+  }, [state, storageKey])
 
   const waitingJob = state.phase === 'waiting' ? state.jobId : null
   const pollStartedAt = state.phase === 'waiting' ? state.pollStartedAt : null
@@ -114,12 +126,14 @@ export function useComicJob(onReady: (comicId: string, request: ComicJobRequest)
     let paused = false
     let errors = 0
 
-    const finish = (next: JobState) => {
+    const finish = (next: JobState<Request>) => {
       if (ctrl.signal.aborted) return
       busy.current = false
-      store(null)
+      store(storageKey, rememberReady && next.phase === 'ready'
+        ? { jobId, request, startedAt: waiting.startedAt, comicId: next.comicId }
+        : null)
       setState(next)
-      if (next.phase === 'ready') onReadyRef.current(next.comicId, next.request)
+      if (next.phase === 'ready') onReadyRef.current?.(next.comicId, next.request)
     }
 
     const schedule = () => {
@@ -170,7 +184,7 @@ export function useComicJob(onReady: (comicId: string, request: ComicJobRequest)
     }
     // Re-run only when a different job starts; status updates don't restart polling.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [waitingJob, pollStartedAt, pause])
+  }, [waitingJob, pollStartedAt, pause, rememberReady, storageKey])
 
   const active = state.phase === 'submitting' || state.phase === 'waiting'
   const pauseWaiting = () => {

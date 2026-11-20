@@ -24,6 +24,11 @@ export interface Comic {
   lang: Lang
   title: string
   artwork?: 'prepared'
+  continuation?: {
+    sourceChapterId: 'school-quest-map'
+    choiceId: 'library-cabinet-key'
+    nextChapterId: 'library-boxes'
+  }
   panels: Panel[]
   exercise: Exercise
 }
@@ -60,6 +65,12 @@ export interface ComicJobRequest {
   topic: Topic
   lang: Lang
   difficulty: Difficulty
+}
+
+export interface ContinuationJobRequest {
+  sourceChapterId: 'school-quest-map'
+  choiceId: 'library-cabinet-key'
+  locale: Lang
 }
 
 export type JobStatus = 'queued' | 'running' | 'ready' | 'failed'

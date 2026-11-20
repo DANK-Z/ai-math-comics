@@ -1,6 +1,6 @@
 import { createHttpApi } from './httpApi'
 import { mockApi } from './mockApi'
-import { FAIR_CHAPTERS } from './fairChapters'
+import { FAIR_CHAPTERS, LIBRARY_BOXES } from './fairChapters'
 import { buildLocalComic, checkLocalAnswer, localHint, type LocalComicDef } from './localComics'
 import { SCHOOL_STORE } from './schoolStore'
 import type { Api } from './types'
@@ -16,7 +16,9 @@ export const API_MODE: 'mock' | 'live' = import.meta.env.VITE_API_MODE === 'live
 export const ART_MODE: 'prepared' | 'live' = import.meta.env.VITE_COMIC_ART_MODE === 'live' ? 'live' : 'prepared'
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000').replace(/\/+$/, '')
 
-const configuredApi = API_MODE === 'live' ? createHttpApi(BASE_URL) : mockApi
+const httpApi = createHttpApi(BASE_URL)
+const configuredApi = API_MODE === 'live' ? httpApi : mockApi
+export const createContinuationJob = httpApi.createContinuationJob
 
 /** Bundled chapters 2–6 of “Operation: School Fair”: served locally in both API modes, no generator needed. */
 export const LOCAL_COMICS: readonly LocalComicDef[] = [SCHOOL_STORE, ...FAIR_CHAPTERS]
@@ -32,6 +34,19 @@ export const api: Api = {
       return buildLocalComic(local, lang)
     }
     const comic = await configuredApi.getComic(id, lang, signal)
+    if (comic.continuation?.nextChapterId === LIBRARY_BOXES.id) {
+      return {
+        ...comic,
+        panels: comic.panels.map((panel) => {
+          const art = LIBRARY_BOXES.panels[panel.id - 1]
+          return art ? {
+            ...panel,
+            imageUrl: new URL(art.image, window.location.href).href,
+            imageAspect: LIBRARY_BOXES.imageAspect,
+          } : panel
+        }),
+      }
+    }
     return id === DEMO_COMIC_ID ? withPizzaArtwork(comic) : comic
   },
   async checkAnswer(id, request, signal) {

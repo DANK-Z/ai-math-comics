@@ -10,11 +10,13 @@ from fastapi.responses import FileResponse
 
 from .config import Settings
 from .content import FEEDBACK, HINTS, get_comic
+from .library_episode import EXERCISE_PREFIX, check_library_answer
 from .prepared_art import ART_DIR, PREPARED_PANELS
 from .schemas import (
     CheckRequest,
     CheckResponse,
     Comic,
+    ContinuationRequest,
     HintResponse,
     JobAccepted,
     JobRequest,
@@ -48,6 +50,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def create_job(body: JobRequest, request: Request) -> JobAccepted:
         return JobAccepted(jobId=get_store(request).enqueue(body))
 
+    @app.post("/api/continuation-jobs", status_code=202, response_model=JobAccepted)
+    def create_continuation(body: ContinuationRequest, request: Request) -> JobAccepted:
+        return JobAccepted(jobId=get_store(request).enqueue(body))
+
     @app.get("/api/comic-jobs/{job_id}", response_model=JobStatus)
     def get_job(job_id: str, request: Request) -> JobStatus:
         job = get_store(request).job(job_id)
@@ -64,7 +70,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             raise HTTPException(404, "comic_not_found")
         comic = Comic.model_validate(payload[lang])
         for panel in comic.panels:
-            panel.imageUrl = f"{settings.public_base_url.rstrip('/')}{panel.imageUrl}"
+            if panel.imageUrl is not None:
+                panel.imageUrl = f"{settings.public_base_url.rstrip('/')}{panel.imageUrl}"
         return comic
 
     @app.get("/api/comic-images/{comic_id}/{panel_id}.png")
@@ -94,6 +101,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             exercise = get_store(request).exercise(exercise_id)
             if exercise is None:
                 raise HTTPException(404, "exercise_not_found")
+            if exercise_id.startswith(EXERCISE_PREFIX):
+                return check_library_answer(body, int(exercise["expected"]))
             expected = Fraction(exercise["expected"])
         match = FRACTION_PATTERN.fullmatch(body.answer.strip())
         status = "invalid"

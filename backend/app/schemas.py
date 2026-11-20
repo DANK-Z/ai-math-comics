@@ -20,6 +20,13 @@ class Exercise(BaseModel):
     id: str = "pizza-share"
     panelId: int = 4
     prompt: str
+    answerFormat: Literal["whole-number"] | None = None
+
+
+class ContinuationContext(BaseModel):
+    sourceChapterId: Literal["school-quest-map"]
+    choiceId: Literal["library-cabinet-key"]
+    nextChapterId: Literal["library-boxes"]
 
 
 class Comic(BaseModel):
@@ -29,6 +36,7 @@ class Comic(BaseModel):
     panels: list[Panel]
     exercise: Exercise
     artwork: Literal["prepared"] | None = None
+    continuation: ContinuationContext | None = None
 
 
 class CheckRequest(BaseModel):
@@ -54,6 +62,14 @@ class JobRequest(BaseModel):
     topic: Literal["fractions"]
     lang: Language
     difficulty: Literal["basic", "intermediate", "advanced"]
+
+
+class ContinuationRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    sourceChapterId: Literal["school-quest-map"]
+    choiceId: Literal["library-cabinet-key"]
+    locale: Language
 
 
 ErrorCode = Literal[
