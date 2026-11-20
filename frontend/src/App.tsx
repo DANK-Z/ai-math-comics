@@ -13,11 +13,11 @@ function Logo({ tagline }: { tagline: string }) {
       <p className="flex items-center gap-2" aria-label="AI Math Comics">
         <span
           aria-hidden
-          className="grid h-9 place-items-center rounded-xl border-[3px] border-ink bg-white px-1.5 text-xl leading-none font-black text-brand-dark shadow-[0_3px_0_var(--color-ink)] sm:h-12 sm:text-3xl"
+          className="grid h-9 place-items-center rounded-xl border-[3px] border-ink bg-white px-1.5 text-xl leading-none font-black text-brand-dark shadow-[0_3px_0_var(--color-ink)] max-[350px]:h-8 max-[350px]:text-lg sm:h-12 sm:text-3xl"
         >
           AI
         </span>
-        <span aria-hidden className="comic-outline text-[22px] leading-none font-black tracking-tight whitespace-nowrap text-sun italic sm:text-4xl">
+        <span aria-hidden className="comic-outline text-[22px] leading-none font-black tracking-tight whitespace-nowrap text-sun italic max-[350px]:text-base sm:text-4xl">
           MATH COMICS
         </span>
         <span aria-hidden className="hidden text-2xl sm:inline">
