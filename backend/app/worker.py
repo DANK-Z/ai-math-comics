@@ -4,12 +4,16 @@ import argparse
 import asyncio
 import json
 import logging
+from collections.abc import AsyncIterator, Sequence
+from contextlib import asynccontextmanager
 from uuid import uuid4
 
 import httpx
 from pydantic import ValidationError
 
 from .config import Settings
+from .gemini import gemini_providers
+from .prepared_art import ART_DIR, PREPARED_PANELS, PREPARED_SPEAKERS
 from .problems import Problem
 from .providers import (
     ImageProvider,
@@ -22,14 +26,24 @@ from .providers import (
 )
 from .schemas import Comic, Exercise, JobRequest, Panel
 from .storage import Store
-from .story import Story, image_prompt, text_prompt, validate_story
+from .story import (
+    PreparedStory,
+    ScenePanel,
+    Story,
+    StoryRuleError,
+    image_prompt,
+    text_prompt,
+    validate_story,
+)
 
 logger = logging.getLogger(__name__)
 SPEAKERS = {"mira": "Мира", "daniyar": "Данияр"}
 
 
 class Worker:
-    def __init__(self, store: Store, text: TextProvider, image: ImageProvider, settings: Settings):
+    def __init__(
+        self, store: Store, text: TextProvider, image: ImageProvider | None, settings: Settings
+    ):
         self.store = store
         self.text = text
         self.image = image
@@ -54,6 +68,8 @@ class Worker:
             self.store.fail(claim, "job_timeout")
         except ProviderError as exc:
             self.store.fail(claim, exc.code)
+            if exc.stage:
+                logger.info("Job %s provider stage: %s", claim["id"], exc.stage)
         except Exception:
             # Do not log model output, API keys, upstream bodies, or private answers.
             self.store.fail(claim, "generation_failed")
@@ -71,24 +87,50 @@ class Worker:
     async def generate(self, claim: dict, comic_id: str):
         request = JobRequest.model_validate_json(claim["request"])
         problem = Problem.from_dict(json.loads(claim["problem"]))
-        raw = await self.text.generate(text_prompt(request, problem), Story.model_json_schema())
+        prepared = self.settings.art_mode == "prepared"
+        if prepared and not all((ART_DIR / file).is_file() for _, file, _ in PREPARED_PANELS):
+            raise ProviderError("generation_failed", stage="prepared_art_missing")
+        schema = (PreparedStory if prepared else Story).model_json_schema()
         try:
-            story = validate_story(raw, problem)
-        except (ValidationError, ValueError, TypeError) as exc:
-            raise ProviderError("invalid_provider_output") from exc
+            raw = await self.text.generate(text_prompt(request, problem, prepared=prepared), schema)
+        except ProviderError as exc:
+            raise ProviderError(
+                exc.code, stage=f"story:{exc.stage or 'provider_request'}"
+            ) from None
+        try:
+            story = validate_story(raw, problem, prepared=prepared)
+        except StoryRuleError as exc:
+            raise ProviderError(
+                "invalid_provider_output",
+                stage=f"story_application_validation:{exc.path}:{exc.rule}",
+            ) from None
+        except ValidationError as exc:
+            error = exc.errors(include_input=False, include_context=False, include_url=False)[0]
+            fields = {
+                "ru",
+                "kk",
+                "title",
+                "panels",
+                "exercise",
+                "hints",
+                "id",
+                "speaker",
+                "text",
+                "scene",
+            }
+            path = ".".join(
+                str(part) if isinstance(part, int) or part in fields else "<extra>"
+                for part in error["loc"]
+            )
+            raise ProviderError(
+                "invalid_provider_output", stage=f"story_schema_validation:{path}:{error['type']}"
+            ) from None
 
-        directory = self.store.images_dir / comic_id
-        directory.mkdir()
-        reference = None
-        for panel in story.ru.panels:
-            image = normalize_png(await self.image.generate(image_prompt(panel.scene), reference))
-            if reference is None:
-                reference = image  # All later panels use the SAME first-panel visual anchor.
-            temporary = directory / f"{panel.id}.tmp"
-            temporary.write_bytes(image)
-            temporary.replace(directory / f"{panel.id}.png")
+        if not prepared:
+            await self.render_live_images(comic_id, story.ru.panels)
 
         exercise_id = f"fractions-{comic_id}"
+        speaker_names = PREPARED_SPEAKERS if prepared else SPEAKERS
         payload = {}
         hints = {}
         for lang in ("ru", "kk"):
@@ -97,13 +139,18 @@ class Worker:
                 id=comic_id,
                 lang=lang,
                 title=localized.title,
+                artwork="prepared" if prepared else None,
                 panels=[
                     Panel(
                         id=p.id,
-                        speaker=SPEAKERS[p.speaker],
+                        speaker=speaker_names[p.speaker],
                         text=p.text,
                         imageKey=f"{comic_id}-{p.id:02d}",
-                        imageUrl=f"/api/comic-images/{comic_id}/{p.id}.png",
+                        imageUrl=(
+                            f"/api/prepared-art/{p.id}.jpg"
+                            if prepared
+                            else f"/api/comic-images/{comic_id}/{p.id}.png"
+                        ),
                     )
                     for p in localized.panels
                 ],
@@ -113,13 +160,46 @@ class Worker:
             hints[lang] = localized.hints
         self.store.publish(claim, comic_id, payload, exercise_id, str(problem.expected), hints)
 
+    async def render_live_images(self, comic_id: str, panels: Sequence[ScenePanel]):
+        if self.image is None:
+            raise RuntimeError("Live artwork requires an image provider")
+        directory = self.store.images_dir / comic_id
+        directory.mkdir()
+        reference = None
+        for panel in panels:
+            try:
+                image = normalize_png(
+                    await self.image.generate(image_prompt(panel.scene), reference)
+                )
+            except ProviderError as exc:
+                stage = f"image:panel_{panel.id}:{exc.stage or 'provider_output'}"
+                raise ProviderError(exc.code, stage=stage) from None
+            if reference is None:
+                reference = image  # All later panels use the SAME first-panel visual anchor.
+            temporary = directory / f"{panel.id}.tmp"
+            temporary.write_bytes(image)
+            temporary.replace(directory / f"{panel.id}.png")
+
+
+@asynccontextmanager
+async def configured_providers(
+    settings: Settings,
+) -> AsyncIterator[tuple[TextProvider, ImageProvider | None]]:
+    if settings.provider == "gemini":
+        async with gemini_providers(settings) as providers:
+            yield providers
+        return
+    async with httpx.AsyncClient(follow_redirects=False) as client:
+        http = OpenAIHTTP(settings, client)
+        image = OpenAIImageProvider(http) if settings.art_mode == "live" else None
+        yield OpenAITextProvider(http), image
+
 
 async def run(once: bool = False):
     settings = Settings.from_env()
     store = Store(settings.data_dir)
-    async with httpx.AsyncClient(follow_redirects=False) as client:
-        http = OpenAIHTTP(settings, client)
-        worker = Worker(store, OpenAITextProvider(http), OpenAIImageProvider(http), settings)
+    async with configured_providers(settings) as (text, image):
+        worker = Worker(store, text, image, settings)
         while True:
             worked = await worker.run_once()
             if once:
@@ -137,6 +217,7 @@ def main():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
     # Suppress HTTP client request logging; the application logs only job IDs/status/codes.
     logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("google_genai").setLevel(logging.ERROR)
     try:
         asyncio.run(run(once=args.once))
     except KeyboardInterrupt:

@@ -58,6 +58,9 @@ export function ComicReader({ comic, lang, index, onIndexChange }: Props) {
             {t.panelOf(current + 1, total)}
           </p>
         </div>
+        {comic.artwork === 'prepared' && (
+          <p className="mb-3 px-1 text-sm font-semibold text-ink/70">{t.preparedArtwork}</p>
+        )}
 
         <figure
           key={panel.id}

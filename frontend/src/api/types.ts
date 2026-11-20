@@ -21,6 +21,7 @@ export interface Comic {
   id: string
   lang: Lang
   title: string
+  artwork?: 'prepared'
   panels: Panel[]
   exercise: Exercise
 }

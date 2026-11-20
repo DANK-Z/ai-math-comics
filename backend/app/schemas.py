@@ -28,6 +28,7 @@ class Comic(BaseModel):
     title: str
     panels: list[Panel]
     exercise: Exercise
+    artwork: Literal["prepared"] | None = None
 
 
 class CheckRequest(BaseModel):

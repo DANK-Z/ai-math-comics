@@ -18,8 +18,9 @@ from app.storage import Store
 @pytest.mark.skipif(os.getenv("RUN_LIVE_GENERATION") != "1", reason="Live generation is opt-in")
 def test_live_generation(tmp_path):
     configured = Settings.from_env()
-    if not configured.api_key.strip():
-        pytest.skip("OPENAI_API_KEY is unavailable; no real generation attempted")
+    key = configured.gemini_api_key if configured.provider == "gemini" else configured.api_key
+    if not key.strip():
+        pytest.skip(f"No API key configured for {configured.provider}")
     from dataclasses import replace
 
     settings = replace(configured, data_dir=tmp_path, public_base_url="http://testserver")
@@ -27,10 +28,10 @@ def test_live_generation(tmp_path):
         response = api.post(
             "/api/comic-jobs",
             json={
-                "grade": 5,
+                "grade": 6,
                 "topic": "fractions",
-                "lang": "ru",
-                "difficulty": "basic",
+                "lang": "kk",
+                "difficulty": "intermediate",
             },
         )
         assert response.status_code == 202

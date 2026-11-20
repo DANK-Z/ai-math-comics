@@ -11,8 +11,10 @@ python -m venv .venv
 Copy-Item .env.example .env
 ```
 
-Set `OPENAI_API_KEY` in `backend/.env`. API keys stay on the server; neither API responses nor
-image URLs contain them. `.env` and local data are ignored by Git. Existing process environment
+Set `COMIC_PROVIDER=gemini` and `GEMINI_API_KEY` in `backend/.env` to use Gemini for both
+story and images. For OpenAI, keep the default `COMIC_PROVIDER=openai` and set
+`OPENAI_API_KEY`. API responses and image URLs contain no credentials.
+`.env` and local data are ignored by Git. Existing process environment
 variables override `.env`. On macOS/Linux use `.venv/bin/python`; use `cp` to copy the example.
 For a runtime-only installation, install `requirements.txt`.
 
@@ -77,7 +79,12 @@ See [`.env.example`](.env.example) for all settings:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `OPENAI_API_KEY` | empty | Required only for AI generation; key with text/image model access and billing |
+| `COMIC_PROVIDER` | `openai` | Selects `openai` or `gemini` for both story and images |
+| `COMIC_ART_MODE` | `live` | Use `prepared` for the six bundled illustrations and zero image API calls |
+| `GEMINI_API_KEY` | empty | Gemini Developer API key with access to the selected models |
+| `GEMINI_TEXT_MODEL` | `gemini-3.8-flash` | Gemini model supporting structured JSON output |
+| `GEMINI_IMAGE_MODEL` | `gemini-3.1-flash-image` | Native Gemini model supporting image generation and reference images |
+| `OPENAI_API_KEY` | empty | OpenAI API key with text/image model access and billing |
 | `OPENAI_BASE_URL` | `https://api.openai.com/v1` | Server-controlled REST base URL |
 | `OPENAI_TEXT_MODEL` | `gpt-6-luna` | Chat Completions model supporting strict JSON Schema |
 | `OPENAI_TEXT_REASONING_EFFORT` | `none` | Set empty to omit for models that do not accept this field |
@@ -88,14 +95,33 @@ See [`.env.example`](.env.example) for all settings:
 | `COMIC_DATA_DIR` | `data` | Shared SQLite and image directory; relative to `backend/` |
 | `PUBLIC_BASE_URL` | `http://127.0.0.1:8000` | Externally reachable API base, including any reverse-proxy prefix |
 
-The adapters use OpenAI [structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs)
+The Gemini adapters use the official [Google Gen AI SDK](https://googleapis.github.io/python-genai/)
+with [structured output](https://ai.google.dev/gemini-api/docs/structured-output) for stories
+and [native image generation](https://ai.google.dev/gemini-api/docs/image-generation) for panels.
+The first image becomes the reference for the remaining five panels, as it does with OpenAI.
+
+The OpenAI adapters use [structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs)
 and the [Image API](https://developers.openai.com/api/docs/guides/image-generation).
 Defaults use [GPT-6 Luna](https://developers.openai.com/api/docs/models/gpt-6-luna) and
 [GPT-Image-2.5 Flare](https://developers.openai.com/api/docs/models/gpt-image-2.5-flare).
-Alternative endpoints must implement the same REST contracts. Each job makes one bilingual
-text request and six image requests at low quality, 1024×1024: an initial generation followed
-by five edits using the same first image as the character reference. No automatic retries
+Alternative OpenAI endpoints must implement the same REST contracts. OpenAI requests
+low-quality 1024×1024 images. Each job makes one bilingual text request and six image
+requests in live art mode. No automatic retries
 are made, so failures do not silently repeat paid calls. Re-submit a new job to retry.
+
+### Prepared artwork demo
+
+Set `COMIC_PROVIDER=gemini` and `COMIC_ART_MODE=prepared` in `backend/.env`, then restart
+the worker. Gemini generates the bilingual story and the server verifies the exercise and
+hints as usual. The prompt describes the six bundled portraits in order, and validation fixes
+each panel to its depicted speaker. The reader displays the dialogue as UI text and labels the
+comic as an AI-generated story with prepared artwork.
+
+Serve the app from the combined checkout so the backend can read the six existing JPEGs in
+`frontend/public/mock-images/`. The API serves them at `/api/prepared-art/{panelId}.jpg`.
+The worker skips all image provider calls and saves only comic data. Setting
+`COMIC_ART_MODE=live` restores image generation for future jobs. Existing comics retain their
+own artwork source when the setting changes.
 
 ## Math, validation, and persistence
 
@@ -137,6 +163,8 @@ Safe failure codes are `provider_not_configured`, `provider_authentication`,
 `provider_rate_limited`, `provider_timeout`, `provider_unavailable`, `invalid_provider_output`,
 `job_timeout`, `worker_interrupted`, and `generation_failed`. Upstream error bodies, keys,
 model output, and private answers are excluded from public error responses and worker logs.
+Worker logs can identify the Gemini response stage, HTTP status, or story validation
+field and rule. Unknown field names from a model are redacted.
 
 ## Automated checks
 
@@ -160,6 +188,6 @@ $env:RUN_LIVE_GENERATION = "1"
 Remove-Item Env:RUN_LIVE_GENERATION
 ```
 
-This test skips if `OPENAI_API_KEY` is absent. It uses an isolated temporary data directory,
+This test skips if the selected provider's API key is absent. It uses an isolated temporary data directory,
 verifies six image URLs, both translations, answer checking, and two hints, and prints the
 artifact directory for inspection. It does not prove visual quality; review the actual PNGs.

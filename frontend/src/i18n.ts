@@ -12,6 +12,7 @@ export interface UiStrings {
   prev: string
   next: string
   panelOf: (n: number, total: number) => string
+  preparedArtwork: string
   goToPanel: (n: number) => string
   locked: string
   restart: string
@@ -73,6 +74,7 @@ export interface UiStrings {
 export const STRINGS: Record<Lang, UiStrings> = {
   ru: {
     langName: 'Русский',
+    preparedArtwork: 'История создана ИИ · готовые иллюстрации',
     langShort: 'РУС',
     langLabel: 'Язык',
     loading: 'Загружаем комикс…',
@@ -148,6 +150,7 @@ export const STRINGS: Record<Lang, UiStrings> = {
   },
   kk: {
     langName: 'Қазақша',
+    preparedArtwork: 'Оқиғаны ЖИ құрастырды · дайын иллюстрациялар',
     langShort: 'ҚАЗ',
     langLabel: 'Тіл',
     loading: 'Комикс жүктелуде…',

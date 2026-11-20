@@ -3,6 +3,7 @@
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Literal
 
 from dotenv import load_dotenv
 
@@ -18,11 +19,20 @@ class Settings:
     text_model: str = "gpt-6-luna"
     text_reasoning_effort: str | None = "none"
     image_model: str = "gpt-image-2.5-flare"
+    provider: Literal["openai", "gemini"] = "openai"
+    art_mode: Literal["live", "prepared"] = "live"
+    gemini_api_key: str = field(default="", repr=False)
+    gemini_text_model: str = "gemini-3.8-flash"
+    gemini_image_model: str = "gemini-3.1-flash-image"
     provider_timeout: float = 180
     job_timeout: float = 1500
     poll_interval: float = 1
 
     def __post_init__(self):
+        if self.provider not in ("openai", "gemini"):
+            raise ValueError("COMIC_PROVIDER must be openai or gemini")
+        if self.art_mode not in ("live", "prepared"):
+            raise ValueError("COMIC_ART_MODE must be live or prepared")
         if self.text_reasoning_effort not in (None, "none", "minimal", "low", "medium", "high"):
             raise ValueError("Unsupported text reasoning effort")
         for value in (self.provider_timeout, self.job_timeout, self.poll_interval):
@@ -46,6 +56,11 @@ class Settings:
             text_model=os.getenv("OPENAI_TEXT_MODEL", "gpt-6-luna"),
             text_reasoning_effort=os.getenv("OPENAI_TEXT_REASONING_EFFORT", "none") or None,
             image_model=os.getenv("OPENAI_IMAGE_MODEL", "gpt-image-2.5-flare"),
+            provider=os.getenv("COMIC_PROVIDER", "openai").strip().lower(),
+            art_mode=os.getenv("COMIC_ART_MODE", "live").strip().lower(),
+            gemini_api_key=os.getenv("GEMINI_API_KEY", ""),
+            gemini_text_model=os.getenv("GEMINI_TEXT_MODEL", "gemini-3.8-flash"),
+            gemini_image_model=os.getenv("GEMINI_IMAGE_MODEL", "gemini-3.1-flash-image"),
             provider_timeout=float(os.getenv("PROVIDER_TIMEOUT_SECONDS", "180")),
             job_timeout=float(os.getenv("JOB_TIMEOUT_SECONDS", "1500")),
             poll_interval=float(os.getenv("WORKER_POLL_SECONDS", "1")),

@@ -4,6 +4,7 @@ import io
 import json
 import time
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import replace
 from fractions import Fraction
 
 import pytest
@@ -16,8 +17,8 @@ from app.problems import Problem
 from app.providers import ProviderError
 from app.schemas import JobRequest
 from app.storage import Store
-from app.story import SCENES, validate_story
-from app.worker import Worker
+from app.story import SCENES, PreparedStory, validate_story
+from app.worker import Worker, configured_providers
 
 REQUEST = {"grade": 5, "topic": "fractions", "lang": "ru", "difficulty": "basic"}
 
@@ -87,7 +88,7 @@ class DeterministicImages:
     async def generate(self, prompt, reference=None):
         self.calls.append((prompt, reference))
         if len(self.calls) == self.fail_at:
-            raise ProviderError("provider_unavailable")
+            raise ProviderError("provider_unavailable", stage="gemini_http:503")
         return png((len(self.calls) * 20, 100, 140))
 
 
@@ -261,10 +262,69 @@ def test_queue_survives_disconnected_client(tmp_path):
         assert client.get(f"/api/comic-jobs/{job_id}").json()["status"] == "ready"
 
 
-def test_image_failure_cleans_files_and_next_job_runs(setup):
+def test_prepared_comic_reuses_art_and_never_calls_an_image_provider(setup):
+    settings, client, store = setup
+    settings = replace(settings, provider="gemini", art_mode="prepared")
+    job_id = client.post("/api/comic-jobs", json=REQUEST).json()["jobId"]
+    cast = ["pifik", "aruna", "aldiyar", "pifik", "aruna", "aldiyar"]
+
+    class PreparedText:
+        async def generate(self, prompt, schema):
+            assert schema == PreparedStory.model_json_schema()
+            scenes = json.loads(prompt)["prepared_panels"]
+            assert [scene["speaker"] for scene in scenes] == cast
+            assert [scene["scene"] for scene in scenes] == list(SCENES)
+            assert "imagined situation" in prompt
+            story = story_for(prompt)
+            for language in story.values():
+                for panel, speaker in zip(language["panels"], cast, strict=True):
+                    panel["speaker"] = speaker
+            return story
+
+    async def run():
+        async with configured_providers(settings) as (_, image):
+            assert image is None
+            await Worker(store, PreparedText(), image, settings).run_once()
+
+    asyncio.run(run())
+    status = store.job(job_id)
+    assert status.status == "ready"
+    assert list(store.images_dir.iterdir()) == []
+    # The API is using its default live configuration and can still read this comic.
+    comic = client.get(f"/api/comics/{status.comicId}?lang=kk").json()
+    assert comic["artwork"] == "prepared"
+    assert [panel["speaker"] for panel in comic["panels"]] == ["Пифик", "Аруна", "Алдияр"] * 2
+    for idx, panel in enumerate(comic["panels"], 1):
+        assert panel["imageUrl"].endswith(f"/api/prepared-art/{idx}.jpg")
+        response = client.get(panel["imageUrl"])
+        assert response.status_code == 200
+        assert response.headers["content-type"] == "image/jpeg"
+        Image.open(io.BytesIO(response.content)).verify()
+    assert client.get("/api/prepared-art/7.jpg").status_code == 404
+
+
+def test_prepared_story_rejects_a_speaker_that_does_not_match_the_art():
+    from app.story import StoryRuleError, text_prompt
+
+    problem = Problem(("5/6",), 4)
+    prompt = text_prompt(JobRequest(**REQUEST), problem, prepared=True)
+    story = story_for(prompt)
+    for language in story.values():
+        for panel, description in zip(
+            language["panels"], json.loads(prompt)["prepared_panels"], strict=True
+        ):
+            panel["speaker"] = description["speaker"]
+    story["kk"]["panels"][1]["speaker"] = "aldiyar"
+    with pytest.raises(StoryRuleError, match=r"kk\.panels\[1\]\.speaker: prepared_scene_speaker"):
+        validate_story(story, problem, prepared=True)
+
+
+def test_image_failure_cleans_files_and_next_job_runs(setup, caplog):
     settings, client, store = setup
     first, second = [client.post("/api/comic-jobs", json=REQUEST).json()["jobId"] for _ in range(2)]
-    asyncio.run(Worker(store, DeterministicText(), DeterministicImages(3), settings).run_once())
+    with caplog.at_level("INFO", logger="app.worker"):
+        asyncio.run(Worker(store, DeterministicText(), DeterministicImages(3), settings).run_once())
+    assert f"Job {first} provider stage: image:panel_3:gemini_http:503" in caplog.text
     result = client.get(f"/api/comic-jobs/{first}").json()
     assert result == {
         "jobId": first,
@@ -379,6 +439,21 @@ def test_allow_localized_encouragement_without_confusing_it_with_number_words():
     assert validate_story(story, problem)
 
 
+def test_kazakh_number_filter_allows_equal_and_for_but_rejects_actual_numbers():
+    from app.story import StoryRuleError, text_prompt
+
+    problem = Problem(("5/6",), 4)
+    request = JobRequest(**(REQUEST | {"grade": 6, "lang": "kk", "difficulty": "intermediate"}))
+    story = story_for(text_prompt(request, problem))
+    panel = story["kk"]["panels"][1]
+    panel["text"] = "Әділ болу үшін үлестер бірдей болуы керек."
+    assert validate_story(story, problem)
+    for leak in ("үштен екі", "үшінші", "бірден үшке"):
+        panel["text"] = leak
+        with pytest.raises(StoryRuleError, match=r"kk\.panels\[1\]\.text: no_number_words"):
+            validate_story(story, problem)
+
+
 @pytest.mark.parametrize(
     "mutation", ["exercise", "hint", "count", "ids", "scene", "speaker", "extra"]
 )
@@ -403,6 +478,35 @@ def test_reject_untrusted_structure(mutation):
         story["solution"] = "3/4"
     with pytest.raises(ValueError):
         validate_story(story, problem)
+
+
+@pytest.mark.parametrize(
+    ("mutation", "diagnostic"),
+    [
+        ("schema", "story_schema_validation:kk.<extra>:extra_forbidden"),
+        ("hint", "story_application_validation:kk.hints[1]:exact_server_hint"),
+    ],
+)
+def test_story_failure_logs_only_safe_stage_path_and_rule(setup, caplog, mutation, diagnostic):
+    settings, client, store = setup
+    job_id = client.post("/api/comic-jobs", json=REQUEST).json()["jobId"]
+
+    class InvalidStory:
+        async def generate(self, prompt, schema):
+            story = story_for(prompt)
+            if mutation == "schema":
+                story["kk"]["UNTRUSTED_FIELD"] = "UNTRUSTED_CONTENT"
+            else:
+                story["kk"]["hints"][1] = "UNTRUSTED_CONTENT"
+            return story
+
+    images = DeterministicImages()
+    with caplog.at_level("INFO", logger="app.worker"):
+        asyncio.run(Worker(store, InvalidStory(), images, settings).run_once())
+    assert diagnostic in caplog.text
+    assert "UNTRUSTED" not in caplog.text
+    assert store.job(job_id).errorCode == "invalid_provider_output"
+    assert images.calls == []
 
 
 def test_fixed_problem_math_and_no_solution_in_prompts():

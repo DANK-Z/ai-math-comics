@@ -212,14 +212,21 @@ def test_optional_reasoning_field_is_omitted():
     asyncio.run(run())
 
 
-def test_standalone_worker_cli_persists_configuration_failure(tmp_path):
+@pytest.mark.parametrize("provider", ["openai", "gemini"])
+def test_standalone_worker_cli_persists_configuration_failure(tmp_path, provider):
     settings = Settings(data_dir=tmp_path)
     with TestClient(create_app(settings)) as api:
         job_id = api.post("/api/comic-jobs", json=REQUEST).json()["jobId"]
     process = subprocess.run(
         [sys.executable, "-m", "app.worker", "--once"],
         cwd=BACKEND_DIR,
-        env=dict(os.environ) | {"OPENAI_API_KEY": "", "COMIC_DATA_DIR": str(tmp_path)},
+        env=dict(os.environ)
+        | {
+            "COMIC_PROVIDER": provider,
+            "OPENAI_API_KEY": "",
+            "GEMINI_API_KEY": "",
+            "COMIC_DATA_DIR": str(tmp_path),
+        },
         capture_output=True,
         text=True,
         timeout=30,

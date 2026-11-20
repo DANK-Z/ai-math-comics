@@ -10,6 +10,7 @@ from fastapi.responses import FileResponse
 
 from .config import Settings
 from .content import FEEDBACK, HINTS, get_comic
+from .prepared_art import ART_DIR, PREPARED_PANELS
 from .schemas import (
     CheckRequest,
     CheckResponse,
@@ -76,6 +77,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if not path.is_file():
             raise HTTPException(404, "image_not_found")
         return FileResponse(path, media_type="image/png")
+
+    @app.get("/api/prepared-art/{panel_id}.jpg")
+    def prepared_image(panel_id: int) -> FileResponse:
+        if not 1 <= panel_id <= len(PREPARED_PANELS):
+            raise HTTPException(404, "image_not_found")
+        path = ART_DIR / PREPARED_PANELS[panel_id - 1][1]
+        if not path.is_file():
+            raise HTTPException(404, "image_not_found")
+        return FileResponse(path, media_type="image/jpeg")
 
     @app.post("/api/exercises/{exercise_id}/check", response_model=CheckResponse)
     def check_answer(exercise_id: str, body: CheckRequest, request: Request) -> CheckResponse:

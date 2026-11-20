@@ -17,9 +17,10 @@ MAX_IMAGE_BYTES = 20 * 1024 * 1024
 
 
 class ProviderError(Exception):
-    def __init__(self, code: ErrorCode):
+    def __init__(self, code: ErrorCode, *, stage: str | None = None):
         super().__init__(code)
         self.code = code
+        self.stage = stage
 
 
 class TextProvider(Protocol):

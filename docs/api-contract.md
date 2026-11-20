@@ -117,8 +117,9 @@ Actual responses contain six ordered panels, with the exercise in panel 4.
 Each generated comic is available in both `ru` and `kk`, sharing six illustrations
 and the exercise ID. `lang` defaults to `ru`; unsupported languages return 422.
 Unknown/unpublished comics return 404. Image URLs are absolute backend URLs
-configured by `PUBLIC_BASE_URL`, serve PNG files, and need no provider credentials.
-Only published images can be fetched. The original `pizza-fractions` response
+configured by `PUBLIC_BASE_URL` and need no provider credentials. Live images are PNG files
+and belong to published comics only. Prepared-art comics include `"artwork":"prepared"`
+and use the six shared JPEGs at `/api/prepared-art/{panelId}.jpg`. The original `pizza-fractions` response
 continues to omit `imageUrl` and uses the existing local `imageKey` mapping.
 
 Generated exercises reuse `POST /api/exercises/{exerciseId}/check` and
