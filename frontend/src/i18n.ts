@@ -65,11 +65,14 @@ export interface UiStrings {
   changeParams: string
   demoBadge: string
   catalogTitle: string
+  schoolFairTitle: string
+  chapterLabel: (n: number) => string
+  nextChapter: string
+  backToCatalog: string
   /** One-line explanation of the interactive format, shown under the catalog heading. */
   catalogLead: string
-  catalogTopics: { fractions: string; percentages: string }
+  catalogTopics: { fractions: string; percentages: string; scale: string; equations: string; proportions: string; perimeter: string }
   pizzaHook: string
-  schoolStoreHook: string
   createOwn: string
   hideForm: string
   /** Generation copy when the backend runs COMIC_ART_MODE=prepared (no new images are drawn). */
@@ -153,10 +156,20 @@ export const STRINGS: Record<Lang, UiStrings> = {
     demoBadge: 'Демо',
     demoTitle: 'Пицца для всех',
     catalogTitle: 'Каталог комиксов',
+    schoolFairTitle: 'Операция: школьная ярмарка',
+    chapterLabel: (n) => `Глава ${n}`,
+    nextChapter: 'Следующая глава',
+    backToCatalog: 'Вернуться в каталог',
     catalogLead: 'Реши задачу, чтобы открыть финал истории.',
-    catalogTopics: { fractions: 'Дроби', percentages: 'Проценты' },
+    catalogTopics: {
+      fractions: 'Дроби',
+      percentages: 'Проценты',
+      scale: 'Масштаб',
+      equations: 'Уравнения',
+      proportions: 'Пропорции',
+      perimeter: 'Периметр',
+    },
     pizzaHook: 'Три пиццы, четверо друзей. Как поделить поровну?',
-    schoolStoreHook: 'Рюкзак со скидкой. Сколько нужно заплатить?',
     createOwn: 'Создать свой комикс',
     hideForm: 'Свернуть',
     prepared: {
@@ -240,10 +253,20 @@ export const STRINGS: Record<Lang, UiStrings> = {
     demoBadge: 'Демо',
     demoTitle: 'Барлығына пицца',
     catalogTitle: 'Комикстер каталогы',
+    schoolFairTitle: 'Операция: мектеп жәрмеңкесі',
+    chapterLabel: (n) => `${n}-тарау`,
+    nextChapter: 'Келесі тарау',
+    backToCatalog: 'Каталогқа оралу',
     catalogLead: 'Оқиғаның соңын ашу үшін есепті шеш.',
-    catalogTopics: { fractions: 'Бөлшектер', percentages: 'Пайыздар' },
+    catalogTopics: {
+      fractions: 'Бөлшектер',
+      percentages: 'Пайыздар',
+      scale: 'Масштаб',
+      equations: 'Теңдеулер',
+      proportions: 'Пропорциялар',
+      perimeter: 'Периметр',
+    },
     pizzaHook: 'Үш пицца, төрт дос. Қалай тең бөлеміз?',
-    schoolStoreHook: 'Жеңілдіктегі арқа сөмкесі. Қанша төлеу керек?',
     createOwn: 'Өз комиксіңді жасау',
     hideForm: 'Жасыру',
     prepared: {

@@ -1,9 +1,11 @@
 import { createHttpApi } from './httpApi'
 import { mockApi } from './mockApi'
-import { checkSchoolStoreAnswer, schoolStoreComic, schoolStoreHint, SCHOOL_STORE_EXERCISE_ID } from './schoolStore'
+import { FAIR_CHAPTERS } from './fairChapters'
+import { buildLocalComic, checkLocalAnswer, localHint, type LocalComicDef } from './localComics'
+import { SCHOOL_STORE } from './schoolStore'
 import type { Api } from './types'
 import { withPizzaArtwork } from '../art/pizza'
-import { DEMO_COMIC_ID, SCHOOL_STORE_COMIC_ID } from '../route'
+import { DEMO_COMIC_ID } from '../route'
 
 export const API_MODE: 'mock' | 'live' = import.meta.env.VITE_API_MODE === 'live' ? 'live' : 'mock'
 /**
@@ -16,25 +18,33 @@ const BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000').
 
 const configuredApi = API_MODE === 'live' ? createHttpApi(BASE_URL) : mockApi
 
+/** Bundled chapters 2–6 of “Operation: School Fair”: served locally in both API modes, no generator needed. */
+export const LOCAL_COMICS: readonly LocalComicDef[] = [SCHOOL_STORE, ...FAIR_CHAPTERS]
+const byComicId = new Map(LOCAL_COMICS.map((d) => [d.id, d]))
+const byExerciseId = new Map(LOCAL_COMICS.map((d) => [d.exerciseId, d]))
+
 export const api: Api = {
   ...configuredApi,
   async getComic(id, lang, signal) {
-    if (id === SCHOOL_STORE_COMIC_ID) {
+    const local = byComicId.get(id)
+    if (local) {
       signal?.throwIfAborted()
-      return schoolStoreComic(lang)
+      return buildLocalComic(local, lang)
     }
     const comic = await configuredApi.getComic(id, lang, signal)
     return id === DEMO_COMIC_ID ? withPizzaArtwork(comic) : comic
   },
   async checkAnswer(id, request, signal) {
-    if (id !== SCHOOL_STORE_EXERCISE_ID) return configuredApi.checkAnswer(id, request, signal)
+    const local = byExerciseId.get(id)
+    if (!local) return configuredApi.checkAnswer(id, request, signal)
     signal?.throwIfAborted()
-    return checkSchoolStoreAnswer(request.answer, request.lang)
+    return checkLocalAnswer(local, request.answer, request.lang)
   },
   async getHint(id, lang, step, signal) {
-    if (id !== SCHOOL_STORE_EXERCISE_ID) return configuredApi.getHint(id, lang, step, signal)
+    const local = byExerciseId.get(id)
+    if (!local) return configuredApi.getHint(id, lang, step, signal)
     signal?.throwIfAborted()
-    return schoolStoreHint(lang, step)
+    return localHint(local, lang, step)
   },
 }
 

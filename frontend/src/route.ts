@@ -4,6 +4,10 @@ export type Route = { name: 'home' } | { name: 'comic'; comicId: string }
 
 export const DEMO_COMIC_ID = 'pizza-fractions'
 export const SCHOOL_STORE_COMIC_ID = 'school-store-discount'
+export const SCHOOL_MAP_COMIC_ID = 'school-quest-map'
+export const LIBRARY_BOXES_COMIC_ID = 'library-boxes'
+export const LEMONADE_COMIC_ID = 'fair-lemonade'
+export const GARLAND_COMIC_ID = 'fair-garland'
 
 function parse(hash: string): Route {
   const m = /^#\/comic\/([^/?#]+)/.exec(hash)

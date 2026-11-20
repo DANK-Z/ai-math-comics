@@ -1,9 +1,11 @@
 import { useEffect } from 'react'
 import type { Comic, Lang } from '../api'
 import { PANEL_ASPECT } from '../art/sheet'
+import { CHARACTERS } from '../characters'
 import { useAnswerCheck } from '../hooks'
 import { STRINGS } from '../i18n'
-import { DEMO_COMIC_ID } from '../route'
+import { comicHref, DEMO_COMIC_ID } from '../route'
+import { schoolFairChapter } from '../schoolFair'
 import { CastCard } from './CastCard'
 import { ExerciseCard } from './ExerciseCard'
 import { PanelArt } from './PanelArt'
@@ -35,6 +37,7 @@ export function ComicReader({ comic, lang, index, onIndexChange }: Props) {
   const showSidebar = showCast || isExercisePanel
   const locked = current === maxIndex && maxIndex < total - 1
   const justUnlocked = check.solved && isExercisePanel && current < total - 1
+  const ending = check.solved && current === total - 1 ? schoolFairChapter(comic.id) : undefined
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -74,6 +77,22 @@ export function ComicReader({ comic, lang, index, onIndexChange }: Props) {
             {panel.id}
           </span>
         </figure>
+
+        {ending && (
+          <div className="mt-4 rounded-2xl border-[3px] border-ink bg-cream p-4">
+            <span className={`inline-block rounded-lg border-2 border-ink px-2 py-0.5 text-sm font-black ${CHARACTERS[ending.speaker].tag}`}>
+              {t.cast[ending.speaker].name}
+            </span>
+            <p className="mt-2 font-bold text-ink">{ending.ending[lang]}</p>
+            <a
+              href={ending.nextComicId ? comicHref(ending.nextComicId) : '#/'}
+              className={`${BTN} mt-3 w-full bg-sun sm:w-auto`}
+            >
+              {ending.nextComicId ? t.nextChapter : t.backToCatalog}
+              <span aria-hidden>→</span>
+            </a>
+          </div>
+        )}
 
         <nav aria-label={t.panelOf(current + 1, total)} className="mt-4 flex flex-col gap-3">
           <ol className="mx-auto grid w-full max-w-xl gap-1.5 sm:gap-2.5" style={{ gridTemplateColumns: `repeat(${total}, minmax(0, 1fr))` }}>

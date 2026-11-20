@@ -1,10 +1,17 @@
 import { useId, useState, type CSSProperties } from 'react'
 import type { ComicJobRequest, Lang } from '../api'
-import { SCHOOL_STORE_TITLES } from '../api/schoolStore'
+import { GARLAND, LEMONADE, LIBRARY_BOXES, SCHOOL_MAP } from '../api/fairChapters'
+import type { LocalComicDef } from '../api/localComics'
+import { SCHOOL_STORE } from '../api/schoolStore'
+import garlandCover from '../assets/garland/cover.webp'
+import lemonadeCover from '../assets/lemonade/cover.webp'
+import libraryCover from '../assets/library-boxes/cover.webp'
+import mapCover from '../assets/school-map/cover.webp'
 import pizzaCover from '../assets/pizza/cover.png'
 import storeCover from '../assets/school-store/cover.png'
 import { STRINGS, type UiStrings } from '../i18n'
-import { comicHref, DEMO_COMIC_ID, SCHOOL_STORE_COMIC_ID } from '../route'
+import { comicHref, DEMO_COMIC_ID } from '../route'
+import { schoolFairChapter } from '../schoolFair'
 import { GenerateCard } from './GenerateCard'
 
 /** How a cover is cropped in its card: box aspect ratio + CSS object-position focal point. */
@@ -19,7 +26,7 @@ interface CatalogEntry {
   /** Phones (single column) and wider screens get separate crops. */
   framing: { phone: Framing; wide: Framing }
   title: (lang: Lang, t: UiStrings) => string
-  hook: (t: UiStrings) => string
+  hook: (lang: Lang, t: UiStrings) => string
   topic: keyof UiStrings['catalogTopics']
   /** Only set when the comic's own metadata confirms it; never guessed. */
   grade?: number
@@ -37,22 +44,29 @@ const CATALOG: CatalogEntry[] = [
     // Cast spans ~20–100% horizontally, pizzas along the bottom edge.
     framing: { phone: { aspect: '8 / 5', focus: '100% 55%' }, wide: { aspect: '8 / 5', focus: '100% 55%' } },
     title: (_lang, t) => t.demoTitle,
-    hook: (t) => t.pizzaHook,
+    hook: (_lang, t) => t.pizzaHook,
     topic: 'fractions',
   },
-  {
-    id: SCHOOL_STORE_COMIC_ID,
-    cover: storeCover,
-    // Aldiyar at ~28%, Aruna ~55%, the backpack ~70–88%, Pifik top right.
-    framing: { phone: { aspect: '4 / 3', focus: '82% 45%' }, wide: { aspect: '8 / 5', focus: '92% 45%' } },
-    title: (lang) => SCHOOL_STORE_TITLES[lang],
-    hook: (t) => t.schoolStoreHook,
-    topic: 'percentages',
-  },
+  // Aldiyar at ~28%, Aruna ~55%, the backpack ~70–88%, Pifik top right.
+  local(SCHOOL_STORE, storeCover, 'percentages', { phone: { aspect: '4 / 3', focus: '82% 45%' }, wide: { aspect: '8 / 5', focus: '92% 45%' } }),
+  // Cast around the map from ~6% to ~65%, backpack at ~80–88%: keep both ends.
+  local(SCHOOL_MAP, mapCover, 'scale', { phone: { aspect: '4 / 3', focus: '45% 50%' }, wide: { aspect: '8 / 5', focus: '60% 50%' } }),
+  // Kids and boxes on the left two thirds, shelves on the right.
+  local(LIBRARY_BOXES, libraryCover, 'equations', { phone: { aspect: '4 / 3', focus: '30% 55%' }, wide: { aspect: '8 / 5', focus: '20% 55%' } }),
+  // Symmetric: Aldiyar left, the jug centred, Aruna right.
+  local(LEMONADE, lemonadeCover, 'proportions', { phone: { aspect: '3 / 2', focus: '50% 50%' }, wide: { aspect: '8 / 5', focus: '50% 50%' } }),
+  // Wide group shot around the board: keep a wider crop so both kids stay in.
+  local(GARLAND, garlandCover, 'perimeter', { phone: { aspect: '3 / 2', focus: '45% 55%' }, wide: { aspect: '16 / 9', focus: '50% 55%' } }),
 ]
+
+function local(def: LocalComicDef, cover: string, topic: CatalogEntry['topic'], framing: CatalogEntry['framing']): CatalogEntry {
+  return { id: def.id, cover, framing, topic, title: (lang) => def.text[lang].title, hook: (lang) => def.text[lang].hook }
+}
 
 function CatalogCard({ entry, lang, t }: { entry: CatalogEntry; lang: Lang; t: UiStrings }) {
   const titleId = `${entry.id}-title`
+  const chapter = schoolFairChapter(entry.id)
+  const chapterId = `${entry.id}-chapter`
   const vars = {
     '--ar-phone': entry.framing.phone.aspect,
     '--ar-wide': entry.framing.wide.aspect,
@@ -64,6 +78,7 @@ function CatalogCard({ entry, lang, t }: { entry: CatalogEntry; lang: Lang; t: U
     <a
       href={comicHref(entry.id)}
       aria-labelledby={titleId}
+      aria-describedby={chapter ? chapterId : undefined}
       className="group flex flex-col rounded-[28px] border-[3px] border-ink/10 bg-white p-3 shadow-[0_10px_30px_rgb(36_57_159/0.15)] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-sun sm:p-4"
     >
       <div
@@ -83,10 +98,13 @@ function CatalogCard({ entry, lang, t }: { entry: CatalogEntry; lang: Lang; t: U
         </p>
       </div>
       <div className="flex-1 px-1 pt-3 pb-4">
+        {chapter && (
+          <p id={chapterId} className="text-sm font-black text-brand-dark">{t.chapterLabel(chapter.number)}</p>
+        )}
         <h3 id={titleId} className="text-xl font-black text-ink">
           {entry.title(lang, t)}
         </h3>
-        <p className="mt-0.5 font-bold text-ink/80">{entry.hook(t)}</p>
+        <p className="mt-0.5 font-bold text-ink/80">{entry.hook(lang, t)}</p>
       </div>
       <span className="flex min-h-12 items-center justify-center rounded-2xl border-[3px] border-ink bg-sun text-lg font-black text-ink shadow-[0_4px_0_var(--color-ink)] transition group-active:translate-y-[3px] group-active:shadow-[0_1px_0_var(--color-ink)]">
         {t.readComic} <span className="ml-2" aria-hidden>→</span>
@@ -113,9 +131,10 @@ export function HomeScreen({ lang, onReady }: { lang: Lang; onReady: (comicId: s
     <div className="flex flex-col gap-6 sm:gap-8">
       <section aria-labelledby="catalog-title">
         <div className="mb-4">
-          <h1 id="catalog-title" className="text-2xl font-black text-ink sm:text-3xl">
+          <h1 className="text-2xl font-black text-ink sm:text-3xl">{t.schoolFairTitle}</h1>
+          <h2 id="catalog-title" className="mt-2 text-lg font-black text-ink sm:text-xl">
             {t.catalogTitle}
-          </h1>
+          </h2>
           <p className="mt-1 text-base font-bold text-brand-dark sm:text-lg">{t.catalogLead}</p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 sm:gap-5">
