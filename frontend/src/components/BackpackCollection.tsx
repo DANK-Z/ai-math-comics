@@ -23,11 +23,12 @@ export function CollectibleIcon({ item }: { item: SchoolFairCollectible }) {
   )
 }
 
-export function BackpackCollection({ t, completedChapters, id, hidden }: {
+export function BackpackCollection({ t, completedChapters, id, hidden, hasPriceTagSticker }: {
   t: UiStrings
   completedChapters: ReadonlySet<string>
   id: string
   hidden: boolean
+  hasPriceTagSticker: boolean
 }) {
   const earned = SCHOOL_FAIR_STOPS.filter(({ comicId }) => completedChapters.has(comicId))
 
@@ -55,6 +56,17 @@ export function BackpackCollection({ t, completedChapters, id, hidden }: {
       ) : (
         <p className="mt-1 text-sm font-semibold">{t.backpack.empty}</p>
       )}
+      <section aria-labelledby={`${id}-bonus-title`} className="mt-3 border-t-2 border-ink/20 pt-2">
+        <h4 id={`${id}-bonus-title`} className="text-sm font-black">{t.priceTagBonus.stickerSection}</h4>
+        {hasPriceTagSticker ? (
+          <p className="mt-1 inline-flex items-center gap-2 rounded-xl border-2 border-ink/70 bg-sun/25 px-2 py-1 text-sm font-bold">
+            <span aria-hidden="true">🏷️</span>
+            <span>{t.priceTagBonus.sticker}</span>
+          </p>
+        ) : (
+          <p className="mt-1 text-sm font-semibold">{t.priceTagBonus.empty}</p>
+        )}
+      </section>
     </section>
   )
 }

@@ -17,12 +17,13 @@ interface Props {
   completedChapters: ReadonlySet<string>
   remaining: number
   guardianWon: boolean
+  hasPriceTagSticker: boolean
 }
 
 const LINK = 'flex min-h-14 items-center gap-2 rounded-xl border-2 p-2 text-ink shadow-[0_2px_0_var(--color-ink)] hover:border-brand hover:bg-sky focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand sm:gap-3'
 const MARKER = 'grid size-6 shrink-0 place-items-center rounded-full border-2 border-ink text-xs font-black'
 
-export function SchoolFairRoute({ t, covers, completedChapters, remaining, guardianWon }: Props) {
+export function SchoolFairRoute({ t, covers, completedChapters, remaining, guardianWon, hasPriceTagSticker }: Props) {
   const [backpackOpen, setBackpackOpen] = useState(false)
   const backpackId = useId()
   const suggested = SCHOOL_FAIR_STOPS.find(({ comicId }) => !completedChapters.has(comicId))
@@ -52,7 +53,10 @@ export function SchoolFairRoute({ t, covers, completedChapters, remaining, guard
         </div>
       </div>
 
-      <BackpackCollection t={t} id={backpackId} hidden={!backpackOpen} completedChapters={completedChapters} />
+      <BackpackCollection
+        t={t} id={backpackId} hidden={!backpackOpen}
+        completedChapters={completedChapters} hasPriceTagSticker={hasPriceTagSticker}
+      />
 
       <ol className="fair-route-stops list-none" role="list">
         {SCHOOL_FAIR_STOPS.map(({ comicId, number, location }) => {

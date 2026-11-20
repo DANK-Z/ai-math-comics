@@ -8,6 +8,7 @@ import { useContinuationJob } from './continuation'
 import { useGuardianChallenge } from './guardian'
 import { useLang } from './hooks'
 import { STRINGS } from './i18n'
+import { usePriceTagSticker } from './priceTagSticker'
 import { comicHref, SCHOOL_MAP_COMIC_ID, useRoute } from './route'
 import { useSeasonProgress } from './seasonProgress'
 import { SCHOOL_FAIR_CHAPTER_COUNT } from './schoolFair'
@@ -38,6 +39,7 @@ export default function App() {
   const [lang, setLang] = useLang()
   const [route, navigate] = useRoute()
   const { completedChapters, completeChapter } = useSeasonProgress()
+  const priceTagSticker = usePriceTagSticker()
   const guardian = useGuardianChallenge()
   const continuationJob = useContinuationJob()
   const remaining = SCHOOL_FAIR_CHAPTER_COUNT - completedChapters.size
@@ -74,6 +76,7 @@ export default function App() {
             comicId={route.comicId}
             lang={lang}
             onChapterComplete={completeChapter}
+            onEarnPriceTagSticker={priceTagSticker.award}
             continuationJob={continuationJob}
             chapterThreeSolved={route.comicId === SCHOOL_MAP_COMIC_ID && completedChapters.has(route.comicId)}
             openEnding={route.ending}
@@ -81,7 +84,7 @@ export default function App() {
         ) : route.name === 'guardian' ? (
           <GuardianScreen lang={lang} remaining={remaining} challenge={guardian} />
         ) : (
-          <HomeScreen lang={lang} onReady={openGenerated} completedChapters={completedChapters} remaining={remaining} guardianWon={guardian.run.won} />
+          <HomeScreen lang={lang} onReady={openGenerated} completedChapters={completedChapters} remaining={remaining} guardianWon={guardian.run.won} hasPriceTagSticker={priceTagSticker.earned} />
         )}
       </main>
     </div>

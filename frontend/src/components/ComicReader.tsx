@@ -5,12 +5,13 @@ import { CHARACTERS } from '../characters'
 import type { ContinuationJob } from '../continuation'
 import { useAnswerCheck } from '../hooks'
 import { STRINGS } from '../i18n'
-import { comicHref, DEMO_COMIC_ID, GARLAND_COMIC_ID, GUARDIAN_HREF, SCHOOL_MAP_COMIC_ID } from '../route'
+import { comicHref, DEMO_COMIC_ID, GARLAND_COMIC_ID, GUARDIAN_HREF, SCHOOL_MAP_COMIC_ID, SCHOOL_STORE_COMIC_ID } from '../route'
 import { schoolFairChapter, type SchoolFairCollectible } from '../schoolFair'
 import { CastCard } from './CastCard'
 import { Continuation } from './Continuation'
 import { ExerciseCard } from './ExerciseCard'
 import { PanelArt } from './PanelArt'
+import { PriceTagBonus } from './PriceTagBonus'
 
 // Panels after the exercise panel stay locked until the answer is correct,
 // so later panels don't spoil the solution.
@@ -22,6 +23,7 @@ interface Props {
   index: number
   onIndexChange: (i: number) => void
   onChapterComplete: (comicId: string) => SchoolFairCollectible | null
+  onEarnPriceTagSticker: () => boolean
   continuationJob: ContinuationJob
   chapterThreeSolved: boolean
 }
@@ -29,7 +31,7 @@ interface Props {
 const BTN =
   'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-2xl border-[3px] border-ink px-4 py-2 font-black shadow-[0_4px_0_var(--color-ink)] transition active:translate-y-[3px] active:shadow-[0_1px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none'
 
-export function ComicReader({ comic, lang, index, onIndexChange, onChapterComplete, continuationJob, chapterThreeSolved }: Props) {
+export function ComicReader({ comic, lang, index, onIndexChange, onChapterComplete, onEarnPriceTagSticker, continuationJob, chapterThreeSolved }: Props) {
   const t = STRINGS[lang]
   const comicId = comic.id
   const [reward, setReward] = useState<SchoolFairCollectible | null>(null)
@@ -107,6 +109,7 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
               {comicId === GARLAND_COMIC_ID && (
                 <a href={GUARDIAN_HREF} className={`${BTN} w-full bg-white sm:w-auto`}>{t.guardian.title}</a>
               )}
+              {comicId === SCHOOL_STORE_COMIC_ID && <PriceTagBonus lang={lang} onEarnSticker={onEarnPriceTagSticker} />}
               {comicId === SCHOOL_MAP_COMIC_ID && ending.nextComicId && (
                 <Continuation
                   sourceChapterId={SCHOOL_MAP_COMIC_ID}

@@ -60,9 +60,13 @@ export function parseWholeNumber(answer: string): number | null {
   return WHOLE_NUMBER.test(value) ? Number(value.replace(/[   ]/g, '')) : null
 }
 
-export function checkLocalAnswer(def: LocalComicDef, answer: string, lang: Lang): CheckResponse {
+export function checkWholeNumberAnswer(answer: string, expected: number): CheckStatus {
   const value = parseWholeNumber(answer)
-  const status: CheckStatus = value === null ? 'invalid' : value === def.answer ? 'correct' : 'incorrect'
+  return value === null ? 'invalid' : value === expected ? 'correct' : 'incorrect'
+}
+
+export function checkLocalAnswer(def: LocalComicDef, answer: string, lang: Lang): CheckResponse {
+  const status = checkWholeNumberAnswer(answer, def.answer)
   return { status, message: def.text[lang].feedback[status] }
 }
 

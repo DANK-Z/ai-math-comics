@@ -138,12 +138,13 @@ function hasActiveJob() {
   }
 }
 
-export function HomeScreen({ lang, onReady, completedChapters, remaining, guardianWon }: {
+export function HomeScreen({ lang, onReady, completedChapters, remaining, guardianWon, hasPriceTagSticker }: {
   lang: Lang
   onReady: (comicId: string, request: ComicJobRequest) => void
   completedChapters: ReadonlySet<string>
   remaining: number
   guardianWon: boolean
+  hasPriceTagSticker: boolean
 }) {
   const t = STRINGS[lang]
   // Open by default only when a generation job is in progress, so it can resume.
@@ -163,6 +164,7 @@ export function HomeScreen({ lang, onReady, completedChapters, remaining, guardi
           completedChapters={completedChapters}
           remaining={remaining}
           guardianWon={guardianWon}
+          hasPriceTagSticker={hasPriceTagSticker}
         />
       </div>
       <section aria-labelledby="catalog-title">
