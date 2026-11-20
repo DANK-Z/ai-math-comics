@@ -20,10 +20,12 @@ export function useSeasonProgress() {
   const current = useRef(completedChapters)
 
   const completeChapter = useCallback((comicId: string) => {
-    if (!schoolFairChapter(comicId) || current.current.has(comicId)) return
+    const chapter = schoolFairChapter(comicId)
+    if (!chapter || current.current.has(comicId)) return null
 
     // Merge anything saved by another tab before writing the new completion.
-    const next = new Set([...current.current, ...readCompleted(), comicId])
+    const saved = readCompleted()
+    const next = new Set([...current.current, ...saved, comicId])
     current.current = next
     setCompletedChapters(next)
     try {
@@ -31,6 +33,7 @@ export function useSeasonProgress() {
     } catch {
       // Keep progress in memory for this session when storage cannot be written.
     }
+    return saved.has(comicId) ? null : chapter.collectible
   }, [])
 
   return { completedChapters, completeChapter }

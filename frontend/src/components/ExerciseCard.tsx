@@ -1,6 +1,8 @@
 import { useId, useState, type FormEvent } from 'react'
 import type { CheckStatus, Exercise, Lang } from '../api'
 import { STRINGS } from '../i18n'
+import type { SchoolFairCollectible } from '../schoolFair'
+import { CollectibleIcon } from './BackpackCollection'
 import { PifikHints } from './PifikHints'
 import { RichText } from './RichText'
 import type { useAnswerCheck } from '../hooks'
@@ -15,9 +17,10 @@ interface Props {
   exercise: Exercise
   lang: Lang
   check: ReturnType<typeof useAnswerCheck>
+  reward: SchoolFairCollectible | null
 }
 
-export function ExerciseCard({ exercise, lang, check }: Props) {
+export function ExerciseCard({ exercise, lang, check, reward }: Props) {
   const t = STRINGS[lang]
   const [answer, setAnswer] = useState('')
   const inputId = useId()
@@ -84,6 +87,12 @@ export function ExerciseCard({ exercise, lang, check }: Props) {
                   <RichText text={result.message} />
                 </p>
               </div>
+            </div>
+          )}
+          {result?.status === 'correct' && !error && reward && (
+            <div className="mt-2 flex items-center gap-2 rounded-xl border-2 border-ink/70 bg-[#fff2bd] p-2 text-sm font-extrabold text-ink">
+              <CollectibleIcon item={reward} />
+              <p>{t.backpack.reward(t.backpack.items[reward].name)}</p>
             </div>
           )}
         </div>

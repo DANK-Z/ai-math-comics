@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { Comic, Lang } from '../api'
 import { PANEL_ASPECT } from '../art/sheet'
 import { CHARACTERS } from '../characters'
@@ -6,7 +6,7 @@ import type { ContinuationJob } from '../continuation'
 import { useAnswerCheck } from '../hooks'
 import { STRINGS } from '../i18n'
 import { comicHref, DEMO_COMIC_ID, GARLAND_COMIC_ID, GUARDIAN_HREF, SCHOOL_MAP_COMIC_ID } from '../route'
-import { schoolFairChapter } from '../schoolFair'
+import { schoolFairChapter, type SchoolFairCollectible } from '../schoolFair'
 import { CastCard } from './CastCard'
 import { Continuation } from './Continuation'
 import { ExerciseCard } from './ExerciseCard'
@@ -21,7 +21,7 @@ interface Props {
   lang: Lang
   index: number
   onIndexChange: (i: number) => void
-  onChapterComplete: (comicId: string) => void
+  onChapterComplete: (comicId: string) => SchoolFairCollectible | null
   continuationJob: ContinuationJob
   chapterThreeSolved: boolean
 }
@@ -32,7 +32,11 @@ const BTN =
 export function ComicReader({ comic, lang, index, onIndexChange, onChapterComplete, continuationJob, chapterThreeSolved }: Props) {
   const t = STRINGS[lang]
   const comicId = comic.id
-  const onCorrect = useCallback(() => onChapterComplete(comicId), [comicId, onChapterComplete])
+  const [reward, setReward] = useState<SchoolFairCollectible | null>(null)
+  const onCorrect = useCallback(() => {
+    const item = onChapterComplete(comicId)
+    if (item) setReward(item)
+  }, [comicId, onChapterComplete])
   const check = useAnswerCheck(comic.exercise.id, lang, onCorrect)
   const solved = check.solved || chapterThreeSolved
   const total = comic.panels.length
@@ -201,7 +205,7 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
       <aside hidden={!showSidebar} className={showSidebar ? 'flex flex-col gap-5' : undefined}>
         {/* Kept mounted (hidden) off the exercise panel so the typed answer and hints survive navigation. */}
         <div hidden={!isExercisePanel}>
-          <ExerciseCard exercise={comic.exercise} lang={lang} check={check} />
+          <ExerciseCard exercise={comic.exercise} lang={lang} check={check} reward={reward} />
         </div>
         {showCast && <CastCard lang={lang} activeSpeaker={panel.speaker} compact={isExercisePanel} />}
       </aside>

@@ -5,6 +5,7 @@ import { CONTINUATION_COPY, type ContinuationJob } from '../continuation'
 import { useComic } from '../hooks'
 import { STRINGS } from '../i18n'
 import { comicHref, DEMO_COMIC_ID } from '../route'
+import type { SchoolFairCollectible } from '../schoolFair'
 import { ComicReader } from './ComicReader'
 
 const BRANCH_LINK = 'inline-flex min-h-11 items-center rounded-2xl border-2 border-ink bg-white px-3 font-black text-ink focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun'
@@ -13,7 +14,7 @@ const BRANCH_LINK = 'inline-flex min-h-11 items-center rounded-2xl border-2 bord
 export function ReaderScreen({ comicId, lang, onChapterComplete, continuationJob, chapterThreeSolved, openEnding }: {
   comicId: string
   lang: Lang
-  onChapterComplete: (comicId: string) => void
+  onChapterComplete: (comicId: string) => SchoolFairCollectible | null
   continuationJob: ContinuationJob
   chapterThreeSolved: boolean
   openEnding: boolean

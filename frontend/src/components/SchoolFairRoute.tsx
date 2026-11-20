@@ -1,7 +1,9 @@
+import { useId, useState } from 'react'
 import { PORTRAITS } from '../art/sheet'
 import type { UiStrings } from '../i18n'
 import { comicHref, GUARDIAN_HREF } from '../route'
 import { SCHOOL_FAIR_CHAPTER_COUNT, SCHOOL_FAIR_STOPS } from '../schoolFair'
+import { BackpackCollection } from './BackpackCollection'
 import { SheetCrop } from './SheetCrop'
 
 interface StopArt {
@@ -21,6 +23,8 @@ const LINK = 'flex min-h-14 items-center gap-2 rounded-xl border-2 p-2 text-ink 
 const MARKER = 'grid size-6 shrink-0 place-items-center rounded-full border-2 border-ink text-xs font-black'
 
 export function SchoolFairRoute({ t, covers, completedChapters, remaining, guardianWon }: Props) {
+  const [backpackOpen, setBackpackOpen] = useState(false)
+  const backpackId = useId()
   const suggested = SCHOOL_FAIR_STOPS.find(({ comicId }) => !completedChapters.has(comicId))
   const guardianStatus = remaining > 0
     ? t.guardian.remaining(remaining)
@@ -30,10 +34,25 @@ export function SchoolFairRoute({ t, covers, completedChapters, remaining, guard
     <section aria-labelledby="fair-route-title" className="rounded-[24px] border-[3px] border-ink bg-cream p-3 shadow-[0_5px_0_var(--color-ink)] sm:p-5">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 md:mb-4">
         <h2 id="fair-route-title" className="text-xl font-black sm:text-2xl">{t.fairRoute.title}</h2>
-        <p className="rounded-full border-2 border-ink/70 bg-white px-2.5 py-0.5 text-sm font-extrabold">
-          {t.seasonProgress(completedChapters.size, SCHOOL_FAIR_CHAPTER_COUNT)}
-        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="rounded-full border-2 border-ink/70 bg-white px-2.5 py-0.5 text-sm font-extrabold">
+            {t.seasonProgress(completedChapters.size, SCHOOL_FAIR_CHAPTER_COUNT)}
+          </p>
+          <button
+            type="button"
+            aria-expanded={backpackOpen}
+            aria-controls={backpackId}
+            onClick={() => setBackpackOpen((open) => !open)}
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border-2 border-ink bg-sun px-2.5 text-sm font-black text-ink hover:bg-[#fff2bd] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          >
+            <span aria-hidden="true">🎒</span>
+            {t.backpack.title}
+            <span aria-hidden="true">{backpackOpen ? '▴' : '▾'}</span>
+          </button>
+        </div>
       </div>
+
+      <BackpackCollection t={t} id={backpackId} hidden={!backpackOpen} completedChapters={completedChapters} />
 
       <ol className="fair-route-stops list-none" role="list">
         {SCHOOL_FAIR_STOPS.map(({ comicId, number, location }) => {

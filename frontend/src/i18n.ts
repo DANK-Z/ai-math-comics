@@ -1,6 +1,6 @@
 import type { CheckStatus, Difficulty, Lang, Topic } from './api'
 import type { CharacterId } from './characters'
-import type { SchoolFairLocation } from './schoolFair'
+import type { SchoolFairCollectible, SchoolFairLocation } from './schoolFair'
 
 // UI chrome strings. Comic content, feedback and hints come from the API.
 export interface UiStrings {
@@ -70,6 +70,13 @@ export interface UiStrings {
   chapterLabel: (n: number) => string
   seasonProgress: (completed: number, total: number) => string
   chapterCompleted: string
+  backpack: {
+    title: string
+    progress: (earned: number, total: number) => string
+    empty: string
+    reward: (item: string) => string
+    items: Record<SchoolFairCollectible, { name: string; story: string }>
+  }
   fairRoute: {
     title: string
     suggested: string
@@ -188,6 +195,20 @@ export const STRINGS: Record<Lang, UiStrings> = {
     chapterLabel: (n) => `Глава ${n}`,
     seasonProgress: (completed, total) => `Пройдено: ${completed} из ${total} глав`,
     chapterCompleted: 'Пройдено',
+    backpack: {
+      title: 'Рюкзак',
+      progress: (earned, total) => `Предметы: ${earned} из ${total}`,
+      empty: 'Реши задачу в любой главе, чтобы получить первый предмет.',
+      reward: (item) => `В рюкзаке новый предмет — «${item}»!`,
+      items: {
+        'pizza-token': { name: 'Жетон с пиццей', story: 'На память о том, как друзья поделили пиццу в столовой.' },
+        'yellow-backpack': { name: 'Жёлтый рюкзак', story: 'Купили со скидкой в школьном магазине. Внутри нашлась карта ярмарки.' },
+        'clue-envelope': { name: 'Конверт с подсказкой', story: 'Нашли в школьном дворе. Подсказка привела друзей в библиотеку.' },
+        'prize-book': { name: 'Книга-приз', story: 'Из библиотечных коробок друзья собрали призы для ярмарки.' },
+        'lemonade-recipe': { name: 'Рецепт лимонада', story: 'По нему друзья приготовили напиток для гостей ярмарки.' },
+        'festival-garland': { name: 'Праздничная гирлянда', story: 'Ею украсили края финишного стенда перед открытием ярмарки.' },
+      },
+    },
     fairRoute: {
       title: 'Маршрут ярмарки',
       suggested: 'Следующая остановка',
@@ -319,6 +340,20 @@ export const STRINGS: Record<Lang, UiStrings> = {
     chapterLabel: (n) => `${n}-тарау`,
     seasonProgress: (completed, total) => `Аяқталған тараулар: ${completed} / ${total}`,
     chapterCompleted: 'Аяқталды',
+    backpack: {
+      title: 'Сөмке',
+      progress: (earned, total) => `Жиналған заттар: ${earned} / ${total}`,
+      empty: 'Алғашқы затты алу үшін кез келген тараудағы есепті шығар.',
+      reward: (item) => `Сөмкеге «${item}» қосылды!`,
+      items: {
+        'pizza-token': { name: 'Пицца бейнеленген жетон', story: 'Достардың асханада пиццаны бөліскен сәтінен естелік.' },
+        'yellow-backpack': { name: 'Сары сөмке', story: 'Мектеп дүкенінен жеңілдікпен алды. Ішінен жәрмеңке картасы табылды.' },
+        'clue-envelope': { name: 'Кеңес салынған конверт', story: 'Мектеп ауласынан табылды. Кеңес достарды кітапханаға жетеледі.' },
+        'prize-book': { name: 'Сыйлық кітап', story: 'Достар кітапханадағы қораптардан жәрмеңкеге сыйлық жинады.' },
+        'lemonade-recipe': { name: 'Лимонад рецепті', story: 'Достар осы рецептпен жәрмеңке қонақтарына сусын дайындады.' },
+        'festival-garland': { name: 'Мерекелік гирлянда', story: 'Жәрмеңке ашыларда достар оны мәре стендінің шеттеріне ілді.' },
+      },
+    },
     fairRoute: {
       title: 'Жәрмеңке бағыты',
       suggested: 'Келесі аялдама',

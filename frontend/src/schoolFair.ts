@@ -10,10 +10,18 @@ import {
 } from './route'
 
 export type SchoolFairLocation = 'cafeteria' | 'store' | 'schoolyard' | 'library' | 'lemonade' | 'finish'
+export type SchoolFairCollectible =
+  | 'pizza-token'
+  | 'yellow-backpack'
+  | 'clue-envelope'
+  | 'prize-book'
+  | 'lemonade-recipe'
+  | 'festival-garland'
 
 interface Chapter {
   number: number
   location: SchoolFairLocation
+  collectible: SchoolFairCollectible
   /** Who speaks the transition line under the ending panel. */
   speaker: CharacterId
   ending: Record<Lang, string>
@@ -27,6 +35,7 @@ const chapters: Record<string, Chapter> = {
   [DEMO_COMIC_ID]: {
     number: 1,
     location: 'cafeteria',
+    collectible: 'pizza-token',
     speaker: 'aruna',
     ending: {
       ru: 'С пиццей разобрались! Теперь в школьный магазин — для ярмарки нужен рюкзак.',
@@ -37,6 +46,7 @@ const chapters: Record<string, Chapter> = {
   [SCHOOL_STORE_COMIC_ID]: {
     number: 2,
     location: 'store',
+    collectible: 'yellow-backpack',
     speaker: 'pifik',
     ending: {
       ru: 'Рюкзак есть, а в нём — карта ярмарки. Пора проверить маршрут!',
@@ -47,6 +57,7 @@ const chapters: Record<string, Chapter> = {
   [SCHOOL_MAP_COMIC_ID]: {
     number: 3,
     location: 'schoolyard',
+    collectible: 'clue-envelope',
     speaker: 'pifik',
     ending: {
       ru: 'В конверте подсказка: «Следующая станция — библиотека». Вперёд!',
@@ -57,6 +68,7 @@ const chapters: Record<string, Chapter> = {
   [LIBRARY_BOXES_COMIC_ID]: {
     number: 4,
     location: 'library',
+    collectible: 'prize-book',
     speaker: 'aruna',
     ending: {
       ru: 'Упакуем книги как призы — и к лимонадному киоску!',
@@ -67,6 +79,7 @@ const chapters: Record<string, Chapter> = {
   [LEMONADE_COMIC_ID]: {
     number: 5,
     location: 'lemonade',
+    collectible: 'lemonade-recipe',
     speaker: 'aldiyar',
     ending: {
       ru: 'Лимонад разлит. Теперь украсим финишный стенд!',
@@ -77,6 +90,7 @@ const chapters: Record<string, Chapter> = {
   [GARLAND_COMIC_ID]: {
     number: 6,
     location: 'finish',
+    collectible: 'festival-garland',
     speaker: 'pifik',
     ending: {
       ru: 'Книги-призы и лимонад уже ждут гостей. Ярмарка удалась — спасибо за помощь!',
@@ -86,7 +100,7 @@ const chapters: Record<string, Chapter> = {
 }
 
 export const SCHOOL_FAIR_STOPS = Object.entries(chapters)
-  .map(([comicId, { number, location }]) => ({ comicId, number, location }))
+  .map(([comicId, { number, location, collectible }]) => ({ comicId, number, location, collectible }))
   .sort((a, b) => a.number - b.number)
 
 export const SCHOOL_FAIR_CHAPTER_COUNT = SCHOOL_FAIR_STOPS.length
