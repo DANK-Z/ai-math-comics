@@ -7,6 +7,7 @@ import { STRINGS } from '../i18n'
 import { comicHref, DEMO_COMIC_ID } from '../route'
 import { schoolFairChapter } from '../schoolFair'
 import { CastCard } from './CastCard'
+import { Continuation } from './Continuation'
 import { ExerciseCard } from './ExerciseCard'
 import { PanelArt } from './PanelArt'
 
@@ -84,13 +85,23 @@ export function ComicReader({ comic, lang, index, onIndexChange }: Props) {
               {t.cast[ending.speaker].name}
             </span>
             <p className="mt-2 font-bold text-ink">{ending.ending[lang]}</p>
-            <a
-              href={ending.nextComicId ? comicHref(ending.nextComicId) : '#/'}
-              className={`${BTN} mt-3 w-full bg-sun sm:w-auto`}
-            >
-              {ending.nextComicId ? t.nextChapter : t.backToCatalog}
-              <span aria-hidden>→</span>
-            </a>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <a
+                href={ending.nextComicId ? comicHref(ending.nextComicId) : '#/'}
+                className={`${BTN} w-full bg-sun sm:w-auto`}
+              >
+                {ending.nextComicId ? t.nextChapter : t.backToCatalog}
+                <span aria-hidden>→</span>
+              </a>
+              {ending.number === 3 && ending.nextComicId && (
+                <Continuation
+                  sourceChapterId={comic.id}
+                  nextComicId={ending.nextComicId}
+                  lang={lang}
+                  buttonClass={BTN}
+                />
+              )}
+            </div>
           </div>
         )}
 
