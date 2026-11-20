@@ -17,7 +17,7 @@ export function PifikHints({ exerciseId, lang }: { exerciseId: string; lang: Lan
   const canAsk = error || (hasMore && !loading)
 
   return (
-    <div className="mt-4 border-t-[3px] border-dashed border-ink/20 pt-4">
+    <div>
       <ul aria-live="polite" className="mb-3 space-y-3 empty:hidden">
         {hints.map((h) => (
           <li key={h.step} className="flex items-start gap-3">

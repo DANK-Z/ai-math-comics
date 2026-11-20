@@ -3,6 +3,7 @@ import type { CheckStatus, Lang } from '../api/types'
 import { PORTRAITS } from '../art/sheet'
 import { DAMAGE_PER_ROUND, GUARDIAN_MAX_HP, GUARDIAN_ROUNDS, type useGuardianChallenge } from '../guardian'
 import { STRINGS } from '../i18n'
+import { SECTION_HREFS } from '../route'
 import { RichText } from './RichText'
 import { SheetCrop } from './SheetCrop'
 
@@ -93,7 +94,7 @@ export function GuardianScreen({ lang, remaining, challenge }: {
     }
   }, [run.cleared])
 
-  const catalog = <a href="#/" className={`${BUTTON} bg-white`}>{t.backToCatalog}</a>
+  const catalog = <a href={SECTION_HREFS.comics} className={`${BUTTON} bg-white`}>{t.backToCatalog}</a>
   if (remaining > 0) {
     return (
       <section className={`mx-auto max-w-2xl ${CARD}`}>

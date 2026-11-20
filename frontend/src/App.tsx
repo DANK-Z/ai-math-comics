@@ -1,15 +1,18 @@
 import { useCallback } from 'react'
 import { API_MODE, type ComicJobRequest } from './api'
-import { HomeScreen } from './components/HomeScreen'
+import { BackpackCollection } from './components/BackpackCollection'
+import { GenerateCard } from './components/GenerateCard'
+import { CatalogScreen, HomeScreen } from './components/HomeScreen'
 import { GuardianScreen } from './components/GuardianScreen'
 import { LanguageSwitcher } from './components/LanguageSwitcher'
 import { ReaderScreen } from './components/ReaderScreen'
+import { DesktopNavigation, MobileNavigation } from './components/SectionNavigation'
 import { useContinuationJob } from './continuation'
 import { useGuardianChallenge } from './guardian'
 import { useLang } from './hooks'
 import { STRINGS } from './i18n'
 import { usePriceTagSticker } from './priceTagSticker'
-import { comicHref, SCHOOL_MAP_COMIC_ID, useRoute } from './route'
+import { comicHref, SCHOOL_MAP_COMIC_ID, SECTION_HREFS, useRoute } from './route'
 import { useSeasonProgress } from './seasonProgress'
 import { SCHOOL_FAIR_CHAPTER_COUNT } from './schoolFair'
 
@@ -44,6 +47,7 @@ export default function App() {
   const continuationJob = useContinuationJob()
   const remaining = SCHOOL_FAIR_CHAPTER_COUNT - completedChapters.size
   const t = STRINGS[lang]
+  const navigation = { t, active: route.name === 'comic' ? 'comics' as const : route.name, completed: completedChapters.size, remaining }
 
   const openGenerated = useCallback(
     (comicId: string, request: ComicJobRequest) => {
@@ -56,8 +60,8 @@ export default function App() {
   return (
     <div className="min-h-dvh bg-[linear-gradient(180deg,#d9e8ff_0%,#eef4ff_45%,#f6f1e7_100%)] text-ink">
       <header className="border-b-4 border-ink bg-[linear-gradient(100deg,var(--color-brand-dark),var(--color-brand)_60%,#4f86f2)] shadow-[0_6px_0_rgb(29_39_102/0.15)]">
-        <div className="mx-auto flex max-w-6xl items-start justify-between gap-2 px-3 py-3 sm:items-center sm:px-4 sm:py-4">
-          <a href="#/" className="min-w-0 rounded-xl focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-sun">
+        <div className="mx-auto flex max-w-[90rem] items-start justify-between gap-2 px-3 py-3 sm:items-center sm:px-6 sm:py-4">
+          <a href={SECTION_HREFS.map} className="min-w-0 rounded-xl focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-sun">
             <Logo tagline={t.tagline} />
           </a>
           <div className="flex items-center gap-2">
@@ -69,24 +73,37 @@ export default function App() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-3 py-5 sm:px-4 sm:py-8">
-        {route.name === 'comic' ? (
-          <ReaderScreen
-            key={comicHref(route.comicId, route.ending)}
-            comicId={route.comicId}
-            lang={lang}
-            onChapterComplete={completeChapter}
-            onEarnPriceTagSticker={priceTagSticker.award}
-            continuationJob={continuationJob}
-            chapterThreeSolved={route.comicId === SCHOOL_MAP_COMIC_ID && completedChapters.has(route.comicId)}
-            openEnding={route.ending}
-          />
-        ) : route.name === 'guardian' ? (
-          <GuardianScreen lang={lang} remaining={remaining} challenge={guardian} />
-        ) : (
-          <HomeScreen lang={lang} onReady={openGenerated} completedChapters={completedChapters} remaining={remaining} guardianWon={guardian.run.won} hasPriceTagSticker={priceTagSticker.earned} />
-        )}
-      </main>
+      <div className="mx-auto max-w-[90rem] px-3 pt-3 sm:px-6 lg:hidden">
+        <MobileNavigation {...navigation} />
+      </div>
+      <div className="mx-auto grid max-w-[90rem] gap-6 px-3 py-4 sm:px-6 sm:py-6 lg:grid-cols-[14rem_minmax(0,1fr)]">
+        <DesktopNavigation {...navigation} />
+        <main className="min-w-0">
+          {route.name === 'map' && (
+            <HomeScreen lang={lang} completedChapters={completedChapters} remaining={remaining} guardianWon={guardian.run.won} />
+          )}
+          {route.name === 'comics' && <CatalogScreen lang={lang} completedChapters={completedChapters} />}
+          {route.name === 'backpack' && (
+            <BackpackCollection t={t} completedChapters={completedChapters} hasPriceTagSticker={priceTagSticker.earned} />
+          )}
+          {route.name === 'guardian' && <GuardianScreen lang={lang} remaining={remaining} challenge={guardian} />}
+          {route.name === 'comic' && (
+            <ReaderScreen
+              key={comicHref(route.comicId, route.ending)}
+              comicId={route.comicId}
+              lang={lang}
+              onChapterComplete={completeChapter}
+              onEarnPriceTagSticker={priceTagSticker.award}
+              continuationJob={continuationJob}
+              chapterThreeSolved={route.comicId === SCHOOL_MAP_COMIC_ID && completedChapters.has(route.comicId)}
+              openEnding={route.ending}
+            />
+          )}
+          <div hidden={route.name !== 'create'} className="max-w-2xl">
+            <GenerateCard lang={lang} onReady={openGenerated} autoOpen={route.name === 'create'} />
+          </div>
+        </main>
+      </div>
     </div>
   )
 }

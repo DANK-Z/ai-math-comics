@@ -32,24 +32,28 @@ integers; the backend is the source of truth for what else counts as valid input
 
 ## Screens
 
-- `#/` — **home**: the ready-to-read comic catalog, followed by the Generate Comic form.
-- `#/comic/{comicId}` — **reader** for *Pizza for Everyone* (`pizza-fractions`),
-  *School Store Discount* (`school-store-discount`), or a generated comic.
+- `#/` — the **School Fair Map**, with six stops in story order.
+- `#/comics` — the six-chapter comic catalog.
+- `#/backpack` — chapter collectibles and bonus stickers.
+- `#/guardian` — the Final Challenge, unlocked after all six chapters.
+- `#/create` — the Create Comic form.
+- `#/comic/{comicId}` — the reader for a catalog comic or a generated episode.
 
-Both catalog entries are independent of the generation worker. School Store Discount bundles
-its four panels and whole-number exercise in the frontend, so it works in both API modes.
+Catalog chapters are independent of the generation worker. Chapters 2–6 bundle their
+panels and exercises in the frontend and work in both API modes.
 
 ## Generate Comic flow
 
 1. The form (grade 5/6, topic `fractions`, comic language `ru`/`kk`, difficulty
    `basic`/`intermediate`/`advanced`) sends `POST /api/comic-jobs` → `202 {jobId, status}`.
 2. `GET /api/comic-jobs/{jobId}` is polled every 1.5 s until `ready` or `failed`
-   (`src/jobs.ts`). On `ready` the UI switches to the comic's language and opens
-   `#/comic/{comicId}`, which loads `GET /api/comics/{comicId}?lang=…`. Answer checks and hints
+   (`src/jobs.ts`). If Create Comic is the selected section, a ready job opens the reader
+   in the comic's language. Otherwise, return to Create Comic and choose Read. The reader
+   loads `GET /api/comics/{comicId}?lang=…`. Answer checks and hints
    use the exercise id from that response.
 3. Only one job runs at a time: the form is locked and submit is guarded while a job is in flight.
-   The active job is kept in `sessionStorage`, so leaving the screen stops polling and coming back
-   resumes the same job. After 3 minutes, 3 consecutive poll errors, or a manual pause, use
+   The job is kept in `sessionStorage` and polling continues across sections. After 3 minutes,
+   3 consecutive poll errors, or a manual pause, use
    *Check status* to start a fresh polling window for the same job. This option survives reloads
    in the same tab and only sends status GETs. Polling also waits while the tab is hidden.
 4. Terminal failures show a localized message with *Try again* / *Change settings*; the technical detail

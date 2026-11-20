@@ -5,12 +5,13 @@ import { CHARACTERS } from '../characters'
 import type { ContinuationJob } from '../continuation'
 import { useAnswerCheck } from '../hooks'
 import { STRINGS } from '../i18n'
-import { comicHref, DEMO_COMIC_ID, GARLAND_COMIC_ID, GUARDIAN_HREF, SCHOOL_MAP_COMIC_ID, SCHOOL_STORE_COMIC_ID } from '../route'
+import { comicHref, DEMO_COMIC_ID, GARLAND_COMIC_ID, GUARDIAN_HREF, SCHOOL_MAP_COMIC_ID, SCHOOL_STORE_COMIC_ID, SECTION_HREFS } from '../route'
 import { schoolFairChapter, type SchoolFairCollectible } from '../schoolFair'
 import { CastCard } from './CastCard'
 import { Continuation } from './Continuation'
 import { ExerciseCard } from './ExerciseCard'
 import { PanelArt } from './PanelArt'
+import { PifikHints } from './PifikHints'
 import { PriceTagBonus } from './PriceTagBonus'
 
 // Panels after the exercise panel stay locked until the answer is correct,
@@ -48,7 +49,8 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
   const panel = comic.panels[current]
   const isExercisePanel = panel.id === comic.exercise.panelId
   const showCast = comic.id === DEMO_COMIC_ID || !comic.panels.some((p) => p.imageUrl)
-  const showSidebar = showCast || isExercisePanel
+  const showHints = isExercisePanel && !check.solved
+  const showSidebar = showCast || showHints
   const locked = current === maxIndex && maxIndex < total - 1
   const justUnlocked = check.solved && isExercisePanel && current < total - 1
   const ending = solved && current === total - 1 ? schoolFairChapter(comic.id) : undefined
@@ -64,10 +66,10 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
   }, [current, maxIndex, onIndexChange])
 
   return (
-    <div className={`grid items-start gap-5 lg:gap-7 ${showSidebar ? 'lg:grid-cols-[minmax(0,1fr)_minmax(320px,380px)]' : ''}`}>
+    <div className={`grid items-start gap-5 ${showSidebar ? 'xl:grid-cols-[minmax(0,1fr)_17rem]' : ''}`}>
       <section
         aria-label={comic.title}
-        className="rounded-[28px] border-[3px] border-ink/10 bg-white p-3 shadow-[0_10px_30px_rgb(36_57_159/0.15)] sm:p-4"
+        className="min-w-0 rounded-[28px] border-[3px] border-ink/10 bg-white p-3 shadow-[0_10px_30px_rgb(36_57_159/0.15)] sm:p-4 xl:col-start-1 xl:row-start-1"
       >
         <div className="mb-3 flex items-center justify-between gap-3 px-1">
           <h2 className="rounded-full bg-brand px-4 py-1 text-sm font-black text-white shadow-[inset_0_-3px_0_rgb(0_0_0/0.15)] sm:text-base">
@@ -100,7 +102,7 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
             <p className="mt-2 font-bold text-ink">{ending.ending[lang]}</p>
             <div className="mt-3 flex flex-wrap gap-2">
               <a
-                href={ending.nextComicId ? comicHref(ending.nextComicId) : '#/'}
+                href={ending.nextComicId ? comicHref(ending.nextComicId) : SECTION_HREFS.comics}
                 className={`${BTN} w-full bg-sun sm:w-auto`}
               >
                 {ending.nextComicId ? t.nextChapter : t.backToCatalog}
@@ -205,13 +207,19 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
         </nav>
       </section>
 
-      <aside hidden={!showSidebar} className={showSidebar ? 'flex flex-col gap-5' : undefined}>
-        {/* Kept mounted (hidden) off the exercise panel so the typed answer and hints survive navigation. */}
-        <div hidden={!isExercisePanel}>
-          <ExerciseCard exercise={comic.exercise} lang={lang} check={check} reward={reward} />
+      {/* Kept mounted between panels to preserve the typed answer and revealed hints. */}
+      <div hidden={!isExercisePanel} className="min-w-0 xl:col-start-1 xl:row-start-2">
+        <ExerciseCard exercise={comic.exercise} lang={lang} check={check} reward={reward} />
+      </div>
+      <div hidden={!showSidebar} className="min-w-0 xl:sticky xl:top-5 xl:col-start-2 xl:row-span-2 xl:row-start-1">
+        <aside hidden={!showHints} aria-label={t.navigation.hints} className="rounded-2xl border-2 border-ink bg-cream p-3 shadow-[0_3px_0_var(--color-ink)] sm:p-4">
+          <h2 className="mb-3 text-base font-black">{t.navigation.hints}</h2>
+          <PifikHints exerciseId={comic.exercise.id} lang={lang} />
+        </aside>
+        <div hidden={!showCast} className={showHints ? 'mt-5' : undefined}>
+          {showCast && <CastCard lang={lang} activeSpeaker={panel.speaker} compact={isExercisePanel} />}
         </div>
-        {showCast && <CastCard lang={lang} activeSpeaker={panel.speaker} compact={isExercisePanel} />}
-      </aside>
+      </div>
     </div>
   )
 }

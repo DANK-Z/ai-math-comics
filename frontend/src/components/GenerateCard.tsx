@@ -82,13 +82,17 @@ function generationCopy(t: UiStrings) {
   return ART_MODE === 'prepared' ? t.prepared : { createLead: t.createLead, jobRunning: t.jobRunning, jobSteps: t.jobSteps }
 }
 
-function JobProgress({ state, t, onStop }: { state: JobState; t: UiStrings; onStop: () => void }) {
+function JobProgress({ state, t, onStop }: {
+  state: Extract<JobState, { phase: 'submitting' | 'waiting' }>
+  t: UiStrings
+  onStop: () => void
+}) {
   const copy = generationCopy(t)
   const waiting = state.phase === 'waiting' ? state : null
   const elapsed = useElapsed(waiting ? waiting.startedAt : null)
-  const step = state.phase === 'ready' ? 3 : waiting?.status === 'running' ? 2 : 1
+  const step = waiting?.status === 'running' ? 2 : 1
   const title =
-    state.phase === 'submitting' ? t.submitting : state.phase === 'ready' ? t.jobReady : waiting?.status === 'running' ? copy.jobRunning : t.jobQueued
+    state.phase === 'submitting' ? t.submitting : waiting?.status === 'running' ? copy.jobRunning : t.jobQueued
 
   return (
     <div role="status" aria-live="polite" className="rounded-2xl border-[3px] border-ink bg-sky p-4">
@@ -105,8 +109,8 @@ function JobProgress({ state, t, onStop }: { state: JobState; t: UiStrings; onSt
       <ol className="mt-4 grid grid-cols-3 gap-2 text-center text-xs font-extrabold sm:text-sm">
         {copy.jobSteps.map((label, i) => {
           const n = i + 1
-          const done = n < step || state.phase === 'ready'
-          const current = n === step && state.phase !== 'ready'
+          const done = n < step
+          const current = n === step
           return (
             <li key={label} aria-current={current ? 'step' : undefined} className="flex flex-col items-center gap-1">
               <span
@@ -164,9 +168,16 @@ function Field({ children }: { children: ReactNode }) {
   return <div className="min-w-0">{children}</div>
 }
 
-export function GenerateCard({ lang, onReady }: { lang: Lang; onReady: (comicId: string, request: ComicJobRequest) => void }) {
+export function GenerateCard({ lang, onReady, autoOpen }: {
+  lang: Lang
+  onReady: (comicId: string, request: ComicJobRequest) => void
+  autoOpen: boolean
+}) {
   const t = STRINGS[lang]
-  const { state, active, submit, reset, resume, pauseWaiting } = useComicJob(onReady, { createJob: api.createComicJob })
+  const { state, active, submit, reset, resume, pauseWaiting } = useComicJob(autoOpen ? onReady : undefined, {
+    createJob: api.createComicJob,
+    rememberReady: true,
+  })
   const resumed = state.phase === 'idle' ? null : state.request
 
   const [grade, setGrade] = useState<Grade>(resumed?.grade ?? 5)
@@ -198,9 +209,9 @@ export function GenerateCard({ lang, onReady }: { lang: Lang; onReady: (comicId:
           ✨
         </span>
         <div className="min-w-0">
-          <h2 id="generate-title" className="text-xl leading-tight font-black sm:text-2xl">
+          <h1 id="generate-title" className="text-xl leading-tight font-black sm:text-2xl">
             {t.createTitle}
-          </h2>
+          </h1>
           <p className="text-sm font-semibold text-white/90">{generationCopy(t).createLead}</p>
         </div>
       </div>
@@ -254,12 +265,24 @@ export function GenerateCard({ lang, onReady }: { lang: Lang; onReady: (comicId:
               {t.resumeChecking}
             </button>
           </div>
+        ) : state.phase === 'ready' ? (
+          <div className="rounded-2xl border-[3px] border-ink bg-sky p-4">
+            <p role="status" className="font-black">{t.jobReady}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button type="button" onClick={() => onReady(state.comicId, state.request)} className="min-h-11 rounded-xl border-2 border-ink bg-sun px-3 font-black">
+                {t.readComic}
+              </button>
+              <button type="button" onClick={reset} className="min-h-11 rounded-xl border-2 border-ink bg-white px-3 font-black">
+                {t.navigation.createAnother}
+              </button>
+            </div>
+          </div>
         ) : state.phase === 'idle' ? (
           <button
             type="submit"
             className="min-h-14 rounded-2xl border-[3px] border-ink bg-sun px-5 text-xl font-black text-ink shadow-[0_5px_0_var(--color-ink)] transition hover:brightness-105 active:translate-y-[4px] active:shadow-[0_1px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
-            ✨ {t.generate}
+            <span aria-hidden="true">✨ </span>{t.generate}
           </button>
         ) : (
           <JobProgress state={state} t={t} onStop={pauseWaiting} />

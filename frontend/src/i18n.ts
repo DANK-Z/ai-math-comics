@@ -121,12 +121,12 @@ export interface UiStrings {
   catalogTopics: { fractions: string; percentages: string; scale: string; equations: string; proportions: string; perimeter: string }
   pizzaHook: string
   createOwn: string
-  hideForm: string
   /** Generation copy when the backend runs COMIC_ART_MODE=prepared (no new images are drawn). */
   prepared: { createLead: string; jobRunning: string; jobSteps: [string, string, string] }
   demoTitle: string
   readComic: string
   backHome: string
+  navigation: { menu: string; close: string; label: string; createAnother: string; hints: string }
   imageError: string
 }
 
@@ -189,7 +189,7 @@ export const STRINGS: Record<Lang, UiStrings> = {
     stopWaiting: 'Приостановить проверку',
     pollPaused: 'Проверка приостановлена. Комикс может ещё создаваться.',
     resumeChecking: 'Проверить статус',
-    jobReady: 'Готово! Открываем комикс…',
+    jobReady: 'Комикс готов!',
     jobFailedTitle: 'Не удалось создать комикс',
     jobErrors: {
       generation_failed: 'Генерация не удалась. Попробуй ещё раз.',
@@ -282,7 +282,6 @@ export const STRINGS: Record<Lang, UiStrings> = {
     },
     pizzaHook: 'Три пиццы, четверо друзей. Как поделить поровну?',
     createOwn: 'Создать свой комикс',
-    hideForm: 'Свернуть',
     prepared: {
       createLead: 'Выбери класс и сложность — Пифик придумает историю и задачу на дроби с готовыми иллюстрациями.',
       jobRunning: 'Пифик сочиняет историю…',
@@ -290,6 +289,7 @@ export const STRINGS: Record<Lang, UiStrings> = {
     },
     readComic: 'Читать комикс',
     backHome: 'Все комиксы',
+    navigation: { menu: 'Меню', close: 'Закрыть меню', label: 'Основная навигация', createAnother: 'Создать ещё один', hints: 'Подсказки Пифика' },
     imageError: 'Картинка не загрузилась',
   },
   kk: {
@@ -350,7 +350,7 @@ export const STRINGS: Record<Lang, UiStrings> = {
     stopWaiting: 'Тексеруді кідірту',
     pollPaused: 'Тексеру кідіртілді. Комикс әлі жасалып жатуы мүмкін.',
     resumeChecking: 'Күйін тексеру',
-    jobReady: 'Дайын! Комикс ашылуда…',
+    jobReady: 'Комикс дайын!',
     jobFailedTitle: 'Комикс жасау мүмкін болмады',
     jobErrors: {
       generation_failed: 'Генерация сәтсіз аяқталды. Қайтадан байқап көр.',
@@ -443,7 +443,6 @@ export const STRINGS: Record<Lang, UiStrings> = {
     },
     pizzaHook: 'Үш пицца, төрт дос. Қалай тең бөлеміз?',
     createOwn: 'Өз комиксіңді жасау',
-    hideForm: 'Жасыру',
     prepared: {
       createLead: 'Сынып пен күрделілікті таңда — Пифик дайын иллюстрациялармен оқиға мен бөлшектерге есеп құрастырады.',
       jobRunning: 'Пифик оқиға құрастырып жатыр…',
@@ -451,6 +450,7 @@ export const STRINGS: Record<Lang, UiStrings> = {
     },
     readComic: 'Комиксті оқу',
     backHome: 'Барлық комикстер',
+    navigation: { menu: 'Мәзір', close: 'Мәзірді жабу', label: 'Негізгі навигация', createAnother: 'Тағы біреуін жасау', hints: 'Пификтің кеңестері' },
     imageError: 'Сурет жүктелмеді',
   },
 }

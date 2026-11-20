@@ -23,19 +23,17 @@ export function CollectibleIcon({ item }: { item: SchoolFairCollectible }) {
   )
 }
 
-export function BackpackCollection({ t, completedChapters, id, hidden, hasPriceTagSticker }: {
+export function BackpackCollection({ t, completedChapters, hasPriceTagSticker }: {
   t: UiStrings
   completedChapters: ReadonlySet<string>
-  id: string
-  hidden: boolean
   hasPriceTagSticker: boolean
 }) {
   const earned = SCHOOL_FAIR_STOPS.filter(({ comicId }) => completedChapters.has(comicId))
 
   return (
-    <section id={id} hidden={hidden} aria-labelledby={`${id}-title`} className="mb-3 rounded-2xl border-2 border-ink/70 bg-sky p-3 md:mb-4">
+    <section aria-labelledby="backpack-title" className="rounded-2xl border-2 border-ink bg-cream p-3 shadow-[0_4px_0_var(--color-ink)] sm:p-5">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <h3 id={`${id}-title`} className="font-black text-ink">{t.backpack.title}</h3>
+        <h1 id="backpack-title" className="text-2xl font-black text-ink sm:text-3xl">{t.backpack.title}</h1>
         <p className="text-sm font-bold text-brand-dark">{t.backpack.progress(earned.length, SCHOOL_FAIR_CHAPTER_COUNT)}</p>
       </div>
       {earned.length > 0 ? (
@@ -56,8 +54,8 @@ export function BackpackCollection({ t, completedChapters, id, hidden, hasPriceT
       ) : (
         <p className="mt-1 text-sm font-semibold">{t.backpack.empty}</p>
       )}
-      <section aria-labelledby={`${id}-bonus-title`} className="mt-3 border-t-2 border-ink/20 pt-2">
-        <h4 id={`${id}-bonus-title`} className="text-sm font-black">{t.priceTagBonus.stickerSection}</h4>
+      <section aria-labelledby="backpack-bonus-title" className="mt-3 border-t-2 border-ink/20 pt-2">
+        <h2 id="backpack-bonus-title" className="font-black">{t.priceTagBonus.stickerSection}</h2>
         {hasPriceTagSticker ? (
           <p className="mt-1 inline-flex items-center gap-2 rounded-xl border-2 border-ink/70 bg-sun/25 px-2 py-1 text-sm font-bold">
             <span aria-hidden="true">🏷️</span>

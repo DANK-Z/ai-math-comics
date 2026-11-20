@@ -1,7 +1,16 @@
 import { useCallback, useEffect, useState } from 'react'
 
-export type Route = { name: 'home' } | { name: 'comic'; comicId: string; ending: boolean } | { name: 'guardian' }
-export const GUARDIAN_HREF = '#/guardian'
+export const SECTION_HREFS = {
+  map: '#/',
+  comics: '#/comics',
+  backpack: '#/backpack',
+  guardian: '#/guardian',
+  create: '#/create',
+} as const
+
+export type Section = keyof typeof SECTION_HREFS
+export type Route = { name: Section } | { name: 'comic'; comicId: string; ending: boolean }
+export const GUARDIAN_HREF = SECTION_HREFS.guardian
 
 export const DEMO_COMIC_ID = 'pizza-fractions'
 export const SCHOOL_STORE_COMIC_ID = 'school-store-discount'
@@ -11,7 +20,9 @@ export const LEMONADE_COMIC_ID = 'fair-lemonade'
 export const GARLAND_COMIC_ID = 'fair-garland'
 
 function parse(hash: string): Route {
-  if (hash === GUARDIAN_HREF) return { name: 'guardian' }
+  for (const section of Object.keys(SECTION_HREFS) as Section[]) {
+    if (hash === SECTION_HREFS[section]) return { name: section }
+  }
   const m = /^#\/comic\/([^/?#]+)/.exec(hash)
   if (m) {
     try {
@@ -21,14 +32,14 @@ function parse(hash: string): Route {
       /* malformed id: fall through */
     }
   }
-  return { name: 'home' }
+  return { name: 'map' }
 }
 
 export function comicHref(comicId: string, ending = false) {
   return `#/comic/${encodeURIComponent(comicId)}${ending ? '?ending' : ''}`
 }
 
-/** Hash routes for the catalog, reader and final challenge. */
+/** Hash routes preserve section and comic navigation in browser history. */
 export function useRoute(): [Route, (href: string) => void] {
   const [route, setRoute] = useState<Route>(() => parse(window.location.hash))
 

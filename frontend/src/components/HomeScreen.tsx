@@ -1,5 +1,5 @@
-import { useId, useState, type CSSProperties } from 'react'
-import type { ComicJobRequest, Lang } from '../api'
+import type { CSSProperties } from 'react'
+import type { Lang } from '../api'
 import { GARLAND, LEMONADE, LIBRARY_BOXES, SCHOOL_MAP } from '../api/fairChapters'
 import type { LocalComicDef } from '../api/localComics'
 import { SCHOOL_STORE } from '../api/schoolStore'
@@ -12,7 +12,6 @@ import storeCover from '../assets/school-store/cover.png'
 import { STRINGS, type UiStrings } from '../i18n'
 import { comicHref, DEMO_COMIC_ID } from '../route'
 import { schoolFairChapter } from '../schoolFair'
-import { GenerateCard } from './GenerateCard'
 import { SchoolFairRoute } from './SchoolFairRoute'
 
 /** How a cover is cropped in its card: box aspect ratio + CSS object-position focal point. */
@@ -130,75 +129,35 @@ function CatalogCard({ entry, lang, t, completed }: {
   )
 }
 
-function hasActiveJob() {
-  try {
-    return sessionStorage.getItem('amc.activeJob') !== null
-  } catch {
-    return false
-  }
-}
-
-export function HomeScreen({ lang, onReady, completedChapters, remaining, guardianWon, hasPriceTagSticker }: {
+export function HomeScreen({ lang, completedChapters, remaining, guardianWon }: {
   lang: Lang
-  onReady: (comicId: string, request: ComicJobRequest) => void
   completedChapters: ReadonlySet<string>
   remaining: number
   guardianWon: boolean
-  hasPriceTagSticker: boolean
 }) {
   const t = STRINGS[lang]
-  // Open by default only when a generation job is in progress, so it can resume.
-  const [createOpen, setCreateOpen] = useState(hasActiveJob)
-  const panelId = useId()
-
   return (
-    <div className="flex flex-col gap-6 sm:gap-8">
-      <div className="flex flex-col gap-3">
-        <div>
-          <h1 className="text-2xl font-black text-ink sm:text-3xl">{t.schoolFairTitle}</h1>
-          <p className="mt-1 text-base font-bold text-brand-dark sm:text-lg">{t.catalogLead}</p>
-        </div>
-        <SchoolFairRoute
-          t={t}
-          covers={ROUTE_COVERS}
-          completedChapters={completedChapters}
-          remaining={remaining}
-          guardianWon={guardianWon}
-          hasPriceTagSticker={hasPriceTagSticker}
-        />
+    <div className="flex flex-col gap-3">
+      <div>
+        <h1 className="text-2xl font-black text-ink sm:text-3xl">{t.schoolFairTitle}</h1>
+        <p className="mt-1 text-base font-bold text-brand-dark sm:text-lg">{t.catalogLead}</p>
       </div>
-      <section aria-labelledby="catalog-title">
-        <div className="mb-4">
-          <h2 id="catalog-title" className="text-lg font-black text-ink sm:text-xl">
-            {t.catalogTitle}
-          </h2>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2 sm:gap-5">
-          {CATALOG.map((entry) => (
-            <CatalogCard key={entry.id} entry={entry} lang={lang} t={t} completed={completedChapters.has(entry.id)} />
-          ))}
-        </div>
-      </section>
-
-      <section aria-label={t.createOwn} className="flex flex-col items-start gap-3">
-        <button
-          type="button"
-          aria-expanded={createOpen}
-          aria-controls={panelId}
-          onClick={() => setCreateOpen((o) => !o)}
-          className="inline-flex min-h-11 items-center gap-2 rounded-2xl border-[3px] border-ink bg-white px-4 font-black text-ink shadow-[0_3px_0_var(--color-ink)] transition hover:bg-sky active:translate-y-[2px] active:shadow-[0_1px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun"
-        >
-          <span aria-hidden>{createOpen ? '✕' : '✨'}</span>
-          {createOpen ? t.hideForm : t.createOwn}
-          <span aria-hidden className={`text-sm transition-transform ${createOpen ? 'rotate-180' : ''}`}>
-            ▾
-          </span>
-        </button>
-        {/* Stays mounted while collapsed, so selections (and any running job) are kept. */}
-        <div id={panelId} hidden={!createOpen} className="w-full max-w-2xl">
-          <GenerateCard lang={lang} onReady={onReady} />
-        </div>
-      </section>
+      <SchoolFairRoute t={t} covers={ROUTE_COVERS} completedChapters={completedChapters}
+        remaining={remaining} guardianWon={guardianWon} />
     </div>
+  )
+}
+
+export function CatalogScreen({ lang, completedChapters }: { lang: Lang; completedChapters: ReadonlySet<string> }) {
+  const t = STRINGS[lang]
+  return (
+    <section aria-labelledby="catalog-title">
+      <h1 id="catalog-title" className="mb-4 text-2xl font-black text-ink sm:text-3xl">{t.catalogTitle}</h1>
+      <div className="grid gap-4 sm:grid-cols-2 sm:gap-5">
+        {CATALOG.map((entry) => (
+          <CatalogCard key={entry.id} entry={entry} lang={lang} t={t} completed={completedChapters.has(entry.id)} />
+        ))}
+      </div>
+    </section>
   )
 }

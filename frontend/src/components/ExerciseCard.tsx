@@ -3,7 +3,6 @@ import type { CheckStatus, Exercise, Lang } from '../api'
 import { STRINGS } from '../i18n'
 import type { SchoolFairCollectible } from '../schoolFair'
 import { CollectibleIcon } from './BackpackCollection'
-import { PifikHints } from './PifikHints'
 import { RichText } from './RichText'
 import type { useAnswerCheck } from '../hooks'
 
@@ -53,7 +52,7 @@ export function ExerciseCard({ exercise, lang, check, reward }: Props) {
           <label htmlFor={inputId} className="text-sm font-black text-ink/80">
             {t.answerLabel}
           </label>
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 min-[360px]:flex-row">
             <input
               id={inputId}
               value={answer}
@@ -96,8 +95,6 @@ export function ExerciseCard({ exercise, lang, check, reward }: Props) {
             </div>
           )}
         </div>
-
-        {!solved && <PifikHints exerciseId={exercise.id} lang={lang} />}
       </div>
     </section>
   )

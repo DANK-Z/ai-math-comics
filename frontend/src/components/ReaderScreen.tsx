@@ -4,7 +4,7 @@ import { SCHOOL_MAP } from '../api/fairChapters'
 import { CONTINUATION_COPY, type ContinuationJob } from '../continuation'
 import { useComic } from '../hooks'
 import { STRINGS } from '../i18n'
-import { comicHref, DEMO_COMIC_ID } from '../route'
+import { comicHref, DEMO_COMIC_ID, SECTION_HREFS } from '../route'
 import type { SchoolFairCollectible } from '../schoolFair'
 import { ComicReader } from './ComicReader'
 
@@ -28,7 +28,7 @@ export function ReaderScreen({ comicId, lang, onChapterComplete, onEarnPriceTagS
     <div className="flex flex-col gap-4" aria-busy={loading}>
       <div className="flex flex-wrap items-center gap-3">
         <a
-          href="#/"
+          href={SECTION_HREFS.comics}
           className="inline-flex min-h-11 items-center gap-1.5 rounded-2xl border-[3px] border-ink bg-white px-4 font-black text-ink shadow-[0_4px_0_var(--color-ink)] transition active:translate-y-[3px] active:shadow-[0_1px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun"
         >
           <span aria-hidden>←</span> {t.backHome}
