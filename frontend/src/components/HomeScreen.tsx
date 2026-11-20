@@ -10,9 +10,10 @@ import mapCover from '../assets/school-map/cover.webp'
 import pizzaCover from '../assets/pizza/cover.png'
 import storeCover from '../assets/school-store/cover.png'
 import { STRINGS, type UiStrings } from '../i18n'
-import { comicHref, DEMO_COMIC_ID, GUARDIAN_HREF } from '../route'
-import { SCHOOL_FAIR_CHAPTER_COUNT, schoolFairChapter } from '../schoolFair'
+import { comicHref, DEMO_COMIC_ID } from '../route'
+import { schoolFairChapter } from '../schoolFair'
 import { GenerateCard } from './GenerateCard'
+import { SchoolFairRoute } from './SchoolFairRoute'
 
 /** How a cover is cropped in its card: box aspect ratio + CSS object-position focal point. */
 interface Framing {
@@ -58,6 +59,10 @@ const CATALOG: CatalogEntry[] = [
   // Wide group shot around the board: keep a wider crop so both kids stay in.
   local(GARLAND, garlandCover, 'perimeter', { phone: { aspect: '3 / 2', focus: '45% 55%' }, wide: { aspect: '16 / 9', focus: '50% 55%' } }),
 ]
+
+const ROUTE_COVERS = new Map(CATALOG.map(({ id, cover, framing }) => [
+  id, { src: cover, focus: framing.wide.focus },
+]))
 
 function local(def: LocalComicDef, cover: string, topic: CatalogEntry['topic'], framing: CatalogEntry['framing']): CatalogEntry {
   return { id: def.id, cover, framing, topic, title: (lang) => def.text[lang].title, hook: (lang) => def.text[lang].hook }
@@ -133,40 +138,38 @@ function hasActiveJob() {
   }
 }
 
-export function HomeScreen({ lang, onReady, completedChapters, guardianWon }: {
+export function HomeScreen({ lang, onReady, completedChapters, remaining, guardianWon }: {
   lang: Lang
   onReady: (comicId: string, request: ComicJobRequest) => void
   completedChapters: ReadonlySet<string>
+  remaining: number
   guardianWon: boolean
 }) {
   const t = STRINGS[lang]
-  const remaining = SCHOOL_FAIR_CHAPTER_COUNT - completedChapters.size
   // Open by default only when a generation job is in progress, so it can resume.
   const [createOpen, setCreateOpen] = useState(hasActiveJob)
   const panelId = useId()
 
   return (
     <div className="flex flex-col gap-6 sm:gap-8">
+      <div className="flex flex-col gap-3">
+        <div>
+          <h1 className="text-2xl font-black text-ink sm:text-3xl">{t.schoolFairTitle}</h1>
+          <p className="mt-1 text-base font-bold text-brand-dark sm:text-lg">{t.catalogLead}</p>
+        </div>
+        <SchoolFairRoute
+          t={t}
+          covers={ROUTE_COVERS}
+          completedChapters={completedChapters}
+          remaining={remaining}
+          guardianWon={guardianWon}
+        />
+      </div>
       <section aria-labelledby="catalog-title">
         <div className="mb-4">
-          <h1 className="text-2xl font-black text-ink sm:text-3xl">{t.schoolFairTitle}</h1>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <p className="rounded-full border-2 border-ink bg-cream px-3 py-1 text-sm font-black text-ink">
-              {t.seasonProgress(completedChapters.size, SCHOOL_FAIR_CHAPTER_COUNT)}
-            </p>
-            <a href={GUARDIAN_HREF} className="inline-flex min-h-11 items-center rounded-xl border-2 border-ink bg-sun px-3 font-black focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand">
-              {t.guardian.title}
-            </a>
-            {remaining > 0 ? (
-              <p className="text-sm font-bold text-ink/80">{t.guardian.remaining(remaining)}</p>
-            ) : guardianWon && (
-              <p className="rounded-full border-2 border-emerald-700 bg-emerald-100 px-2 text-sm font-bold text-emerald-900">{t.guardian.wonBadge}</p>
-            )}
-          </div>
-          <h2 id="catalog-title" className="mt-2 text-lg font-black text-ink sm:text-xl">
+          <h2 id="catalog-title" className="text-lg font-black text-ink sm:text-xl">
             {t.catalogTitle}
           </h2>
-          <p className="mt-1 text-base font-bold text-brand-dark sm:text-lg">{t.catalogLead}</p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 sm:gap-5">
           {CATALOG.map((entry) => (

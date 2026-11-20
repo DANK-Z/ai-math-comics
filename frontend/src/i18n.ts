@@ -1,5 +1,6 @@
 import type { CheckStatus, Difficulty, Lang, Topic } from './api'
 import type { CharacterId } from './characters'
+import type { SchoolFairLocation } from './schoolFair'
 
 // UI chrome strings. Comic content, feedback and hints come from the API.
 export interface UiStrings {
@@ -69,6 +70,12 @@ export interface UiStrings {
   chapterLabel: (n: number) => string
   seasonProgress: (completed: number, total: number) => string
   chapterCompleted: string
+  fairRoute: {
+    title: string
+    suggested: string
+    guardianUnlocked: string
+    locations: Record<SchoolFairLocation, string>
+  }
   guardian: {
     title: string
     name: string
@@ -181,6 +188,19 @@ export const STRINGS: Record<Lang, UiStrings> = {
     chapterLabel: (n) => `Глава ${n}`,
     seasonProgress: (completed, total) => `Пройдено: ${completed} из ${total} глав`,
     chapterCompleted: 'Пройдено',
+    fairRoute: {
+      title: 'Маршрут ярмарки',
+      suggested: 'Следующая остановка',
+      guardianUnlocked: 'Испытание открыто',
+      locations: {
+        cafeteria: 'Столовая',
+        store: 'Школьный магазин',
+        schoolyard: 'Школьный двор',
+        library: 'Библиотека',
+        lemonade: 'Лимонадный киоск',
+        finish: 'Финиш ярмарки',
+      },
+    },
     guardian: {
       title: 'Финальное испытание',
       name: 'Страж ярмарки',
@@ -299,6 +319,19 @@ export const STRINGS: Record<Lang, UiStrings> = {
     chapterLabel: (n) => `${n}-тарау`,
     seasonProgress: (completed, total) => `Аяқталған тараулар: ${completed} / ${total}`,
     chapterCompleted: 'Аяқталды',
+    fairRoute: {
+      title: 'Жәрмеңке бағыты',
+      suggested: 'Келесі аялдама',
+      guardianUnlocked: 'Сынақ ашық',
+      locations: {
+        cafeteria: 'Асхана',
+        store: 'Мектеп дүкені',
+        schoolyard: 'Мектеп ауласы',
+        library: 'Кітапхана',
+        lemonade: 'Лимонад дүңгіршегі',
+        finish: 'Жәрмеңке мәресі',
+      },
+    },
     guardian: {
       title: 'Соңғы сынақ',
       name: 'Жәрмеңке сақшысы',

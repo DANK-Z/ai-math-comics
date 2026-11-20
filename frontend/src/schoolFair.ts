@@ -9,8 +9,11 @@ import {
   SCHOOL_STORE_COMIC_ID,
 } from './route'
 
+export type SchoolFairLocation = 'cafeteria' | 'store' | 'schoolyard' | 'library' | 'lemonade' | 'finish'
+
 interface Chapter {
   number: number
+  location: SchoolFairLocation
   /** Who speaks the transition line under the ending panel. */
   speaker: CharacterId
   ending: Record<Lang, string>
@@ -20,9 +23,10 @@ interface Chapter {
 
 // “Operation: School Fair”: six chapters, each with its own URL. The transition line
 // appears under the real ending panel once the chapter's exercise is solved.
-const chapters: Partial<Record<string, Chapter>> = {
+const chapters: Record<string, Chapter> = {
   [DEMO_COMIC_ID]: {
     number: 1,
+    location: 'cafeteria',
     speaker: 'aruna',
     ending: {
       ru: 'С пиццей разобрались! Теперь в школьный магазин — для ярмарки нужен рюкзак.',
@@ -32,6 +36,7 @@ const chapters: Partial<Record<string, Chapter>> = {
   },
   [SCHOOL_STORE_COMIC_ID]: {
     number: 2,
+    location: 'store',
     speaker: 'pifik',
     ending: {
       ru: 'Рюкзак есть, а в нём — карта ярмарки. Пора проверить маршрут!',
@@ -41,6 +46,7 @@ const chapters: Partial<Record<string, Chapter>> = {
   },
   [SCHOOL_MAP_COMIC_ID]: {
     number: 3,
+    location: 'schoolyard',
     speaker: 'pifik',
     ending: {
       ru: 'В конверте подсказка: «Следующая станция — библиотека». Вперёд!',
@@ -50,6 +56,7 @@ const chapters: Partial<Record<string, Chapter>> = {
   },
   [LIBRARY_BOXES_COMIC_ID]: {
     number: 4,
+    location: 'library',
     speaker: 'aruna',
     ending: {
       ru: 'Упакуем книги как призы — и к лимонадному киоску!',
@@ -59,6 +66,7 @@ const chapters: Partial<Record<string, Chapter>> = {
   },
   [LEMONADE_COMIC_ID]: {
     number: 5,
+    location: 'lemonade',
     speaker: 'aldiyar',
     ending: {
       ru: 'Лимонад разлит. Теперь украсим финишный стенд!',
@@ -68,6 +76,7 @@ const chapters: Partial<Record<string, Chapter>> = {
   },
   [GARLAND_COMIC_ID]: {
     number: 6,
+    location: 'finish',
     speaker: 'pifik',
     ending: {
       ru: 'Книги-призы и лимонад уже ждут гостей. Ярмарка удалась — спасибо за помощь!',
@@ -76,7 +85,11 @@ const chapters: Partial<Record<string, Chapter>> = {
   },
 }
 
-export const SCHOOL_FAIR_CHAPTER_COUNT = Object.keys(chapters).length
+export const SCHOOL_FAIR_STOPS = Object.entries(chapters)
+  .map(([comicId, { number, location }]) => ({ comicId, number, location }))
+  .sort((a, b) => a.number - b.number)
+
+export const SCHOOL_FAIR_CHAPTER_COUNT = SCHOOL_FAIR_STOPS.length
 
 export function schoolFairChapter(comicId: string): Chapter | undefined {
   return Object.hasOwn(chapters, comicId) ? chapters[comicId] : undefined

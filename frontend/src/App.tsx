@@ -81,7 +81,7 @@ export default function App() {
         ) : route.name === 'guardian' ? (
           <GuardianScreen lang={lang} remaining={remaining} challenge={guardian} />
         ) : (
-          <HomeScreen lang={lang} onReady={openGenerated} completedChapters={completedChapters} guardianWon={guardian.run.won} />
+          <HomeScreen lang={lang} onReady={openGenerated} completedChapters={completedChapters} remaining={remaining} guardianWon={guardian.run.won} />
         )}
       </main>
     </div>
