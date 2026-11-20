@@ -69,6 +69,25 @@ export interface UiStrings {
   chapterLabel: (n: number) => string
   seasonProgress: (completed: number, total: number) => string
   chapterCompleted: string
+  guardian: {
+    title: string
+    name: string
+    intro: string
+    locked: string
+    remaining: (count: number) => string
+    hp: (current: number, max: number) => string
+    round: (current: number, total: number) => string
+    cleared: string
+    active: string
+    upcoming: string
+    wrong: string
+    invalidFraction: string
+    invalidNumber: string
+    victory: string
+    victoryText: string
+    replay: string
+    wonBadge: string
+  }
   nextChapter: string
   backToCatalog: string
   /** One-line explanation of the interactive format, shown under the catalog heading. */
@@ -162,6 +181,25 @@ export const STRINGS: Record<Lang, UiStrings> = {
     chapterLabel: (n) => `Глава ${n}`,
     seasonProgress: (completed, total) => `Пройдено: ${completed} из ${total} глав`,
     chapterCompleted: 'Пройдено',
+    guardian: {
+      title: 'Финальное испытание',
+      name: 'Страж ярмарки',
+      intro: 'Пифик стал Стражем ярмарки. Реши три задачи: каждый верный ответ снимает 30 HP в его испытании.',
+      locked: 'Испытание откроется после прохождения всех глав.',
+      remaining: (count) => `Осталось пройти глав: ${count}`,
+      hp: (current, max) => `${current} / ${max} HP`,
+      round: (current, total) => `Раунд ${current} из ${total}`,
+      cleared: 'Пройден',
+      active: 'Текущий',
+      upcoming: 'Впереди',
+      wrong: 'Попробуй ещё раз. HP Стража не изменилось.',
+      invalidFraction: 'Запиши ответ дробью, например 1/2.',
+      invalidNumber: 'Введи целое число без единиц измерения.',
+      victory: 'Испытание пройдено!',
+      victoryText: 'Страж поздравляет тебя: ты решил все задачи ярмарки.',
+      replay: 'Пройти заново',
+      wonBadge: 'Испытание пройдено',
+    },
     nextChapter: 'Следующая глава',
     backToCatalog: 'Вернуться в каталог',
     catalogLead: 'Реши задачу, чтобы открыть финал истории.',
@@ -261,6 +299,25 @@ export const STRINGS: Record<Lang, UiStrings> = {
     chapterLabel: (n) => `${n}-тарау`,
     seasonProgress: (completed, total) => `Аяқталған тараулар: ${completed} / ${total}`,
     chapterCompleted: 'Аяқталды',
+    guardian: {
+      title: 'Соңғы сынақ',
+      name: 'Жәрмеңке сақшысы',
+      intro: 'Пифик жәрмеңке сақшысы болды. Үш есепті шығар: әр дұрыс жауап сынақтағы HP көрсеткішін 30-ға азайтады.',
+      locked: 'Сынақ барлық тараудан өткен соң ашылады.',
+      remaining: (count) => `Әлі ${count} тарау қалды`,
+      hp: (current, max) => `${current} / ${max} HP`,
+      round: (current, total) => `${total} раундтың ${current}-раунды`,
+      cleared: 'Аяқталды',
+      active: 'Ағымдағы',
+      upcoming: 'Алда',
+      wrong: 'Қайта байқап көр. Сақшының HP көрсеткіші өзгерген жоқ.',
+      invalidFraction: 'Жауабыңды бөлшекпен жаз, мысалы 1/2.',
+      invalidNumber: 'Өлшем бірлігінсіз бүтін сан енгіз.',
+      victory: 'Сынақтан өттің!',
+      victoryText: 'Сақшы сені құттықтайды: жәрмеңкедегі барлық есепті шығардың.',
+      replay: 'Қайта өту',
+      wonBadge: 'Сынақ аяқталды',
+    },
     nextChapter: 'Келесі тарау',
     backToCatalog: 'Каталогқа оралу',
     catalogLead: 'Оқиғаның соңын ашу үшін есепті шеш.',

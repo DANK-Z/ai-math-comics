@@ -4,7 +4,7 @@ import { PANEL_ASPECT } from '../art/sheet'
 import { CHARACTERS } from '../characters'
 import { useAnswerCheck } from '../hooks'
 import { STRINGS } from '../i18n'
-import { comicHref, DEMO_COMIC_ID } from '../route'
+import { comicHref, DEMO_COMIC_ID, GARLAND_COMIC_ID, GUARDIAN_HREF } from '../route'
 import { schoolFairChapter } from '../schoolFair'
 import { CastCard } from './CastCard'
 import { Continuation } from './Continuation'
@@ -96,6 +96,9 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
                 {ending.nextComicId ? t.nextChapter : t.backToCatalog}
                 <span aria-hidden>→</span>
               </a>
+              {comicId === GARLAND_COMIC_ID && (
+                <a href={GUARDIAN_HREF} className={`${BTN} w-full bg-white sm:w-auto`}>{t.guardian.title}</a>
+              )}
               {ending.number === 3 && ending.nextComicId && (
                 <Continuation
                   sourceChapterId={comic.id}

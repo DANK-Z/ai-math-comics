@@ -1,12 +1,15 @@
 import { useCallback } from 'react'
 import { API_MODE, type ComicJobRequest } from './api'
 import { HomeScreen } from './components/HomeScreen'
+import { GuardianScreen } from './components/GuardianScreen'
 import { LanguageSwitcher } from './components/LanguageSwitcher'
 import { ReaderScreen } from './components/ReaderScreen'
+import { useGuardianChallenge } from './guardian'
 import { useLang } from './hooks'
 import { STRINGS } from './i18n'
 import { comicHref, useRoute } from './route'
 import { useSeasonProgress } from './seasonProgress'
+import { SCHOOL_FAIR_CHAPTER_COUNT } from './schoolFair'
 
 function Logo({ tagline }: { tagline: string }) {
   return (
@@ -34,6 +37,8 @@ export default function App() {
   const [lang, setLang] = useLang()
   const [route, navigate] = useRoute()
   const { completedChapters, completeChapter } = useSeasonProgress()
+  const guardian = useGuardianChallenge()
+  const remaining = SCHOOL_FAIR_CHAPTER_COUNT - completedChapters.size
   const t = STRINGS[lang]
 
   const openGenerated = useCallback(
@@ -63,8 +68,10 @@ export default function App() {
       <main className="mx-auto max-w-6xl px-3 py-5 sm:px-4 sm:py-8">
         {route.name === 'comic' ? (
           <ReaderScreen key={route.comicId} comicId={route.comicId} lang={lang} onChapterComplete={completeChapter} />
+        ) : route.name === 'guardian' ? (
+          <GuardianScreen lang={lang} remaining={remaining} challenge={guardian} />
         ) : (
-          <HomeScreen lang={lang} onReady={openGenerated} completedChapters={completedChapters} />
+          <HomeScreen lang={lang} onReady={openGenerated} completedChapters={completedChapters} guardianWon={guardian.run.won} />
         )}
       </main>
     </div>

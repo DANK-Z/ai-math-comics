@@ -10,7 +10,7 @@ import mapCover from '../assets/school-map/cover.webp'
 import pizzaCover from '../assets/pizza/cover.png'
 import storeCover from '../assets/school-store/cover.png'
 import { STRINGS, type UiStrings } from '../i18n'
-import { comicHref, DEMO_COMIC_ID } from '../route'
+import { comicHref, DEMO_COMIC_ID, GUARDIAN_HREF } from '../route'
 import { SCHOOL_FAIR_CHAPTER_COUNT, schoolFairChapter } from '../schoolFair'
 import { GenerateCard } from './GenerateCard'
 
@@ -133,12 +133,14 @@ function hasActiveJob() {
   }
 }
 
-export function HomeScreen({ lang, onReady, completedChapters }: {
+export function HomeScreen({ lang, onReady, completedChapters, guardianWon }: {
   lang: Lang
   onReady: (comicId: string, request: ComicJobRequest) => void
   completedChapters: ReadonlySet<string>
+  guardianWon: boolean
 }) {
   const t = STRINGS[lang]
+  const remaining = SCHOOL_FAIR_CHAPTER_COUNT - completedChapters.size
   // Open by default only when a generation job is in progress, so it can resume.
   const [createOpen, setCreateOpen] = useState(hasActiveJob)
   const panelId = useId()
@@ -148,9 +150,19 @@ export function HomeScreen({ lang, onReady, completedChapters }: {
       <section aria-labelledby="catalog-title">
         <div className="mb-4">
           <h1 className="text-2xl font-black text-ink sm:text-3xl">{t.schoolFairTitle}</h1>
-          <p className="mt-2 inline-block rounded-full border-2 border-ink bg-cream px-3 py-1 text-sm font-black text-ink">
-            {t.seasonProgress(completedChapters.size, SCHOOL_FAIR_CHAPTER_COUNT)}
-          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <p className="rounded-full border-2 border-ink bg-cream px-3 py-1 text-sm font-black text-ink">
+              {t.seasonProgress(completedChapters.size, SCHOOL_FAIR_CHAPTER_COUNT)}
+            </p>
+            <a href={GUARDIAN_HREF} className="inline-flex min-h-11 items-center rounded-xl border-2 border-ink bg-sun px-3 font-black focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand">
+              {t.guardian.title}
+            </a>
+            {remaining > 0 ? (
+              <p className="text-sm font-bold text-ink/80">{t.guardian.remaining(remaining)}</p>
+            ) : guardianWon && (
+              <p className="rounded-full border-2 border-emerald-700 bg-emerald-100 px-2 text-sm font-bold text-emerald-900">{t.guardian.wonBadge}</p>
+            )}
+          </div>
           <h2 id="catalog-title" className="mt-2 text-lg font-black text-ink sm:text-xl">
             {t.catalogTitle}
           </h2>
