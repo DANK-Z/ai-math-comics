@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useCallback, useEffect } from 'react'
 import type { Comic, Lang } from '../api'
 import { PANEL_ASPECT } from '../art/sheet'
 import { CHARACTERS } from '../characters'
@@ -20,14 +20,17 @@ interface Props {
   lang: Lang
   index: number
   onIndexChange: (i: number) => void
+  onChapterComplete: (comicId: string) => void
 }
 
 const BTN =
   'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-2xl border-[3px] border-ink px-4 py-2 font-black shadow-[0_4px_0_var(--color-ink)] transition active:translate-y-[3px] active:shadow-[0_1px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none'
 
-export function ComicReader({ comic, lang, index, onIndexChange }: Props) {
+export function ComicReader({ comic, lang, index, onIndexChange, onChapterComplete }: Props) {
   const t = STRINGS[lang]
-  const check = useAnswerCheck(comic.exercise.id, lang)
+  const comicId = comic.id
+  const onCorrect = useCallback(() => onChapterComplete(comicId), [comicId, onChapterComplete])
+  const check = useAnswerCheck(comic.exercise.id, lang, onCorrect)
   const total = comic.panels.length
   const exerciseIndex = comic.panels.findIndex((p) => p.id === comic.exercise.panelId)
   const maxIndex = GATE_AFTER_EXERCISE && exerciseIndex >= 0 && !check.solved ? exerciseIndex : total - 1

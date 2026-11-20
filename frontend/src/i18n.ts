@@ -67,6 +67,8 @@ export interface UiStrings {
   catalogTitle: string
   schoolFairTitle: string
   chapterLabel: (n: number) => string
+  seasonProgress: (completed: number, total: number) => string
+  chapterCompleted: string
   nextChapter: string
   backToCatalog: string
   /** One-line explanation of the interactive format, shown under the catalog heading. */
@@ -158,6 +160,8 @@ export const STRINGS: Record<Lang, UiStrings> = {
     catalogTitle: 'Каталог комиксов',
     schoolFairTitle: 'Операция: школьная ярмарка',
     chapterLabel: (n) => `Глава ${n}`,
+    seasonProgress: (completed, total) => `Пройдено: ${completed} из ${total} глав`,
+    chapterCompleted: 'Пройдено',
     nextChapter: 'Следующая глава',
     backToCatalog: 'Вернуться в каталог',
     catalogLead: 'Реши задачу, чтобы открыть финал истории.',
@@ -255,6 +259,8 @@ export const STRINGS: Record<Lang, UiStrings> = {
     catalogTitle: 'Комикстер каталогы',
     schoolFairTitle: 'Операция: мектеп жәрмеңкесі',
     chapterLabel: (n) => `${n}-тарау`,
+    seasonProgress: (completed, total) => `Аяқталған тараулар: ${completed} / ${total}`,
+    chapterCompleted: 'Аяқталды',
     nextChapter: 'Келесі тарау',
     backToCatalog: 'Каталогқа оралу',
     catalogLead: 'Оқиғаның соңын ашу үшін есепті шеш.',

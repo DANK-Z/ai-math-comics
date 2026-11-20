@@ -6,7 +6,11 @@ import { DEMO_COMIC_ID } from '../route'
 import { ComicReader } from './ComicReader'
 
 /** One comic (demo or generated). Mounted per comicId, so reader state resets between comics. */
-export function ReaderScreen({ comicId, lang }: { comicId: string; lang: Lang }) {
+export function ReaderScreen({ comicId, lang, onChapterComplete }: {
+  comicId: string
+  lang: Lang
+  onChapterComplete: (comicId: string) => void
+}) {
   const t = STRINGS[lang]
   const [index, setIndex] = useState(0)
   const { data: comic, loading, error, errorDetail, retry } = useComic(comicId, lang)
@@ -41,7 +45,7 @@ export function ReaderScreen({ comicId, lang }: { comicId: string; lang: Lang })
 
       {comic && (
         <div className={loading ? 'opacity-60 transition-opacity' : 'transition-opacity'}>
-          <ComicReader comic={comic} lang={lang} index={index} onIndexChange={setIndex} />
+          <ComicReader comic={comic} lang={lang} index={index} onIndexChange={setIndex} onChapterComplete={onChapterComplete} />
         </div>
       )}
     </div>

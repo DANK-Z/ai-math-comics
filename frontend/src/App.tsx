@@ -6,6 +6,7 @@ import { ReaderScreen } from './components/ReaderScreen'
 import { useLang } from './hooks'
 import { STRINGS } from './i18n'
 import { comicHref, useRoute } from './route'
+import { useSeasonProgress } from './seasonProgress'
 
 function Logo({ tagline }: { tagline: string }) {
   return (
@@ -32,6 +33,7 @@ function Logo({ tagline }: { tagline: string }) {
 export default function App() {
   const [lang, setLang] = useLang()
   const [route, navigate] = useRoute()
+  const { completedChapters, completeChapter } = useSeasonProgress()
   const t = STRINGS[lang]
 
   const openGenerated = useCallback(
@@ -60,9 +62,9 @@ export default function App() {
 
       <main className="mx-auto max-w-6xl px-3 py-5 sm:px-4 sm:py-8">
         {route.name === 'comic' ? (
-          <ReaderScreen key={route.comicId} comicId={route.comicId} lang={lang} />
+          <ReaderScreen key={route.comicId} comicId={route.comicId} lang={lang} onChapterComplete={completeChapter} />
         ) : (
-          <HomeScreen lang={lang} onReady={openGenerated} />
+          <HomeScreen lang={lang} onReady={openGenerated} completedChapters={completedChapters} />
         )}
       </main>
     </div>

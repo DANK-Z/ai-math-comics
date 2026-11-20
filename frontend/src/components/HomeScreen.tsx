@@ -11,7 +11,7 @@ import pizzaCover from '../assets/pizza/cover.png'
 import storeCover from '../assets/school-store/cover.png'
 import { STRINGS, type UiStrings } from '../i18n'
 import { comicHref, DEMO_COMIC_ID } from '../route'
-import { schoolFairChapter } from '../schoolFair'
+import { SCHOOL_FAIR_CHAPTER_COUNT, schoolFairChapter } from '../schoolFair'
 import { GenerateCard } from './GenerateCard'
 
 /** How a cover is cropped in its card: box aspect ratio + CSS object-position focal point. */
@@ -63,7 +63,12 @@ function local(def: LocalComicDef, cover: string, topic: CatalogEntry['topic'], 
   return { id: def.id, cover, framing, topic, title: (lang) => def.text[lang].title, hook: (lang) => def.text[lang].hook }
 }
 
-function CatalogCard({ entry, lang, t }: { entry: CatalogEntry; lang: Lang; t: UiStrings }) {
+function CatalogCard({ entry, lang, t, completed }: {
+  entry: CatalogEntry
+  lang: Lang
+  t: UiStrings
+  completed: boolean
+}) {
   const titleId = `${entry.id}-title`
   const chapter = schoolFairChapter(entry.id)
   const chapterId = `${entry.id}-chapter`
@@ -99,7 +104,14 @@ function CatalogCard({ entry, lang, t }: { entry: CatalogEntry; lang: Lang; t: U
       </div>
       <div className="flex-1 px-1 pt-3 pb-4">
         {chapter && (
-          <p id={chapterId} className="text-sm font-black text-brand-dark">{t.chapterLabel(chapter.number)}</p>
+          <p id={chapterId} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-black text-brand-dark">
+            <span>{t.chapterLabel(chapter.number)}</span>
+            {completed && (
+              <span className="rounded-full border-2 border-emerald-700 bg-emerald-100 px-2 text-emerald-900">
+                {t.chapterCompleted}
+              </span>
+            )}
+          </p>
         )}
         <h3 id={titleId} className="text-xl font-black text-ink">
           {entry.title(lang, t)}
@@ -121,7 +133,11 @@ function hasActiveJob() {
   }
 }
 
-export function HomeScreen({ lang, onReady }: { lang: Lang; onReady: (comicId: string, request: ComicJobRequest) => void }) {
+export function HomeScreen({ lang, onReady, completedChapters }: {
+  lang: Lang
+  onReady: (comicId: string, request: ComicJobRequest) => void
+  completedChapters: ReadonlySet<string>
+}) {
   const t = STRINGS[lang]
   // Open by default only when a generation job is in progress, so it can resume.
   const [createOpen, setCreateOpen] = useState(hasActiveJob)
@@ -132,6 +148,9 @@ export function HomeScreen({ lang, onReady }: { lang: Lang; onReady: (comicId: s
       <section aria-labelledby="catalog-title">
         <div className="mb-4">
           <h1 className="text-2xl font-black text-ink sm:text-3xl">{t.schoolFairTitle}</h1>
+          <p className="mt-2 inline-block rounded-full border-2 border-ink bg-cream px-3 py-1 text-sm font-black text-ink">
+            {t.seasonProgress(completedChapters.size, SCHOOL_FAIR_CHAPTER_COUNT)}
+          </p>
           <h2 id="catalog-title" className="mt-2 text-lg font-black text-ink sm:text-xl">
             {t.catalogTitle}
           </h2>
@@ -139,7 +158,7 @@ export function HomeScreen({ lang, onReady }: { lang: Lang; onReady: (comicId: s
         </div>
         <div className="grid gap-4 sm:grid-cols-2 sm:gap-5">
           {CATALOG.map((entry) => (
-            <CatalogCard key={entry.id} entry={entry} lang={lang} t={t} />
+            <CatalogCard key={entry.id} entry={entry} lang={lang} t={t} completed={completedChapters.has(entry.id)} />
           ))}
         </div>
       </section>

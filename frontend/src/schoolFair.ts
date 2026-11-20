@@ -76,6 +76,8 @@ const chapters: Partial<Record<string, Chapter>> = {
   },
 }
 
+export const SCHOOL_FAIR_CHAPTER_COUNT = Object.keys(chapters).length
+
 export function schoolFairChapter(comicId: string): Chapter | undefined {
   return Object.hasOwn(chapters, comicId) ? chapters[comicId] : undefined
 }
