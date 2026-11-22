@@ -4,6 +4,7 @@ import { BOSS_COPY } from '../boss'
 import { useAnswerCheck } from '../hooks'
 import { STRINGS } from '../i18n'
 import { RichText } from './RichText'
+import { TriumphModal } from './TriumphModal'
 
 // Panel four of a generated comic as a boss fight: three server-owned rounds,
 // each correct answer deals maxHp / rounds damage. Radii follow 16 / 12 / 8.
@@ -46,24 +47,36 @@ function BossAvatar({ kind, shielded, hitKey }: { kind: BossKind; shielded: bool
   )
 }
 
-function RoundForm({ round, lang, onHit }: { round: BossRound; lang: Lang; onHit: () => void }) {
+function RoundForm({ round, lang, onHit, onMiss }: { round: BossRound; lang: Lang; onHit: () => void; onMiss: () => void }) {
   const t = STRINGS[lang]
   const copy = BOSS_COPY[lang]
   const [answer, setAnswer] = useState('')
+  const [draft, setDraft] = useState('')
+  const [draftOpen, setDraftOpen] = useState(false)
   const inputId = useId()
   const input = useRef<HTMLInputElement>(null)
+  const awaiting = useRef(false)
   const check = useAnswerCheck(round.exerciseId, lang, onHit)
   const { result, checking, error, submit, solved } = check
   const wrong = !checking && !!result && result.status !== 'correct'
 
   // A miss marks the field red and hands focus back, like the My Story form.
+  // Count it once per submitted answer (a language switch re-checks without a new answer).
   useEffect(() => {
-    if (wrong) input.current?.focus()
-  }, [wrong, result])
+    if (!wrong) return
+    input.current?.focus()
+    if (awaiting.current) {
+      awaiting.current = false
+      onMiss()
+    }
+  }, [wrong, result, onMiss])
 
   function onSubmit(e: FormEvent) {
     e.preventDefault()
-    if (answer.trim() && !checking && !solved) submit(answer.trim())
+    if (answer.trim() && !checking && !solved) {
+      awaiting.current = true
+      submit(answer.trim())
+    }
   }
 
   return (
@@ -94,6 +107,29 @@ function RoundForm({ round, lang, onHit }: { round: BossRound; lang: Lang; onHit
           {checking ? t.checking : t.check}
         </button>
       </div>
+      <div>
+        <button
+          type="button"
+          aria-expanded={draftOpen}
+          aria-controls={`${inputId}-draft`}
+          onClick={() => setDraftOpen(!draftOpen)}
+          className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border-2 border-dashed border-ink/60 bg-white px-3 text-sm font-black text-ink hover:border-ink hover:bg-sky focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        >
+          <span aria-hidden>✏️</span>{copy.draft}<span aria-hidden className="text-xs">{draftOpen ? '▲' : '▼'}</span>
+        </button>
+        <textarea
+          id={`${inputId}-draft`}
+          hidden={!draftOpen}
+          aria-label={copy.draftLabel}
+          value={draft}
+          rows={3}
+          maxLength={500}
+          spellCheck={false}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder={copy.draftPlaceholder}
+          className="mt-2 w-full resize-y rounded-xl border-2 border-dashed border-ink/60 bg-[repeating-linear-gradient(#fff_0_27px,#dbe6ff_27px_28px)] px-3 py-1.5 font-mono text-base leading-7 text-ink placeholder:font-sans placeholder:text-sm placeholder:text-ink/50 focus-visible:outline-3 focus-visible:outline-offset-1 focus-visible:outline-brand"
+        />
+      </div>
       <div id={`${inputId}-result`} aria-live="polite" className="min-h-6">
         {error && <p className="font-bold text-rose-700">{t.checkError}</p>}
         {wrong && !error && (
@@ -112,13 +148,18 @@ interface Props {
   lang: Lang
   cleared: number
   onRoundCleared: () => void
+  /** Go to the panel after the boss (shown on the victory screen). */
+  onReadOn?: () => void
 }
 
-export function BossFight({ boss, lang, cleared, onRoundCleared }: Props) {
+export function BossFight({ boss, lang, cleared, onRoundCleared, onReadOn }: Props) {
   const copy = BOSS_COPY[lang]
   const total = boss.rounds.length
   const damage = Math.round(boss.maxHp / total)
   const [hit, setHit] = useState<{ round: number; at: number } | null>(null)
+  const [misses, setMisses] = useState(0)
+  const [triumph, setTriumph] = useState(false)
+  const onMiss = useCallback(() => setMisses((m) => m + 1), [])
   const hpId = useId()
   const heading = useRef<HTMLHeadingElement>(null)
   // While a hit plays, the bar already shows the new HP but the next round waits.
@@ -134,9 +175,10 @@ export function BossFight({ boss, lang, cleared, onRoundCleared }: Props) {
     const timer = setTimeout(() => {
       setHit(null)
       onRoundCleared()
+      if (hit.round === total - 1) setTriumph(true)
     }, HIT_MS)
     return () => clearTimeout(timer)
-  }, [hit, onRoundCleared])
+  }, [hit, onRoundCleared, total])
 
   useEffect(() => {
     if (cleared > 0) heading.current?.focus({ preventScroll: true })
@@ -199,10 +241,17 @@ export function BossFight({ boss, lang, cleared, onRoundCleared }: Props) {
         {defeated ? (
           <div className="flex items-center gap-3">
             <span aria-hidden className="boss-trophy text-4xl">🏆</span>
-            <div>
+            <div className="min-w-0 flex-1">
               <p className="text-xl font-black text-ink">{copy.defeated}</p>
               <p className="font-semibold text-ink/80">{copy.readOn} <span aria-hidden>→</span></p>
             </div>
+            <button
+              type="button"
+              onClick={() => setTriumph(true)}
+              className="min-h-11 shrink-0 rounded-xl border-[3px] border-ink bg-white px-3 text-sm font-black text-ink shadow-[0_3px_0_var(--color-ink)] hover:bg-sky focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            >
+              {copy.triumph.reopen}
+            </button>
           </div>
         ) : hit ? (
           <p role="status" className="rounded-lg border-2 border-emerald-700 bg-emerald-50 px-3 py-3 font-black text-emerald-950">
@@ -211,10 +260,25 @@ export function BossFight({ boss, lang, cleared, onRoundCleared }: Props) {
         ) : (
           <>
             <p className="mb-2 text-sm font-black text-brand-dark">{copy.round(cleared + 1, total)}</p>
-            <RoundForm key={round.exerciseId} round={round} lang={lang} onHit={onHit} />
+            <RoundForm key={round.exerciseId} round={round} lang={lang} onHit={onHit} onMiss={onMiss} />
           </>
         )}
       </div>
+      <TriumphModal
+        open={triumph}
+        kind={boss.kind}
+        lang={lang}
+        rounds={total}
+        misses={misses}
+        onClose={() => setTriumph(false)}
+        onReadOn={
+          onReadOn &&
+          (() => {
+            setTriumph(false)
+            onReadOn()
+          })
+        }
+      />
     </section>
   )
 }

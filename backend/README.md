@@ -170,7 +170,10 @@ answer is computed with exact server-side fraction arithmetic and stored private
 
 Equations (`topic: "equations"`) use the same flow with server templates in `app/problems.py`:
 unknown addend/minuend (basic), unknown factor/dividend (intermediate) and two-step
-`a · x ± b = c` (advanced). Answers are always positive whole numbers. Live scenes swap the pizza
+`a · x ± b = c` (advanced). Answers are always positive whole numbers. `app/answers.py` checks
+them exactly with SymPy and accepts `3`, `3.0`, `3,0`, `x = 3`, `х = 3`, `3 = x` or `6/2`.
+Student text is matched against a strict ASCII-digit pattern first and is never passed to
+`sympify`/`parse_expr` (they use `eval`). Live scenes swap the pizza
 box for a chest sealed by a riddle lock, with no digits in the pictures.
 
 Each published comic also stores two extra boss rounds (same topic, grade and difficulty) in the

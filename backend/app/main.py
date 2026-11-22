@@ -8,9 +8,10 @@ from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
+from .answers import parse_equation_answer
 from .config import Settings
 from .content import FEEDBACK, HINTS, get_comic
-from .library_episode import EXERCISE_PREFIX, WHOLE_NUMBER, check_library_answer
+from .library_episode import EXERCISE_PREFIX, check_library_answer
 from .prepared_art import ART_DIR, PREPARED_PANELS
 from .schemas import (
     CheckRequest,
@@ -30,6 +31,16 @@ from .storage import Store
 # No decimal conversion or floating-point comparison is involved.
 FRACTION_PATTERN = re.compile(r"([+-]?[0-9]+)\s*/\s*([+-]?[0-9]+)")
 EXPECTED_ANSWER = Fraction(3, 4)
+EQUATION_FEEDBACK = {
+    "ru": {
+        "correct": "Верно! Ты нашёл x — равенство выполняется. Отличная работа!",
+        "invalid": "Запиши значение x числом: например 12, 12,0 или x = 12.",
+    },
+    "kk": {
+        "correct": "Дұрыс! Сен x-ті таптың — теңдік орындалады. Жарайсың!",
+        "invalid": "x мәнін санмен жаз: мысалы 12, 12,0 немесе x = 12.",
+    },
+}
 INCORRECT = {
     "fractions": {
         "ru": "Пока неверно. Проверь общее количество пиццы и число друзей. "
@@ -47,12 +58,10 @@ INCORRECT = {
 
 
 def parse_answer(answer: str, topic: str) -> Fraction | None:
-    """Fractions accept a/b; equations accept a whole number. No floats involved."""
+    """Fractions accept a/b; equations accept x = 3, 3, 3.0 … (see answers.py). Exact math."""
     answer = answer.strip()
     if topic == "equations":
-        if WHOLE_NUMBER.fullmatch(answer) is None:
-            return None
-        return Fraction(int(re.sub(r"[ \u00a0\u202f]", "", answer)))
+        return parse_equation_answer(answer)
     match = FRACTION_PATTERN.fullmatch(answer)
     if match is None:
         return None
@@ -155,6 +164,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         value = parse_answer(body.answer, topic)
         status = "invalid" if value is None else "correct" if value == expected else "incorrect"
         message = FEEDBACK[body.lang][status]
+        if topic == "equations" and status != "incorrect":
+            message = EQUATION_FEEDBACK[body.lang][status]
         if exercise_id != "pizza-share" and status == "incorrect":
             message = INCORRECT[topic][body.lang]
         return CheckResponse(status=status, message=message)

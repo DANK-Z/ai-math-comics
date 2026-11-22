@@ -1,4 +1,4 @@
-import { checkWholeNumberAnswer } from './localComics'
+import { parseEquationAnswer } from './answers'
 import { fractionsEqual, parseFraction } from './fraction'
 import type { BossRound, CastHeroId, CheckStatus, Comic, Difficulty, Grade, Lang, StoryOptions, Topic } from './types'
 
@@ -362,13 +362,17 @@ export function generatedExercise(exerciseId: string) {
   if (topic === 'equations') {
     const [kind, , answer] = EQUATIONS[key][index]
     return {
-      check: (value: string) => checkWholeNumberAnswer(value, answer),
+      check: (value: string): CheckStatus => {
+        const given = parseEquationAnswer(value)
+        if (!given) return 'invalid'
+        return fractionsEqual(given, { num: BigInt(answer), den: 1n }) ? 'correct' : 'incorrect'
+      },
       hints: (lang: Lang) => EQUATION_HINTS[lang][kind],
       feedback: (lang: Lang, status: CheckStatus) =>
         status === 'invalid'
           ? lang === 'ru'
-            ? 'Запиши ответ целым числом, например 12.'
-            : 'Жауапты бүтін санмен жаз, мысалы 12.'
+            ? 'Запиши значение x числом: например 12, 12,0 или x = 12.'
+            : 'x мәнін санмен жаз: мысалы 12, 12,0 немесе x = 12.'
           : FEEDBACK[lang][status](`x = ${answer}`),
     }
   }

@@ -95,7 +95,8 @@ These items are not on the request list, but the planned work builds on them.
 
 ### 8. Guardian upgrades — In progress
 
-Generated comics now end in a panel-four boss fight with an animated HP bar (`a964b80`), and the
+Generated comics now end in a panel-four boss fight with an animated HP bar (`a964b80`), a draft
+pad and a victory screen (chest, coin burst, trophy card with stars, share with a copy fallback), and the
 Road Guardian has visual phases (`4f60846`). The season's Guardian final challenge is unchanged.
 Boss-fight progress is not saved: reloading restarts the fight.
 

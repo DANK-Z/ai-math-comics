@@ -113,12 +113,25 @@ def test_equations_comic_has_x_master_boss_and_whole_number_checks(tmp_path):
         check = lambda answer: api.post(  # noqa: E731
             f"/api/exercises/{rid}/check", json={"answer": answer, "lang": "ru"}
         ).json()
-        assert check(str(expected))["status"] == "correct"
-        assert check(f" {expected} ")["status"] == "correct"
+        for form in (
+            f"{expected}",
+            f" {expected} ",
+            f"{expected}.0",
+            f"{expected},0",
+            f"x={expected}",
+            f"x = {expected}",
+            f"х = {expected}",
+            f"{expected}/1",
+        ):
+            result = check(form)
+            assert result["status"] == "correct", form
+            assert "x" in result["message"] and "пицц" not in result["message"]
         wrong = check(str(expected + 1))
         assert wrong["status"] == "incorrect" and "вместо x" in wrong["message"]
-        assert check(f"{expected}/1")["status"] == "invalid"
-        assert check("x")["status"] == "invalid"
+        assert check(f"x = {expected}.5")["status"] == "incorrect"
+        invalid = check("x")
+        assert invalid["status"] == "invalid" and "x = 12" in invalid["message"]
+        assert "дроб" not in invalid["message"]
         hint = api.get(f"/api/exercises/{rid}/hints?lang=kk&step=2").json()
         assert hint["text"] and hint["hasMore"] is False
 
@@ -223,3 +236,56 @@ def test_my_story_with_equations_keeps_heroes_and_gets_the_boss(tmp_path):
     comic = api.get(f"/api/comics/{status['comicId']}?lang=ru").json()
     assert comic["boss"]["kind"] == "x-master"
     assert comic["exercise"]["answerFormat"] == "whole-number"
+
+
+@pytest.mark.parametrize(
+    ("answer", "value"),
+    [
+        ("3", 3),
+        ("3.0", 3),
+        ("3,0", 3),
+        ("x=3", 3),
+        ("x = 3.0", 3),
+        ("X=3", 3),
+        ("х = 3", 3),  # Cyrillic х
+        ("3 = x", 3),
+        ("6/2", 3),
+        ("x = 21/7", 3),
+        ("1 200", 1200),
+        ("1 200", 1200),
+        ("−3", -3),
+        ("３", 3),  # full-width digit
+        ("12,5", Fraction(25, 2)),
+    ],
+)
+def test_equation_answers_accept_common_forms(answer, value):
+    from app.answers import parse_equation_answer
+
+    assert parse_equation_answer(answer) == value
+
+
+@pytest.mark.parametrize(
+    "answer",
+    [
+        "",
+        "x",
+        "x=",
+        "=3",
+        "2x=6",
+        "3+4",
+        "x = 1/0",
+        "1e3",
+        "0x10",
+        "٣",
+        "3.",
+        ".5",
+        '__import__("os")',
+        "x = y",
+        "три",
+        "1" * 41,
+    ],
+)
+def test_equation_answers_reject_everything_else(answer):
+    from app.answers import parse_equation_answer
+
+    assert parse_equation_answer(answer) is None

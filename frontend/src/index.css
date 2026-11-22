@@ -112,6 +112,32 @@ html {
   .boss-trophy { animation: road-bob 0.8s ease-in-out infinite alternate; }
 }
 
+/* Victory screen: the chest lid stays open even without motion. */
+.triumph-lid { transform: rotate(-28deg); }
+.triumph-coin { opacity: 0; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .triumph[open] { animation: boss-enter 380ms cubic-bezier(0.2, 0.9, 0.3, 1.2); }
+  .triumph[open] .triumph-lid { animation: triumph-lid 700ms cubic-bezier(0.3, 1.6, 0.5, 1) 150ms both; }
+  .triumph[open] .triumph-coin { animation: triumph-coin 1.4s cubic-bezier(0.2, 0.8, 0.4, 1) both; }
+  .triumph[open] .triumph-glow { animation: triumph-glow 1.6s ease-in-out infinite alternate; }
+}
+
+@keyframes triumph-lid {
+  0% { transform: rotate(0); }
+  35% { transform: rotate(4deg); }
+  100% { transform: rotate(-28deg); }
+}
+@keyframes triumph-coin {
+  0% { opacity: 0; transform: translate(-50%, 0) scale(0.4) rotate(0); }
+  15% { opacity: 1; }
+  55% { opacity: 1; transform: translate(calc(-50% + var(--dx)), var(--dy)) scale(1) rotate(200deg); }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--dx) * 1.15), calc(var(--dy) + 60px)) scale(0.9) rotate(320deg); }
+}
+@keyframes triumph-glow {
+  to { transform: translateX(-50%) scale(1.15); opacity: 0.9; }
+}
+
 @keyframes boss-enter {
   from { opacity: 0; transform: translateY(14px) scale(0.97); }
 }

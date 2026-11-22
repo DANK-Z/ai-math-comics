@@ -185,7 +185,11 @@ equivalent fractions are checked with exact arithmetic. Unknown exercises return
   for basic; `a · x = b`, `x : a = b` for intermediate; `a · x + b = c`, `a · x − b = c`
   for advanced). The answer is always a positive whole number, so the exercise and every
   boss round carry `"answerFormat":"whole-number"` and IDs start with `equations-`.
-  Check accepts digits (with optional thousands spaces) only; `a/b` or words are `invalid`.
+  Check reads the value of x exactly (SymPy `Rational`, no floats). All of these are the same
+  answer: `3`, `3.0`, `3,0`, `x=3`, `x = 3.0`, `х = 3` (Cyrillic), `3 = x`, `6/2`; thousands
+  spaces (`1 200`) and a leading minus are allowed. A different value is `incorrect`; words,
+  expressions such as `2x=6` or `3+4`, and division by zero are `invalid`. Feedback for
+  equations talks about x, never about pizza.
 
 ### Panel-four boss (`boss`)
 

@@ -230,7 +230,8 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
       {/* Kept mounted between panels to preserve the typed answer and revealed hints. */}
       <div hidden={!isExercisePanel} className="min-w-0 xl:col-start-1 xl:row-start-2">
         {boss ? (
-          <BossFight boss={boss} lang={lang} cleared={bossCleared} onRoundCleared={onRoundCleared} />
+          <BossFight boss={boss} lang={lang} cleared={bossCleared} onRoundCleared={onRoundCleared}
+            onReadOn={exerciseIndex + 1 < total ? () => onIndexChange(exerciseIndex + 1) : undefined} />
         ) : (
           <ExerciseCard exercise={comic.exercise} lang={lang} check={check} reward={reward} />
         )}

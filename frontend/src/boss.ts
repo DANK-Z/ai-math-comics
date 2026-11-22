@@ -14,6 +14,25 @@ interface BossCopy {
   defeated: string
   defeatedText: Record<BossKind, string>
   readOn: string
+  draft: string
+  draftLabel: string
+  draftPlaceholder: string
+  triumph: {
+    title: string
+    trophy: string
+    hits: (n: number, total: number) => string
+    misses: (n: number) => string
+    perfect: string
+    stars: (n: number) => string
+    readOn: string
+    share: string
+    copied: string
+    shared: string
+    shareManual: string
+    close: string
+    reopen: string
+    shareText: (boss: string, total: number, misses: number) => string
+  }
 }
 
 export const BOSS_COPY: Record<Lang, BossCopy> = {
@@ -38,6 +57,26 @@ export const BOSS_COPY: Record<Lang, BossCopy> = {
       'x-master': 'Щит рассыпался искрами — Магистр Иксов признал поражение!',
     },
     readOn: 'Листай дальше — история продолжается',
+    draft: 'Черновик',
+    draftLabel: 'Черновик для вычислений',
+    draftPlaceholder: 'Считай здесь как удобно — черновик никто не проверяет.',
+    triumph: {
+      title: 'Победа!',
+      trophy: 'Трофей',
+      hits: (n, total) => `Удары: ${n} из ${total}`,
+      misses: (n) => `Ошибки: ${n}`,
+      perfect: 'Без единой ошибки!',
+      stars: (n) => `Оценка: ${n} из 3 звёзд`,
+      readOn: 'Читать дальше',
+      share: 'Поделиться',
+      copied: 'Текст скопирован — вставь его в сообщение.',
+      shared: 'Готово, успех отправлен!',
+      shareManual: 'Скопируй этот текст и отправь его друзьям:',
+      close: 'Закрыть',
+      reopen: 'Показать трофей',
+      shareText: (boss, total, misses) =>
+        `🏆 Босс «${boss}» повержен! Удары: ${total} из ${total}, ошибок: ${misses}. AI Math Comics`,
+    },
   },
   kk: {
     arena: 'Босспен шайқас',
@@ -60,5 +99,25 @@ export const BOSS_COPY: Record<Lang, BossCopy> = {
       'x-master': 'Қалқан ұшқынға айналды — Икстер Магистрі жеңілгенін мойындады!',
     },
     readOn: 'Әрі қарай парақта — оқиға жалғасады',
+    draft: 'Жоба дәптер',
+    draftLabel: 'Есептеуге арналған жоба дәптер',
+    draftPlaceholder: 'Мұнда өзіңе ыңғайлы есепте — жобаны ешкім тексермейді.',
+    triumph: {
+      title: 'Жеңіс!',
+      trophy: 'Олжа',
+      hits: (n, total) => `Соққылар: ${total}-тен ${n}`,
+      misses: (n) => `Қателер: ${n}`,
+      perfect: 'Бірде-бір қатесіз!',
+      stars: (n) => `Баға: 3 жұлдыздан ${n}`,
+      readOn: 'Әрі қарай оқу',
+      share: 'Бөлісу',
+      copied: 'Мәтін көшірілді — оны хабарламаға қой.',
+      shared: 'Дайын, жетістігің жіберілді!',
+      shareManual: 'Осы мәтінді көшіріп, достарыңа жібер:',
+      close: 'Жабу',
+      reopen: 'Олжаны көрсету',
+      shareText: (boss, total, misses) =>
+        `🏆 «${boss}» жеңілді! Соққылар: ${total}-тен ${total}, қателер: ${misses}. AI Math Comics`,
+    },
   },
 }

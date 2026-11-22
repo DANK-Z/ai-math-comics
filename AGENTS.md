@@ -105,8 +105,8 @@ For UI changes also open the app (mock mode is enough) and check desktop 1440 px
 | «Моя история» prompt, validation, placeholders | `app/my_story.py` | `myStory.ts`, `components/MyStoryFields.tsx` |
 | Job queue, publish, boss_rounds table | `app/storage.py` | `jobs.ts`, `components/GenerateCard.tsx` |
 | Worker: storyboard retries (`TEXT_ATTEMPTS`), images, boss block | `app/worker.py` | `components/GenerationProgress.tsx` |
-| Answer check (fraction `a/b` / whole number for `equations-*`) | `app/main.py` | `hooks.ts` (`useAnswerCheck`) |
-| Panel-4 boss fight (90 HP, 3 rounds × 30) | `schemas.Boss` | `components/BossFight.tsx`, `boss.ts`, `components/ComicReader.tsx` |
+| Answer check (fraction `a/b`; equations via SymPy: `x=3`, `3`, `3.0`, `3,0`) | `app/main.py`, `app/answers.py` | `hooks.ts`, mock mirror `api/answers.ts` |
+| Panel-4 boss fight (90 HP, 3 rounds × 30), draft pad, victory screen | `schemas.Boss` | `components/BossFight.tsx`, `components/TriumphModal.tsx`, `boss.ts`, `components/ComicReader.tsx` |
 | Road Guardian (motion problems) | — | `roadGuardian.ts`, `components/RoadGuardianScreen.tsx` |
 | Season, catalog, backpack, Guardian | — | `schoolFair.ts`, `guardian.ts`, `components/*` |
 | My Comics history (localStorage `amc.myComics`) | — | `myComics.ts`, `components/MyComicsScreen.tsx` |
@@ -121,6 +121,8 @@ Road Guardian; 16/12/8 design pass.
 
 Known gaps / good next steps (see `docs/ROADMAP.md` for the full list):
 - Boss-fight progress is in memory only; reloading restarts the fight.
+- The victory screen has no coin economy yet: coins are only an animation (backpack shop, skins
+  and power-ups are planned).
 - With prepared art, style/setting choices do not change pictures; custom heroes are never drawn.
 - Live image generation with the real provider has not been re-checked since the equations/boss work.
 - Moderation of student text is rule- and prompt-based only.
