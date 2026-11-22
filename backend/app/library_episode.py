@@ -97,7 +97,6 @@ class LibraryText(StrictModel):
     title: str = Field(min_length=1, max_length=72)
     arrival: str = Field(min_length=1, max_length=160)
     discovery: str = Field(min_length=1, max_length=160)
-    question: str = Field(min_length=1, max_length=160)
     ending: str = Field(min_length=1, max_length=160)
     firstHint: str = Field(min_length=1, max_length=160)
     secondHint: str = Field(min_length=1, max_length=160)
@@ -109,7 +108,16 @@ class LibraryStory(StrictModel):
 
 
 def validate_library_story(raw: dict) -> LibraryStory:
-    story = LibraryStory.model_validate(raw)
+    # Discard any legacy question before validating the model-owned fields.
+    # The server renders the question independently from the persisted operands.
+    narrative_fields = raw.copy()
+    for lang in ("ru", "kk"):
+        fields = narrative_fields.get(lang)
+        if isinstance(fields, dict) and "question" in fields:
+            narrative_fields[lang] = {
+                key: value for key, value in fields.items() if key != "question"
+            }
+    story = LibraryStory.model_validate(narrative_fields)
     for lang in ("ru", "kk"):
         localized = getattr(story, lang)
         for field, text in localized.model_dump().items():
@@ -136,7 +144,8 @@ def library_prompt(request: ContinuationRequest, problem: LibraryProblem) -> str
                 "Write one brief sentence per field (title is just a few words). "
                 "Use Cyrillic. Do not use digits, number words, equations, math symbols, "
                 "quantities, Latin letters, or the answer in any field. "
-                "The app displays the equation and the two required math instructions itself. "
+                "The app writes Pifik's question, displays the equation and adds the two "
+                "required math instructions. Do not write the question. "
                 "For firstHint and secondHint write two different helpful Pifik clues about "
                 "the pictured objects that lead into the corresponding math instruction. "
                 "Do not repeat the instructions or add any math operations. "
@@ -158,12 +167,15 @@ def library_prompt(request: ContinuationRequest, problem: LibraryProblem) -> str
             "illustrations_in_order": {
                 "arrival": "Aldiyar speaks. Outside the library, Aruna holds the envelope.",
                 "discovery": "Aruna speaks. Closed matching boxes and loose books on the table.",
-                "question": "Pifik speaks. The friends think in front of a closed box.",
                 "ending": "Aldiyar speaks. A box is open and the friends pack books, smiling.",
             },
+            "exercise_panel": "Pifik speaks while the friends think in front of a closed box.",
             "hints": {
                 "firstHint": "Focus attention on the loose books beside the boxes.",
-                "secondHint": "Focus attention on how the boxes match.",
+                "secondHint": (
+                    "Focus attention on how the boxes match. For Kazakh, use «тең» or "
+                    "«ұқсас» to describe the matching boxes. Avoid the standalone «бір»."
+                ),
             },
         },
         ensure_ascii=False,
@@ -176,10 +188,11 @@ def episode_payload(comic_id: str, story: LibraryStory, problem: LibraryProblem)
     for lang in ("ru", "kk"):
         text = getattr(story, lang)
         opening, discovery = NARRATION[lang]
+        question = problem.prompt(lang)
         dialogue = (
             f"{opening} {text.arrival}",
             f"{discovery} {text.discovery}",
-            text.question,
+            question,
             text.ending,
         )
         comic = Comic(
@@ -195,7 +208,7 @@ def episode_payload(comic_id: str, story: LibraryStory, problem: LibraryProblem)
             exercise=Exercise(
                 id=f"{EXERCISE_PREFIX}{comic_id}",
                 panelId=3,
-                prompt=problem.prompt(lang),
+                prompt=question,
                 answerFormat="whole-number",
             ),
         )

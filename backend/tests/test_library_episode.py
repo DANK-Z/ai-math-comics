@@ -5,8 +5,10 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.config import Settings
+from app.library_episode import LibraryStory, validate_library_story
 from app.main import create_app
 from app.providers import ProviderError
+from app.story import StoryRuleError
 from app.worker import Worker
 
 REQUEST = {
@@ -19,7 +21,6 @@ STORY = {
         "title": "Секрет библиотечного шкафа",
         "arrival": "Ключ привёл нас сюда!",
         "discovery": "Посмотрите на закрытые коробки!",
-        "question": "Поможешь узнать, сколько книг спрятано?",
         "ending": "Теперь соберём книги для ярмарки!",
         "firstHint": "Обрати внимание на книги рядом.",
         "secondHint": "Присмотрись к одинаковым коробкам.",
@@ -28,7 +29,6 @@ STORY = {
         "title": "Кітапхана шкафының сыры",
         "arrival": "Кілт бізді осында алып келді!",
         "discovery": "Жабық қораптарға қараңдар!",
-        "question": "Жасырылған кітап санын табуға көмектесесің бе?",
         "ending": "Енді жәрмеңкеге кітап жинайық!",
         "firstHint": "Қораптардың жанындағы кітаптарға назар аудар.",
         "secondHint": "Қораптардың ұқсастығына қара.",
@@ -44,6 +44,7 @@ class LibraryTextFixture:
 
     async def generate(self, prompt, schema):
         assert set(schema["properties"]) == {"ru", "kk"}
+        assert "question" not in schema["$defs"]["LibraryText"]["properties"]
         content = json.loads(prompt)
         assert content["branch"]["sourceChapterId"] == REQUEST["sourceChapterId"]
         assert content["branch"]["choiceId"] == REQUEST["choiceId"]
@@ -65,7 +66,13 @@ def test_continuation_job_and_bilingual_reader(tmp_path, locale):
     settings = Settings(data_dir=tmp_path, art_mode="live")
     app = create_app(settings)
     client = TestClient(app)
-    provider = LibraryTextFixture()
+    # Even an old provider response carrying an invalid question cannot replace
+    # the server-owned exercise or fail narrative validation.
+    legacy_story = STORY | {
+        "ru": STORY["ru"] | {"question": "Тридцать книг?"},
+        "kk": STORY["kk"] | {"question": {"unexpected": 33}},
+    }
+    provider = LibraryTextFixture(result=legacy_story)
     worker = Worker(app.state.store, provider, NoImages(), settings)
     accepted = client.post("/api/continuation-jobs", json=REQUEST | {"locale": locale})
     assert accepted.status_code == 202
@@ -96,6 +103,7 @@ def test_continuation_job_and_bilingual_reader(tmp_path, locale):
         assert exercise["answerFormat"] == "whole-number"
         assert set(exercise) == {"id", "panelId", "prompt", "answerFormat"}
         assert f"3 × □ + 6 = {provider.inputs['total_books']}" in exercise["prompt"]
+        assert comic["panels"][2]["text"] == exercise["prompt"]
         path = f"/api/exercises/{exercise['id']}"
         for answer, result in (
             (str(expected - 1), "incorrect"),
@@ -108,6 +116,18 @@ def test_continuation_job_and_bilingual_reader(tmp_path, locale):
             hint = client.get(f"{path}/hints?lang={lang}&step={step}").json()
             assert hint["text"].startswith(STORY[lang][field])
             assert hint["hasMore"] == (step == 1)
+
+
+@pytest.mark.parametrize(
+    ("lang", "number_word"),
+    [("ru", "тридцать"), ("kk", "отыз"), ("kk", "бір")],
+)
+def test_model_owned_fields_still_reject_number_words(lang, number_word):
+    assert "question" not in LibraryStory.model_json_schema()["$defs"]["LibraryText"]["required"]
+    response = STORY | {lang: STORY[lang] | {"firstHint": number_word}}
+    with pytest.raises(StoryRuleError) as failure:
+        validate_library_story(response)
+    assert (failure.value.path, failure.value.rule) == (f"{lang}.firstHint", "no_number_words")
 
 
 def test_provider_failure_and_output_validation_are_terminal(tmp_path, caplog):
