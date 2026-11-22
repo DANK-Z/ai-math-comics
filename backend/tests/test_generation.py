@@ -335,13 +335,15 @@ def test_prepared_story_rejects_a_speaker_that_does_not_match_the_art():
         validate_story(story, problem, prepared=True)
 
 
-def test_image_failure_cleans_files_and_next_job_runs(setup, caplog):
+def test_image_failure_keeps_saved_files_and_next_job_runs(setup, caplog):
     settings, client, store = setup
     first, second = [client.post("/api/comic-jobs", json=REQUEST).json()["jobId"] for _ in range(2)]
     with caplog.at_level("INFO", logger="app.worker"):
         asyncio.run(Worker(store, DeterministicText(), DeterministicImages(3), settings).run_once())
     assert f"Job {first} provider stage: image:panel_3:gemini_http:503" in caplog.text
     result = client.get(f"/api/comic-jobs/{first}").json()
+    token = result.pop("resumeToken")
+    assert token
     assert result == {
         "jobId": first,
         "status": "failed",
@@ -349,7 +351,7 @@ def test_image_failure_cleans_files_and_next_job_runs(setup, caplog):
         "errorCode": "image_generation_failed",
         "progress": {"stage": "drawing", "completedPanels": 2, "totalPanels": 6},
     }
-    assert list(store.images_dir.iterdir()) == []
+    assert sorted(path.name for path in store.images_dir.glob("*/*.png")) == ["1.png", "2.png"]
     assert store.comic(first) is None
     asyncio.run(Worker(store, DeterministicText(), DeterministicImages(), settings).run_once())
     assert store.job(second).status == "ready"

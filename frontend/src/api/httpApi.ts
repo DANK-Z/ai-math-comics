@@ -20,7 +20,10 @@ async function readError(res: Response): Promise<ApiError> {
   return new ApiError(res.status, `${res.status} ${res.statusText}`.trim(), { code, detail })
 }
 
-export function createHttpApi(baseUrl: string): Api & { createContinuationJob(body: ContinuationJobRequest): Promise<ComicJobCreated> } {
+export function createHttpApi(baseUrl: string): Api & {
+  createContinuationJob(body: ContinuationJobRequest): Promise<ComicJobCreated>
+  resumeComicJob(jobId: string, resumeToken: string): Promise<ComicJob>
+} {
   const base = baseUrl.replace(/\/+$/, '')
 
   async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -63,6 +66,11 @@ export function createHttpApi(baseUrl: string): Api & { createContinuationJob(bo
     },
     getComicJob(jobId, signal) {
       return request<ComicJob>(`/api/comic-jobs/${encodeURIComponent(jobId)}`, { signal })
+    },
+    resumeComicJob(jobId, resumeToken) {
+      return request<ComicJob>(`/api/comic-jobs/${encodeURIComponent(jobId)}/resume`, {
+        method: 'POST', body: JSON.stringify({ resumeToken }),
+      })
     },
   }
 }

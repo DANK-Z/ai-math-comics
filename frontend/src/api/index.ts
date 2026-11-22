@@ -19,6 +19,7 @@ const BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000').
 const httpApi = createHttpApi(BASE_URL)
 const configuredApi = API_MODE === 'live' ? httpApi : mockApi
 export const createContinuationJob = httpApi.createContinuationJob
+export const resumeComicJob = API_MODE === 'live' ? httpApi.resumeComicJob : undefined
 
 /** Bundled chapters 2–6 of “Operation: School Fair”: served locally in both API modes, no generator needed. */
 export const LOCAL_COMICS: readonly LocalComicDef[] = [SCHOOL_STORE, ...FAIR_CHAPTERS]

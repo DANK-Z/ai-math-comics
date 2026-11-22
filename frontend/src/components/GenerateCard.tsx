@@ -1,5 +1,5 @@
 import { useEffect, useId, useState, type FormEvent, type ReactNode } from 'react'
-import { api, ART_MODE, type JobProgress, DIFFICULTIES, GRADES, LANGS, TOPICS, type ComicJobRequest, type Difficulty, type Grade, type Lang, type Topic } from '../api'
+import { api, ART_MODE, resumeComicJob, type JobProgress, DIFFICULTIES, GRADES, LANGS, TOPICS, type ComicJobRequest, type Difficulty, type Grade, type Lang, type Topic } from '../api'
 import { PORTRAITS } from '../art/sheet'
 import { STRINGS, type UiStrings } from '../i18n'
 import { useComicJob, type JobFailure, type JobState } from '../jobs'
@@ -111,13 +111,23 @@ function WaitingJob({ state, t, onStop }: {
   )
 }
 
-function JobFailed({ failure, progress, t, onRetry, onEdit }: { failure: JobFailure; progress?: JobProgress; t: UiStrings; onRetry: () => void; onEdit: () => void }) {
+function JobFailed({ failure, progress, t, onRetry, onEdit, onResume, resuming, resumeError }: {
+  failure: JobFailure
+  progress?: JobProgress
+  t: UiStrings
+  onRetry: () => void
+  onEdit: () => void
+  onResume?: () => void
+  resuming: boolean
+  resumeError: boolean
+}) {
   const detail = failureDetail(failure)
   return (
     <div role="alert" className="rounded-2xl border-[3px] border-rose-700 bg-rose-50 p-4 text-rose-950">
       <p className="text-lg font-black">{t.jobFailedTitle}</p>
       <p className="mt-1 font-semibold">{failureMessage(t, failure)}</p>
       {progress && <div className="mt-2"><GenerationProgress t={t} progress={progress} stopped /></div>}
+      {resumeError && <p className="mt-2 font-semibold">{t.resumeGenerationError}</p>}
       {detail && (
         <details className="mt-2 text-sm">
           <summary className="cursor-pointer font-bold">{t.errorDetails}</summary>
@@ -127,12 +137,13 @@ function JobFailed({ failure, progress, t, onRetry, onEdit }: { failure: JobFail
       <div className="mt-3 flex flex-wrap gap-2">
         <button
           type="button"
-          onClick={onRetry}
+          onClick={onResume ?? onRetry}
+          disabled={resuming}
           className="min-h-11 rounded-2xl border-[3px] border-ink bg-sun px-4 font-black text-ink shadow-[0_3px_0_var(--color-ink)] active:translate-y-[2px] active:shadow-none"
         >
-          ↻ {t.tryAgain}
+          <span aria-hidden="true">↻ </span>{onResume ? (resuming ? t.submitting : t.resumeGeneration) : t.tryAgain}
         </button>
-        <button type="button" onClick={onEdit} className="min-h-11 rounded-2xl border-[3px] border-ink bg-white px-4 font-black text-ink">
+        <button type="button" disabled={resuming} onClick={onEdit} className="min-h-11 rounded-2xl border-[3px] border-ink bg-white px-4 font-black text-ink">
           {t.changeParams}
         </button>
       </div>
@@ -150,8 +161,9 @@ export function GenerateCard({ lang, onReady, autoOpen }: {
   autoOpen: boolean
 }) {
   const t = STRINGS[lang]
-  const { state, active, submit, reset, resume, pauseWaiting } = useComicJob(autoOpen ? onReady : undefined, {
+  const { state, active, submit, reset, resume, pauseWaiting, resumeGeneration, resumingGeneration, resumeError } = useComicJob(autoOpen ? onReady : undefined, {
     createJob: api.createComicJob,
+    resumeJob: resumeComicJob,
     rememberReady: true,
   })
   const resumed = state.phase === 'idle' ? null : state.request
@@ -173,7 +185,7 @@ export function GenerateCard({ lang, onReady, autoOpen }: {
     submit({ grade, topic, lang: comicLang, difficulty })
   }
 
-  const locked = active || state.phase === 'ready' || state.phase === 'paused'
+  const locked = active || resumingGeneration || state.phase === 'ready' || state.phase === 'paused'
 
   return (
     <section
@@ -227,7 +239,12 @@ export function GenerateCard({ lang, onReady, autoOpen }: {
         </fieldset>
 
         {state.phase === 'failed' ? (
-          <JobFailed failure={state.failure} progress={state.progress} t={t} onRetry={() => submit(state.request)} onEdit={reset} />
+          <JobFailed
+            failure={state.failure} progress={state.progress} t={t}
+            onRetry={() => submit(state.request)} onEdit={reset}
+            onResume={resumeComicJob && state.resumeTarget ? resumeGeneration : undefined}
+            resuming={resumingGeneration} resumeError={resumeError}
+          />
         ) : state.phase === 'paused' ? (
           <div className="rounded-2xl border-[3px] border-ink bg-sky p-4">
             <p role="status" className="mb-2 font-semibold">{t.pollPaused}</p>

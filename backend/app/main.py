@@ -22,6 +22,7 @@ from .schemas import (
     JobRequest,
     JobStatus,
     Language,
+    ResumeJobRequest,
 )
 from .storage import Store
 
@@ -53,6 +54,22 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.post("/api/continuation-jobs", status_code=202, response_model=JobAccepted)
     def create_continuation(body: ContinuationRequest, request: Request) -> JobAccepted:
         return JobAccepted(jobId=get_store(request).enqueue(body))
+
+    @app.post(
+        "/api/comic-jobs/{job_id}/resume",
+        status_code=202,
+        response_model=JobStatus,
+        response_model_exclude_unset=True,
+    )
+    def resume_job(job_id: str, body: ResumeJobRequest, request: Request) -> JobStatus:
+        store = get_store(request)
+        accepted = settings.art_mode == "live" and store.resume(job_id, body.resumeToken)
+        job = store.job(job_id)
+        if job is None:
+            raise HTTPException(404, "job_not_found")
+        if settings.art_mode != "live" or (not accepted and job.status != "ready"):
+            raise HTTPException(409, "job_not_resumable")
+        return job
 
     @app.get(
         "/api/comic-jobs/{job_id}", response_model=JobStatus, response_model_exclude_unset=True

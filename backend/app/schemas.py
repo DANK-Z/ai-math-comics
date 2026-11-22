@@ -92,6 +92,10 @@ class JobAccepted(BaseModel):
     status: Literal["queued"] = "queued"
 
 
+class ResumeJobRequest(BaseModel):
+    resumeToken: str = Field(min_length=36, max_length=36)
+
+
 class JobProgress(BaseModel):
     stage: Literal["queued", "storyboard", "drawing", "preparing", "ready"]
     completedPanels: int | None = None
@@ -104,3 +108,4 @@ class JobStatus(BaseModel):
     comicId: str | None = None
     errorCode: ErrorCode | None = None
     progress: JobProgress | None = None
+    resumeToken: str | None = None
