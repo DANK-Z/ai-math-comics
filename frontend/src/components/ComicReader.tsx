@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { BOSS_COPY } from '../boss'
 import type { Comic, Lang } from '../api'
 import { PANEL_ASPECT } from '../art/sheet'
 import { CHARACTERS } from '../characters'
@@ -7,6 +8,7 @@ import { useAnswerCheck } from '../hooks'
 import { STRINGS } from '../i18n'
 import { comicHref, DEMO_COMIC_ID, GARLAND_COMIC_ID, GUARDIAN_HREF, SCHOOL_MAP_COMIC_ID, SCHOOL_STORE_COMIC_ID, SECTION_HREFS } from '../route'
 import { schoolFairChapter, type SchoolFairCollectible } from '../schoolFair'
+import { BossFight } from './BossFight'
 import { CastCard } from './CastCard'
 import { Continuation } from './Continuation'
 import { ExerciseCard } from './ExerciseCard'
@@ -41,7 +43,19 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
     if (item) setReward(item)
   }, [comicId, onChapterComplete])
   const check = useAnswerCheck(comic.exercise.id, lang, onCorrect)
-  const solved = check.solved || chapterThreeSolved
+  // Generated comics fight a boss on the exercise panel: every round must be won.
+  const boss = comic.boss
+  const [bossRun, setBossRun] = useState({ comicId, cleared: 0 })
+  const bossCleared = bossRun.comicId === comicId ? bossRun.cleared : 0
+  const bossDefeated = !!boss && bossCleared >= boss.rounds.length
+  const onRoundCleared = useCallback(() => {
+    const next = bossCleared + 1
+    setBossRun({ comicId, cleared: next })
+    if (boss && next >= boss.rounds.length) onCorrect()
+  }, [boss, bossCleared, comicId, onCorrect])
+  const exerciseSolved = boss ? bossDefeated : check.solved
+  const hintExerciseId = boss ? boss.rounds[Math.min(bossCleared, boss.rounds.length - 1)].exerciseId : comic.exercise.id
+  const solved = exerciseSolved || chapterThreeSolved
   const total = comic.panels.length
   const exerciseIndex = comic.panels.findIndex((p) => p.id === comic.exercise.panelId)
   const maxIndex = GATE_AFTER_EXERCISE && exerciseIndex >= 0 && !solved ? exerciseIndex : total - 1
@@ -49,10 +63,11 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
   const panel = comic.panels[current]
   const isExercisePanel = panel.id === comic.exercise.panelId
   const showCast = comic.id === DEMO_COMIC_ID || !comic.panels.some((p) => p.imageUrl)
-  const showHints = isExercisePanel && !check.solved
+  const showHints = isExercisePanel && !exerciseSolved
+  const arena = !!boss && isExercisePanel && !bossDefeated
   const showSidebar = showCast || showHints
   const locked = current === maxIndex && maxIndex < total - 1
-  const justUnlocked = check.solved && isExercisePanel && current < total - 1
+  const justUnlocked = exerciseSolved && isExercisePanel && current < total - 1
   const ending = solved && current === total - 1 ? schoolFairChapter(comic.id) : undefined
 
   useEffect(() => {
@@ -85,13 +100,18 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
 
         <figure
           key={panel.id}
-          className="panel-enter relative overflow-hidden rounded-2xl border-[5px] border-ink bg-sky-100"
+          className={`panel-enter relative overflow-hidden rounded-2xl border-[5px] border-ink bg-sky-100 transition-[border-color,box-shadow] duration-500 ${arena ? 'boss-arena' : ''}`}
           aria-label={`${panel.speaker}: ${panel.text}`}
         >
           <PanelArt imageKey={panel.imageKey} imageUrl={panel.imageUrl} lang={lang} speaker={panel.speaker} text={panel.text} imageAspect={panel.imageAspect} placeholder={panel.placeholder} priority />
           <span className={`absolute ${panel.imageUrl ? 'top-2' : 'bottom-2'} left-2 grid h-9 w-9 place-items-center rounded-full border-[3px] border-ink bg-sun text-lg font-black text-ink`}>
             {panel.id}
           </span>
+          {arena && (
+            <span className="boss-enter absolute top-2 right-2 rounded-lg border-2 border-ink bg-rose-600 px-2 py-0.5 text-xs font-black text-white sm:text-sm">
+              <span aria-hidden>⚔️ </span>{BOSS_COPY[lang].arena}
+            </span>
+          )}
         </figure>
 
         {ending && (
@@ -209,12 +229,16 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
 
       {/* Kept mounted between panels to preserve the typed answer and revealed hints. */}
       <div hidden={!isExercisePanel} className="min-w-0 xl:col-start-1 xl:row-start-2">
-        <ExerciseCard exercise={comic.exercise} lang={lang} check={check} reward={reward} />
+        {boss ? (
+          <BossFight boss={boss} lang={lang} cleared={bossCleared} onRoundCleared={onRoundCleared} />
+        ) : (
+          <ExerciseCard exercise={comic.exercise} lang={lang} check={check} reward={reward} />
+        )}
       </div>
       <div hidden={!showSidebar} className="min-w-0 xl:sticky xl:top-5 xl:col-start-2 xl:row-span-2 xl:row-start-1">
         <aside hidden={!showHints} aria-label={t.navigation.hints} className="rounded-2xl border-2 border-ink bg-cream p-3 shadow-[0_3px_0_var(--color-ink)] sm:p-4">
           <h2 className="mb-3 text-base font-black">{t.navigation.hints}</h2>
-          <PifikHints exerciseId={comic.exercise.id} lang={lang} />
+          <PifikHints key={hintExerciseId} exerciseId={hintExerciseId} lang={lang} />
         </aside>
         <div hidden={!showCast} className={showHints ? 'mt-5' : undefined}>
           {showCast && <CastCard lang={lang} activeSpeaker={panel.speaker} compact={isExercisePanel} />}

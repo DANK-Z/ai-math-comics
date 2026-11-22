@@ -17,6 +17,7 @@ from .problems import Problem
 from .schemas import JobRequest, StoryOptions
 from .story import (
     LIVE_SCENES,
+    TOPIC_NOUN,
     StoryRuleError,
     StoryText,
     StrictModel,
@@ -63,6 +64,22 @@ SCENE_ACTIONS = {
     "celebrate": "The friends celebrate together. Wide, happy closing view of the same "
     "setting. Keep any servings out of view.",
 }
+# Equations: a chest sealed by a glowing riddle lock with blank rune dials.
+EQUATION_SCENE_ACTIONS = {
+    "welcome": "Wide establishing view of the setting. The heroes arrive, curious and "
+    "excited, and find a small treasure chest sealed by a glowing lock with blank rune dials.",
+    "discuss": "One hero points to the glowing lock, suggesting they crack its riddle. The "
+    "others turn toward them. Medium-wide view of the whole group.",
+    "consider": "A hero thinks with a hand on the chin while the others listen. Keep the "
+    "sealed chest and the setting in view.",
+    "question": "Pifik hovers beside the sealed chest and gestures toward the reader, "
+    "inviting help. The other heroes look at Pifik expectantly.",
+    "serve": "The riddle has been solved. The lock bursts into harmless sparkles and the lid "
+    "swings open with golden light, shown from the side so the contents stay hidden.",
+    "celebrate": "The friends celebrate together beside the softly glowing open chest. Wide, "
+    "happy closing view of the same setting.",
+}
+TOPIC_ACTIONS = {"fractions": SCENE_ACTIONS, "equations": EQUATION_SCENE_ACTIONS}
 
 SpeakerId = Literal["pifik", "aruna", "aldiyar", "custom1", "custom2"]
 
@@ -106,7 +123,8 @@ def my_story_prompt(request: JobRequest, problem: Problem, *, prepared: bool) ->
     return json.dumps(
         {
             "task": (
-                "Write a six-panel child-friendly fractions comic in BOTH Russian (ru) and "
+                f"Write a six-panel child-friendly {TOPIC_NOUN[problem.topic]} comic in "
+                "BOTH Russian (ru) and "
                 "Kazakh (kk) for the story the student designed. Use the same speakers and "
                 "scenes in both languages, only speaker IDs from speaker_ids, and give every "
                 "student hero at least one line. Pifik speaks panel four. Set the story in "
@@ -151,7 +169,7 @@ def my_story_prompt(request: JobRequest, problem: Problem, *, prepared: bool) ->
                 "premise": options.premise,
             },
             "scenes": LIVE_SCENES,
-            "scene_actions": SCENE_ACTIONS,
+            "scene_actions": TOPIC_ACTIONS[problem.topic],
             "trusted_content": {
                 lang: {"exercise": problem.prompt(lang), "hints": problem.hints(lang)}
                 for lang in ("ru", "kk")
@@ -213,7 +231,7 @@ def validate_my_story(raw: dict, problem: Problem, options: StoryOptions) -> MyS
     return story
 
 
-def my_story_image_prompt(scene: str, options: StoryOptions) -> str:
+def my_story_image_prompt(scene: str, options: StoryOptions, topic: str = "fractions") -> str:
     # Only server-owned descriptions plus the restricted custom setting reach the image
     # model: no dialogue, premise, student hero descriptions, operands or answer.
     shown = ", ".join(CAST_NAMES_EN[hero] for hero in options.heroes)
@@ -221,7 +239,7 @@ def my_story_image_prompt(scene: str, options: StoryOptions) -> str:
     return (
         f"{cast}\nSetting: {setting_direction(options)}. Keep the same setting in every panel.\n"
         f"Style: {STYLE_DIRECTIONS[options.style]}\n"
-        f"{SCENE_ACTIONS[scene]}\n"
+        f"{TOPIC_ACTIONS[topic][scene]}\n"
         f"Create a new single full-scene illustration showing only: {shown}. "
         "The reference strip shows Aldiyar on the left, Aruna in the middle and Pifik "
         "on the right. Use it only for the design of the characters shown; keep their faces, "

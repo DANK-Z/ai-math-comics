@@ -57,7 +57,7 @@ the latter two are null until the corresponding terminal status. Once ready, fet
 shared illustrations, with absolute `imageUrl` fields alongside unique `imageKey` fields.
 Use `imageUrl` for generated comics and the existing local asset mapping for the pizza demo.
 
-Supported creation inputs are integer grades **5, 6**, topic **fractions**, languages **ru, kk**,
+Supported creation inputs are integer grades **5, 6**, topics **fractions, equations**, languages **ru, kk**,
 and difficulties **basic, intermediate, advanced**. All creation fields are required.
 Unsupported values, extra fields, and malformed bodies return HTTP 422. Unknown IDs return 404.
 
@@ -125,6 +125,7 @@ See [`.env.example`](.env.example) for all settings:
 | `PROVIDER_TIMEOUT_SECONDS` | `180` | Wall-clock limit per upstream request |
 | `JOB_TIMEOUT_SECONDS` | `1500` | Wall-clock limit for the complete job |
 | `WORKER_POLL_SECONDS` | `1` | Idle queue polling interval |
+| `TEXT_ATTEMPTS` | `3` | Storyboard attempts (1-5) before a job fails |
 | `COMIC_DATA_DIR` | `data` | Shared SQLite and image directory; relative to `backend/` |
 | `PUBLIC_BASE_URL` | `http://127.0.0.1:8000` | Externally reachable API base, including any reverse-proxy prefix |
 
@@ -166,6 +167,20 @@ The server chooses and persists fixed operands at enqueue time. Basic problems d
 pizzas among friends, intermediate problems divide a fractional quantity, and advanced problems
 add unlike fractions before dividing. Grade 6 uses larger operands/denominators. The expected
 answer is computed with exact server-side fraction arithmetic and stored privately.
+
+Equations (`topic: "equations"`) use the same flow with server templates in `app/problems.py`:
+unknown addend/minuend (basic), unknown factor/dividend (intermediate) and two-step
+`a · x ± b = c` (advanced). Answers are always positive whole numbers. Live scenes swap the pizza
+box for a chest sealed by a riddle lock, with no digits in the pictures.
+
+Each published comic also stores two extra boss rounds (same topic, grade and difficulty) in the
+`boss_rounds` table; the reader's panel-four boss fight checks them through the usual exercise
+endpoints.
+
+Storyboard retries: if the text model returns invalid JSON, breaks a validation rule, times out
+or is unavailable, the worker asks again, up to `TEXT_ATTEMPTS` times. A retry tells the model the
+broken rule by name only (for example `story_application_validation:ru.panels[0].text:no_number_words`),
+never the rejected text. Authentication, rate-limit and configuration errors fail at once.
 
 The text provider receives only the fixed inputs, grade/difficulty, character descriptions,
 and trusted RU/KK exercise/hint text. It writes localized narrative and echoes the exercise

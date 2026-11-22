@@ -35,6 +35,35 @@ LIVE_SCENE_DESCRIPTIONS = {
     "out of view. Use a wide closing view of the same courtyard.",
 }
 LIVE_SCENES = tuple(LIVE_SCENE_DESCRIPTIONS)
+# Equations: the same six beats around a chest sealed by a riddle lock (no digits drawn).
+EQUATION_SCENE_DESCRIPTIONS = {
+    "welcome": "Wide establishing view. Aldiyar and Aruna walk up to the school fair picnic "
+    "table with Pifik hovering beside them. On the table stands a small wooden treasure chest "
+    "sealed by a glowing magic lock with blank, unmarked rune dials.",
+    "discuss": "Aruna points to the glowing lock on the closed chest, suggesting they crack "
+    "its riddle. Aldiyar and Pifik turn toward her. Show the whole group and the table in a "
+    "medium-wide view.",
+    "consider": "Aldiyar thinks with a hand on his chin while Aruna and Pifik listen. "
+    "Keep the sealed chest, table and fair courtyard in view.",
+    "question": "Pifik hovers beside the sealed chest and gestures toward the reader, "
+    "inviting help. Aruna and Aldiyar look expectantly at Pifik.",
+    "serve": "The riddle has been solved. The magic lock bursts into harmless sparkles and "
+    "the chest lid swings open with warm golden light, shown from the side so the contents "
+    "stay hidden. Aldiyar and Aruna cheer as Pifik spins happily.",
+    "celebrate": "The friends celebrate together at the table with the open chest glowing "
+    "softly beside them. Show Aruna and Aldiyar laughing while Pifik hovers happily. "
+    "Use a wide closing view of the same courtyard.",
+}
+TOPIC_SCENES = {"fractions": LIVE_SCENE_DESCRIPTIONS, "equations": EQUATION_SCENE_DESCRIPTIONS}
+TOPIC_NOUN = {"fractions": "fractions", "equations": "equations (find the unknown x)"}
+TOPIC_RESOLUTION = {
+    "fractions": "In the last two scenes they share the picnic and enjoy the fair.",
+    "equations": "In the last two scenes the riddle lock opens and they celebrate.",
+}
+TOPIC_IMAGINED = {
+    "fractions": "Discuss the given pizza problem as an imagined situation.",
+    "equations": "Discuss the given equation riddle as an imagined magic lock to open.",
+}
 CHARACTERS = (
     "Aldiyar: a schoolboy with tousled black hair, brown eyes, a blue hoodie with a pale "
     "hood, and silver and navy headphones around his neck. "
@@ -101,7 +130,7 @@ class StoryRuleError(ValueError):
 # word-bounded so nearby numeric forms such as "үшінші" and "бірден" still fail.
 NUMBER_WORDS = re.compile(
     r"\b(?:нол\w*|нул\w*|один\w*|одн\w*|едини\w*|два\w*|две\w*|двух\w*|"
-    r"три\w*|тр[её]х\w*|четыр\w*|четвер\w*|пят\w*|шест\w*|сем\w*|вос\w*|"
+    r"три\w*|тр[её]х\w*|дво[еи]\w*|тро[еи]\w*|четыр\w*|четвер\w*|пят\w*|шест\w*|сем\w*|вос\w*|"
     r"девят\w*|десят\w*|двадц\w*|тридц\w*|сорок\w*|сот\w*|сто|"
     r"пол(?:овин|тора|утора)\w*|треть\w*|"
     r"тысяч\w*|миллион\w*|нөл\w*|бір(?!ге\b|дей\b|лес)\w*|"
@@ -160,22 +189,25 @@ def validate_story(raw: dict, problem: Problem, *, prepared: bool = False) -> St
 def text_prompt(request: JobRequest, problem: Problem, *, prepared: bool = False) -> str:
     art_direction = (
         " Use only the named cast and align the dialogue with the listed actions. "
-        "Before and during the exercise, the friends are still planning. In the last "
-        "two scenes they share the picnic and enjoy the fair. The resolution may "
+        "Before and during the exercise, the friends are still planning. "
+        + TOPIC_RESOLUTION[problem.topic]
+        + " The resolution may "
         "celebrate the learner's success without stating the answer or any quantity."
     )
     if prepared:
         art_direction = (
             " Use the exact scene and speaker IDs in prepared_panels, in order. "
             "These fixed pictures show the cast outside school, without food or math props. "
-            "Discuss the given pizza problem as an imagined situation. Never describe an action, "
+            + TOPIC_IMAGINED[problem.topic]
+            + " Never describe an action, "
             "setting, or object as visible unless the fixed picture description shows it. "
             "Do not claim that the problem is solved."
         )
     return json.dumps(
         {
             "task": (
-                "Write a six-panel child-friendly fractions comic in BOTH Russian (ru) and "
+                f"Write a six-panel child-friendly {TOPIC_NOUN[problem.topic]} comic in "
+                "BOTH Russian (ru) and "
                 "Kazakh (kk). Use the same speakers and scenes in both languages. "
                 "Dialogue should be natural and brief, suited to the grade and difficulty. "
                 "Never supply a solution or state any answer, even in words. "
@@ -203,7 +235,7 @@ def text_prompt(request: JobRequest, problem: Problem, *, prepared: bool = False
                 else {
                     "characters": CHARACTERS,
                     "speaker_ids": ["aldiyar", "aruna", "pifik"],
-                    "scene_actions": LIVE_SCENE_DESCRIPTIONS,
+                    "scene_actions": TOPIC_SCENES[problem.topic],
                 }
             ),
             "scenes": SCENES if prepared else LIVE_SCENES,
@@ -216,10 +248,10 @@ def text_prompt(request: JobRequest, problem: Problem, *, prepared: bool = False
     )
 
 
-def image_prompt(scene: str) -> str:
+def image_prompt(scene: str, topic: str = "fractions") -> str:
     # No model-authored text, operands, expected answer, or dialogue reaches image generation.
     return (
-        f"{CHARACTERS}\n{LIVE_SCENE_DESCRIPTIONS[scene]}\n"
+        f"{CHARACTERS}\n{TOPIC_SCENES[topic][scene]}\n"
         "Create a new single full-scene comic illustration showing all three characters. "
         "The reference strip shows Aldiyar on the left, Aruna in the middle and Pifik "
         "on the right. Keep their exact faces, hairstyles, outfits and colors. "

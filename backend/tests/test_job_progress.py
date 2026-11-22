@@ -41,7 +41,7 @@ def test_saved_panels_advance_progress_and_publish_together(tmp_path, monkeypatc
 
         publish = store.publish
 
-        def observe_publication(claim, comic_id, *args):
+        def observe_publication(claim, comic_id, *args, **kwargs):
             assert status()["progress"] == {
                 "stage": "drawing",
                 "completedPanels": 6,
@@ -49,7 +49,7 @@ def test_saved_panels_advance_progress_and_publish_together(tmp_path, monkeypatc
             }
             assert status()["status"] == "running"
             assert api.get(f"/api/comics/{comic_id}").status_code == 404
-            publish(claim, comic_id, *args)
+            publish(claim, comic_id, *args, **kwargs)
 
         monkeypatch.setattr(store, "publish", observe_publication)
         original_saved = store.panel_saved

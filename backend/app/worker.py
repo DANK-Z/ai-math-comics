@@ -34,7 +34,7 @@ from .my_story import (
     validate_my_story,
 )
 from .prepared_art import ART_DIR, PREPARED_PANELS, PREPARED_SPEAKERS, live_cast_reference
-from .problems import Problem
+from .problems import EquationProblem, Problem, boss_rounds, problem_from_dict
 from .providers import (
     ImageProvider,
     OpenAIHTTP,
@@ -45,6 +45,8 @@ from .providers import (
     normalize_png,
 )
 from .schemas import (
+    Boss,
+    BossRound,
     Comic,
     ContinuationRequest,
     Exercise,
@@ -65,7 +67,31 @@ from .story import (
 )
 
 logger = logging.getLogger(__name__)
+LANGS = ("ru", "kk")
 QUEUED_REQUEST = TypeAdapter(JobRequest | ContinuationRequest)
+# Worth another storyboard attempt: the model broke a rule, or the call did not complete.
+RETRYABLE_STORY_ERRORS = {"invalid_provider_output", "provider_timeout", "provider_unavailable"}
+BOSS_KIND = {"fractions": "fraction-slime", "equations": "x-master"}
+
+
+def with_feedback(prompt: str, rejected: str | None) -> str:
+    """Tell the model which rule its previous storyboard broke (rule names only)."""
+    if rejected is None:
+        return prompt
+    try:
+        data = json.loads(prompt)
+    except ValueError:
+        return prompt
+    if not isinstance(data, dict):
+        return prompt
+    data["previous_attempt_rejected"] = {
+        "reason": rejected,
+        "instruction": "Your previous answer was rejected for this reason. Write a new answer "
+        "that follows every rule in task exactly.",
+    }
+    return json.dumps(data, ensure_ascii=False)
+
+
 StoryType = TypeVar("StoryType")
 
 
@@ -139,11 +165,16 @@ class Worker:
             )
             return
 
-        await self.generate_fraction_comic(claim, comic_id, request, Problem.from_dict(inputs))
+        await self.generate_fraction_comic(claim, comic_id, request, problem_from_dict(inputs))
 
     async def generate_fraction_comic(
-        self, claim: dict, comic_id: str, request: JobRequest, problem: Problem
+        self,
+        claim: dict,
+        comic_id: str,
+        request: JobRequest,
+        problem: Problem | EquationProblem,
     ):
+        """Fractions or equations comic (classic or My Story) with a panel-four boss."""
         checkpoint = claim["storyboard"]
         prepared = self.settings.art_mode == "prepared" and checkpoint is None
         options = request.story  # «Моя история» options, or None for a classic comic
@@ -171,16 +202,27 @@ class Worker:
             story = validate_my_story(json.loads(checkpoint), problem, options)
         else:
             story = validate_story(json.loads(checkpoint), problem)
-        scene_prompt = (
-            image_prompt if options is None else lambda scene: my_story_image_prompt(scene, options)
-        )
+        topic = problem.topic
+
+        def scene_prompt(scene: str) -> str:
+            if options is None:
+                return image_prompt(scene, topic)
+            return my_story_image_prompt(scene, options, topic)
+
         aspects = (
             {}
             if prepared
             else await self.render_live_images(claim, comic_id, story.ru.panels, scene_prompt)
         )
 
-        exercise_id = f"fractions-{comic_id}"
+        exercise_id = f"{topic}-{comic_id}"
+        answer_format = "whole-number" if topic == "equations" else None
+        # Two more server-owned rounds for the boss; the comic's exercise is round one.
+        extra = boss_rounds(request, problem)
+        rounds = [
+            (f"{exercise_id}-r{index}", str(p.expected), {lang: p.hints(lang) for lang in LANGS})
+            for index, p in enumerate(extra, 2)
+        ]
         payload = {}
         hints = {}
         for lang in ("ru", "kk"):
@@ -209,13 +251,56 @@ class Worker:
                 title=localized.title,
                 artwork="prepared" if prepared else None,
                 panels=panels,
-                exercise=Exercise(id=exercise_id, prompt=localized.exercise),
+                exercise=Exercise(
+                    id=exercise_id, prompt=localized.exercise, answerFormat=answer_format
+                ),
+                boss=Boss(
+                    kind=BOSS_KIND[topic],
+                    rounds=[
+                        BossRound(
+                            exerciseId=exercise_id,
+                            prompt=localized.exercise,
+                            answerFormat=answer_format,
+                        ),
+                        *(
+                            BossRound(
+                                exerciseId=round_id,
+                                prompt=p.prompt(lang),
+                                answerFormat=answer_format,
+                            )
+                            for (round_id, _, _), p in zip(rounds, extra, strict=True)
+                        ),
+                    ],
+                ),
             )
             payload[lang] = comic.model_dump()
             hints[lang] = localized.hints
-        self.store.publish(claim, comic_id, payload, exercise_id, str(problem.expected), hints)
+        self.store.publish(
+            claim, comic_id, payload, exercise_id, str(problem.expected), hints, rounds=rounds
+        )
 
     async def generate_story(
+        self, prompt: str, schema: dict, validate: Callable[[dict], StoryType]
+    ) -> StoryType:
+        """Ask the text model for a storyboard, retrying rejected or incomplete answers."""
+        attempts = self.settings.text_attempts
+        rejected = None
+        for attempt in range(1, attempts + 1):
+            try:
+                return await self.story_attempt(with_feedback(prompt, rejected), schema, validate)
+            except ProviderError as exc:
+                if exc.code not in RETRYABLE_STORY_ERRORS or attempt == attempts:
+                    raise
+                logger.info(
+                    "Storyboard attempt %s/%s rejected: %s",
+                    attempt,
+                    attempts,
+                    exc.stage or exc.code,
+                )
+                rejected = exc.stage if exc.code == "invalid_provider_output" else None
+        raise AssertionError("unreachable")
+
+    async def story_attempt(
         self, prompt: str, schema: dict, validate: Callable[[dict], StoryType]
     ) -> StoryType:
         try:

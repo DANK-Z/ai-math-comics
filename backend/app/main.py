@@ -10,7 +10,7 @@ from fastapi.responses import FileResponse
 
 from .config import Settings
 from .content import FEEDBACK, HINTS, get_comic
-from .library_episode import EXERCISE_PREFIX, check_library_answer
+from .library_episode import EXERCISE_PREFIX, WHOLE_NUMBER, check_library_answer
 from .prepared_art import ART_DIR, PREPARED_PANELS
 from .schemas import (
     CheckRequest,
@@ -30,6 +30,34 @@ from .storage import Store
 # No decimal conversion or floating-point comparison is involved.
 FRACTION_PATTERN = re.compile(r"([+-]?[0-9]+)\s*/\s*([+-]?[0-9]+)")
 EXPECTED_ANSWER = Fraction(3, 4)
+INCORRECT = {
+    "fractions": {
+        "ru": "Пока неверно. Проверь общее количество пиццы и число друзей. "
+        "При необходимости воспользуйся подсказкой.",
+        "kk": "Әзірге дұрыс емес. Пиццаның жалпы мөлшері мен достар санын тексер. "
+        "Қажет болса, кеңесті пайдалан.",
+    },
+    "equations": {
+        "ru": "Пока неверно. Подставь своё число вместо x и проверь, выполняется ли равенство. "
+        "При необходимости воспользуйся подсказкой.",
+        "kk": "Әзірге дұрыс емес. Санды x орнына қойып, теңдік орындала ма, тексер. "
+        "Қажет болса, кеңесті пайдалан.",
+    },
+}
+
+
+def parse_answer(answer: str, topic: str) -> Fraction | None:
+    """Fractions accept a/b; equations accept a whole number. No floats involved."""
+    answer = answer.strip()
+    if topic == "equations":
+        if WHOLE_NUMBER.fullmatch(answer) is None:
+            return None
+        return Fraction(int(re.sub(r"[ \u00a0\u202f]", "", answer)))
+    match = FRACTION_PATTERN.fullmatch(answer)
+    if match is None:
+        return None
+    numerator, denominator = map(int, match.groups())
+    return None if denominator == 0 else Fraction(numerator, denominator)
 
 
 def get_store(request: Request) -> Store:
@@ -116,6 +144,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.post("/api/exercises/{exercise_id}/check", response_model=CheckResponse)
     def check_answer(exercise_id: str, body: CheckRequest, request: Request) -> CheckResponse:
         expected = EXPECTED_ANSWER
+        topic = "equations" if exercise_id.startswith("equations-") else "fractions"
         if exercise_id != "pizza-share":
             exercise = get_store(request).exercise(exercise_id)
             if exercise is None:
@@ -123,20 +152,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             if exercise_id.startswith(EXERCISE_PREFIX):
                 return check_library_answer(body, int(exercise["expected"]))
             expected = Fraction(exercise["expected"])
-        match = FRACTION_PATTERN.fullmatch(body.answer.strip())
-        status = "invalid"
-        if match is not None:
-            numerator, denominator = map(int, match.groups())
-            if denominator != 0:
-                status = "correct" if Fraction(numerator, denominator) == expected else "incorrect"
+        value = parse_answer(body.answer, topic)
+        status = "invalid" if value is None else "correct" if value == expected else "incorrect"
         message = FEEDBACK[body.lang][status]
         if exercise_id != "pizza-share" and status == "incorrect":
-            message = {
-                "ru": "Пока неверно. Проверь общее количество пиццы и число друзей. "
-                "При необходимости воспользуйся подсказкой.",
-                "kk": "Әзірге дұрыс емес. Пиццаның жалпы мөлшері мен достар санын тексер. "
-                "Қажет болса, кеңесті пайдалан.",
-            }[body.lang]
+            message = INCORRECT[topic][body.lang]
         return CheckResponse(status=status, message=message)
 
     @app.get("/api/exercises/{exercise_id}/hints", response_model=HintResponse)

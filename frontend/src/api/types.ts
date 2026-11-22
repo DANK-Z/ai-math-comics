@@ -21,6 +21,22 @@ export interface Exercise {
   answerFormat?: 'whole-number'
 }
 
+export type BossKind = 'fraction-slime' | 'x-master'
+
+/** One boss round: an exercise checked and hinted through the usual endpoints. */
+export interface BossRound {
+  exerciseId: string
+  prompt: string
+  answerFormat?: 'whole-number'
+}
+
+/** Panel-four boss fight of a generated comic. rounds[0] is the comic's own exercise. */
+export interface Boss {
+  kind: BossKind
+  maxHp: number
+  rounds: BossRound[]
+}
+
 export interface Comic {
   id: string
   lang: Lang
@@ -33,6 +49,7 @@ export interface Comic {
   }
   panels: Panel[]
   exercise: Exercise
+  boss?: Boss
 }
 
 export type CheckStatus = 'correct' | 'incorrect' | 'invalid'
@@ -57,8 +74,8 @@ export interface HintResponse {
 
 export type Grade = 5 | 6
 export const GRADES: readonly Grade[] = [5, 6]
-export type Topic = 'fractions'
-export const TOPICS: readonly Topic[] = ['fractions']
+export type Topic = 'fractions' | 'equations'
+export const TOPICS: readonly Topic[] = ['fractions', 'equations']
 export type Difficulty = 'basic' | 'intermediate' | 'advanced'
 export const DIFFICULTIES: readonly Difficulty[] = ['basic', 'intermediate', 'advanced']
 

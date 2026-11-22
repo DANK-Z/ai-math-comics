@@ -27,6 +27,7 @@ class Settings:
     provider_timeout: float = 180
     job_timeout: float = 1500
     poll_interval: float = 1
+    text_attempts: int = 3
 
     def __post_init__(self):
         if self.provider not in ("openai", "gemini"):
@@ -35,6 +36,8 @@ class Settings:
             raise ValueError("COMIC_ART_MODE must be live or prepared")
         if self.text_reasoning_effort not in (None, "none", "minimal", "low", "medium", "high"):
             raise ValueError("Unsupported text reasoning effort")
+        if not 1 <= self.text_attempts <= 5:
+            raise ValueError("TEXT_ATTEMPTS must be between 1 and 5")
         for value in (self.provider_timeout, self.job_timeout, self.poll_interval):
             if not 0 < value < float("inf"):
                 raise ValueError("Timeouts and polling interval must be positive and finite")
@@ -64,4 +67,5 @@ class Settings:
             provider_timeout=float(os.getenv("PROVIDER_TIMEOUT_SECONDS", "180")),
             job_timeout=float(os.getenv("JOB_TIMEOUT_SECONDS", "1500")),
             poll_interval=float(os.getenv("WORKER_POLL_SECONDS", "1")),
+            text_attempts=int(os.getenv("TEXT_ATTEMPTS", "3")),
         )

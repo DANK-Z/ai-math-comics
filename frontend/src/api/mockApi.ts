@@ -78,8 +78,9 @@ function mockJobMode(): 'ok' | 'fail' | 'reject' {
   return v === 'fail' || v === 'reject' ? v : 'ok'
 }
 
-// Job IDs encode request + start time so polling survives a page reload.
-const JOB_RE = /^job_(5|6)_(basic|intermediate|advanced)_(ok|fail)_([a-z0-9]+)$/
+// Job IDs encode request + start time so polling survives a page reload
+// (`job_eq_…` for equations).
+const JOB_RE = /^job_(?:(eq)_)?(5|6)_(basic|intermediate|advanced)_(ok|fail)_([a-z0-9]+)$/
 
 export const mockApi: Api = {
   getComic(comicId, lang, signal) {
@@ -100,7 +101,7 @@ export const mockApi: Api = {
       }
       const ex = generatedExercise(exerciseId)
       if (!ex) throw new ApiError(404, 'Not Found', { detail: 'Exercise not found' })
-      const status = checkMock(answer, ex.answer)
+      const status = ex.check(answer)
       return { status, message: ex.feedback(lang, status) }
     }, signal)
   },
@@ -128,7 +129,7 @@ export const mockApi: Api = {
       }
       const seed = Date.now().toString(36)
       if (req.story) rememberMockStory(seed, req.story)
-      const jobId = `job_${req.grade}_${req.difficulty}_${mode}_${seed}`
+      const jobId = `job_${req.topic === 'equations' ? 'eq_' : ''}${req.grade}_${req.difficulty}_${mode}_${seed}`
       return { jobId, status: 'queued' }
     }, signal)
   },
@@ -136,14 +137,14 @@ export const mockApi: Api = {
     return respond<ComicJob>(() => {
       const m = JOB_RE.exec(jobId)
       if (!m) throw new ApiError(404, 'Not Found', { detail: 'Job not found' })
-      const [, grade, difficulty, mode, started] = m
+      const [, eq, grade, difficulty, mode, started] = m
       const elapsed = Date.now() - parseInt(started, 36)
       let status: JobStatus = elapsed < QUEUED_MS ? 'queued' : elapsed < READY_MS ? 'running' : 'ready'
       if (status === 'ready' && mode === 'fail') status = 'failed'
       return {
         jobId,
         status,
-        comicId: status === 'ready' ? generatedComicId(Number(grade) as 5 | 6, difficulty as Difficulty, started) : null,
+        comicId: status === 'ready' ? generatedComicId(Number(grade) as 5 | 6, difficulty as Difficulty, started, eq ? 'equations' : 'fractions') : null,
         errorCode: status === 'failed' ? 'generation_failed' : null,
       }
     }, signal)

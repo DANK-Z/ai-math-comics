@@ -1,0 +1,220 @@
+import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react'
+import type { Boss, BossKind, BossRound, Lang } from '../api'
+import { BOSS_COPY } from '../boss'
+import { useAnswerCheck } from '../hooks'
+import { STRINGS } from '../i18n'
+import { RichText } from './RichText'
+
+// Panel four of a generated comic as a boss fight: three server-owned rounds,
+// each correct answer deals maxHp / rounds damage. Radii follow 16 / 12 / 8.
+
+const HIT_MS = 900
+
+function SlimeArt() {
+  return (
+    <svg viewBox="0 0 64 64" aria-hidden className="size-full">
+      <path d="M8 52c0-18 9-36 24-36s24 18 24 36c0 4-4 6-8 6H16c-4 0-8-2-8-6z" fill="#7ad34f" stroke="var(--color-ink)" strokeWidth="3" />
+      <path d="M18 28c2-6 6-9 10-10" stroke="#fff" strokeWidth="3" strokeLinecap="round" fill="none" opacity=".7" />
+      <circle cx="24" cy="36" r="5" fill="#fff" stroke="var(--color-ink)" strokeWidth="2" />
+      <circle cx="40" cy="36" r="5" fill="#fff" stroke="var(--color-ink)" strokeWidth="2" />
+      <circle cx="25" cy="37" r="2.2" fill="var(--color-ink)" />
+      <circle cx="41" cy="37" r="2.2" fill="var(--color-ink)" />
+      <path d="M26 47q6 4 12 0" stroke="var(--color-ink)" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+      {/* A pizza-slice crown: this slime hoards unfair shares. */}
+      <path d="M26 17l6-13 6 13z" fill="var(--color-sun)" stroke="var(--color-ink)" strokeWidth="2.5" strokeLinejoin="round" />
+      <circle cx="31" cy="11" r="1.6" fill="#e2553b" />
+      <circle cx="34" cy="14" r="1.4" fill="#e2553b" />
+    </svg>
+  )
+}
+
+function BossAvatar({ kind, shielded, hitKey }: { kind: BossKind; shielded: boolean; hitKey: number }) {
+  return (
+    <span
+      key={hitKey}
+      data-idle={hitKey === 0 || undefined}
+      aria-hidden
+      className={`boss-hit relative grid size-20 shrink-0 place-items-center rounded-2xl border-[3px] border-ink sm:size-24 ${
+        kind === 'x-master' ? 'bg-violet-200 text-5xl sm:text-6xl' : 'bg-lime-100 p-1.5'
+      } ${shielded ? 'boss-shield' : ''}`}
+    >
+      {kind === 'x-master' ? '🧙' : <SlimeArt />}
+      {kind === 'x-master' && (
+        <span className="absolute -right-2 -bottom-2 grid size-8 place-items-center rounded-lg border-2 border-ink bg-sun font-mono text-lg font-black text-ink">x</span>
+      )}
+    </span>
+  )
+}
+
+function RoundForm({ round, lang, onHit }: { round: BossRound; lang: Lang; onHit: () => void }) {
+  const t = STRINGS[lang]
+  const copy = BOSS_COPY[lang]
+  const [answer, setAnswer] = useState('')
+  const inputId = useId()
+  const input = useRef<HTMLInputElement>(null)
+  const check = useAnswerCheck(round.exerciseId, lang, onHit)
+  const { result, checking, error, submit, solved } = check
+  const wrong = !checking && !!result && result.status !== 'correct'
+
+  // A miss marks the field red and hands focus back, like the My Story form.
+  useEffect(() => {
+    if (wrong) input.current?.focus()
+  }, [wrong, result])
+
+  function onSubmit(e: FormEvent) {
+    e.preventDefault()
+    if (answer.trim() && !checking && !solved) submit(answer.trim())
+  }
+
+  return (
+    <form onSubmit={onSubmit} className="flex flex-col gap-2">
+      <p className="text-lg leading-snug font-bold text-ink">
+        <RichText text={round.prompt} />
+      </p>
+      <label htmlFor={inputId} className="mt-1 text-sm font-black text-ink/80">{copy.answerLabel}</label>
+      <div className="flex flex-col gap-2 min-[360px]:flex-row">
+        <input
+          ref={input}
+          id={inputId}
+          value={answer}
+          onChange={(e) => setAnswer(e.target.value)}
+          placeholder={round.answerFormat === 'whole-number' ? t.wholeNumberPlaceholder : t.answerPlaceholder}
+          inputMode={round.answerFormat === 'whole-number' ? 'numeric' : 'text'}
+          autoComplete="off"
+          disabled={solved}
+          aria-invalid={wrong || undefined}
+          aria-describedby={wrong ? `${inputId}-result` : undefined}
+          className="min-h-12 w-full min-w-0 flex-1 rounded-xl border-[3px] border-ink bg-white px-3 font-mono text-2xl font-bold tabular-nums outline-none placeholder:font-sans placeholder:text-base placeholder:font-semibold focus-visible:ring-4 focus-visible:ring-sun disabled:bg-stone-100 aria-invalid:border-rose-600 aria-invalid:bg-rose-50 aria-invalid:focus-visible:ring-rose-300"
+        />
+        <button
+          type="submit"
+          disabled={!answer.trim() || checking || solved}
+          className="min-h-12 shrink-0 rounded-xl border-[3px] border-ink bg-sun px-5 text-lg font-black text-ink shadow-[0_4px_0_var(--color-ink)] transition active:translate-y-[3px] active:shadow-[0_1px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+        >
+          {checking ? t.checking : t.check}
+        </button>
+      </div>
+      <div id={`${inputId}-result`} aria-live="polite" className="min-h-6">
+        {error && <p className="font-bold text-rose-700">{t.checkError}</p>}
+        {wrong && !error && (
+          <p className="rounded-lg border-2 border-rose-600 bg-rose-50 px-3 py-2 font-semibold text-rose-950">
+            <span aria-hidden className="font-black">{result.status === 'invalid' ? '! ' : '✗ '}</span>
+            <RichText text={result.message} />
+          </p>
+        )}
+      </div>
+    </form>
+  )
+}
+
+interface Props {
+  boss: Boss
+  lang: Lang
+  cleared: number
+  onRoundCleared: () => void
+}
+
+export function BossFight({ boss, lang, cleared, onRoundCleared }: Props) {
+  const copy = BOSS_COPY[lang]
+  const total = boss.rounds.length
+  const damage = Math.round(boss.maxHp / total)
+  const [hit, setHit] = useState<{ round: number; at: number } | null>(null)
+  const hpId = useId()
+  const heading = useRef<HTMLHeadingElement>(null)
+  // While a hit plays, the bar already shows the new HP but the next round waits.
+  const shownCleared = hit ? hit.round + 1 : cleared
+  const hp = Math.max(0, boss.maxHp - shownCleared * damage)
+  const defeated = cleared >= total
+  const round = boss.rounds[Math.min(cleared, total - 1)]
+
+  const onHit = useCallback(() => setHit({ round: cleared, at: Date.now() }), [cleared])
+
+  useEffect(() => {
+    if (!hit) return
+    const timer = setTimeout(() => {
+      setHit(null)
+      onRoundCleared()
+    }, HIT_MS)
+    return () => clearTimeout(timer)
+  }, [hit, onRoundCleared])
+
+  useEffect(() => {
+    if (cleared > 0) heading.current?.focus({ preventScroll: true })
+  }, [cleared])
+
+  return (
+    <section
+      aria-labelledby={`${hpId}-title`}
+      className="boss-enter overflow-hidden rounded-2xl border-[3px] border-ink bg-white shadow-[0_6px_0_var(--color-ink)]"
+    >
+      <div className={`relative p-4 sm:p-5 ${boss.kind === 'x-master' ? 'bg-[linear-gradient(160deg,#2a1f6b,#5b3cc4)]' : 'bg-[linear-gradient(160deg,#1f5132,#3f9a4d)]'}`}>
+        <p className="inline-flex items-center gap-1.5 rounded-lg border-2 border-ink bg-sun px-2 py-0.5 text-xs font-black tracking-wide text-ink uppercase">
+          <span aria-hidden>⚔️</span>{copy.arena}
+        </p>
+        <div className="mt-3 flex items-center gap-4">
+          <BossAvatar kind={boss.kind} shielded={!defeated && boss.kind === 'x-master'} hitKey={hit?.at ?? 0} />
+          <div className="min-w-0">
+            <h2 id={`${hpId}-title`} ref={heading} tabIndex={-1} className="text-2xl font-black text-white outline-none sm:text-3xl">
+              {copy.names[boss.kind]}
+            </h2>
+            <p className="mt-1 text-sm font-semibold text-white/90 sm:text-base">
+              {defeated ? copy.defeatedText[boss.kind] : copy.taunts[boss.kind]}
+            </p>
+          </div>
+        </div>
+
+        <p id={hpId} aria-live="polite" className="mt-4 flex items-center justify-between gap-2 text-sm font-black text-white">
+          <span>{copy.hp(hp, boss.maxHp)}</span>
+          {hit && <span className="boss-damage rounded-lg bg-rose-600 px-2 py-0.5 text-white">−{damage} HP</span>}
+        </p>
+        <div
+          role="progressbar"
+          aria-labelledby={hpId}
+          aria-valuemin={0}
+          aria-valuemax={boss.maxHp}
+          aria-valuenow={hp}
+          className="mt-1.5 h-5 overflow-hidden rounded-lg border-[3px] border-ink bg-ink/60"
+        >
+          <div
+            className="h-full rounded-r-md bg-[linear-gradient(180deg,#ff7a7a,#e11d48)] transition-[width] duration-700 ease-out"
+            style={{ width: `${(hp / boss.maxHp) * 100}%` }}
+          />
+        </div>
+
+        <ol className="mt-3 grid gap-1.5 text-center text-xs font-bold sm:text-sm" style={{ gridTemplateColumns: `repeat(${total}, minmax(0, 1fr))` }}>
+          {boss.rounds.map((r, index) => {
+            const done = index < shownCleared
+            const active = index === shownCleared
+            return (
+              <li key={r.exerciseId} aria-current={active ? 'step' : undefined} className={`rounded-lg border-2 border-ink px-1 py-1 text-ink ${done ? 'bg-emerald-200' : active ? 'bg-sun' : 'bg-white/85'}`}>
+                <span aria-hidden>{done ? '✓ ' : ''}</span>
+                {done ? copy.status.cleared : active ? copy.status.active : copy.status.upcoming}
+              </li>
+            )
+          })}
+        </ol>
+      </div>
+
+      <div className="bg-cream p-4 sm:p-5">
+        {defeated ? (
+          <div className="flex items-center gap-3">
+            <span aria-hidden className="boss-trophy text-4xl">🏆</span>
+            <div>
+              <p className="text-xl font-black text-ink">{copy.defeated}</p>
+              <p className="font-semibold text-ink/80">{copy.readOn} <span aria-hidden>→</span></p>
+            </div>
+          </div>
+        ) : hit ? (
+          <p role="status" className="rounded-lg border-2 border-emerald-700 bg-emerald-50 px-3 py-3 font-black text-emerald-950">
+            <span aria-hidden>💥 </span>{copy.hit[boss.kind](damage)}
+          </p>
+        ) : (
+          <>
+            <p className="mb-2 text-sm font-black text-brand-dark">{copy.round(cleared + 1, total)}</p>
+            <RoundForm key={round.exerciseId} round={round} lang={lang} onHit={onHit} />
+          </>
+        )}
+      </div>
+    </section>
+  )
+}

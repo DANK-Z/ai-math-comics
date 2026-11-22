@@ -36,6 +36,29 @@ class Exercise(BaseModel):
     answerFormat: Literal["whole-number"] | None = None
 
 
+BossKind = Literal["fraction-slime", "x-master"]
+BOSS_MAX_HP = 90
+
+
+class BossRound(BaseModel):
+    """One boss round: a server-owned exercise checked by the usual endpoints."""
+
+    exerciseId: str
+    prompt: str
+    answerFormat: Literal["whole-number"] | None = None
+
+
+class Boss(BaseModel):
+    """Panel-four boss fight: each correct round deals maxHp / len(rounds) damage.
+
+    rounds[0] is the comic's own exercise.
+    """
+
+    kind: BossKind
+    maxHp: int = BOSS_MAX_HP
+    rounds: list[BossRound]
+
+
 class ContinuationContext(BaseModel):
     sourceChapterId: Literal["school-quest-map"]
     choiceId: Literal["library-cabinet-key"]
@@ -50,6 +73,7 @@ class Comic(BaseModel):
     exercise: Exercise
     artwork: Literal["prepared"] | None = None
     continuation: ContinuationContext | None = None
+    boss: Boss | None = None
 
 
 class CheckRequest(BaseModel):
@@ -145,7 +169,7 @@ class JobRequest(BaseModel):
     model_config = {"extra": "forbid"}
 
     grade: int = Field(strict=True, ge=5, le=6)
-    topic: Literal["fractions"]
+    topic: Literal["fractions", "equations"]
     lang: Language
     difficulty: Literal["basic", "intermediate", "advanced"]
     story: StoryOptions | None = None

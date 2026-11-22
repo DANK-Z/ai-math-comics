@@ -144,8 +144,18 @@ def test_generation_round_trip_and_restart(setup, grade, lang, difficulty):
             assert response.status_code == 200
             comic = response.json()
             responses[language] = comic
-            assert set(comic) == {"id", "lang", "title", "panels", "exercise"}
+            assert set(comic) == {"id", "lang", "title", "panels", "exercise", "boss"}
             assert comic["id"] == comic_id and comic["lang"] == language
+            boss = comic["boss"]
+            assert boss["kind"] == "fraction-slime" and boss["maxHp"] == 90
+            assert boss["rounds"][0] == {
+                "exerciseId": comic["exercise"]["id"],
+                "prompt": comic["exercise"]["prompt"],
+            }
+            assert [r["exerciseId"] for r in boss["rounds"][1:]] == [
+                f"{comic['exercise']['id']}-r2",
+                f"{comic['exercise']['id']}-r3",
+            ]
             assert [p["id"] for p in comic["panels"]] == list(range(1, 7))
             assert comic["panels"][3]["text"] == comic["exercise"]["prompt"]
             for panel in comic["panels"]:

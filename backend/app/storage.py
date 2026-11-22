@@ -3,6 +3,7 @@
 import json
 import sqlite3
 import time
+from collections.abc import Sequence
 from contextlib import contextmanager
 from pathlib import Path
 from uuid import uuid4
@@ -47,6 +48,12 @@ class Store:
                     comic_id TEXT NOT NULL UNIQUE,
                     storyboard TEXT NOT NULL,
                     resume_token TEXT
+                );
+                CREATE TABLE IF NOT EXISTS boss_rounds (
+                    exercise_id TEXT PRIMARY KEY,
+                    comic_id TEXT NOT NULL,
+                    expected TEXT NOT NULL,
+                    hints TEXT NOT NULL
                 );
                 CREATE TABLE IF NOT EXISTS comics (
                     id TEXT PRIMARY KEY,
@@ -223,6 +230,7 @@ class Store:
         exercise_id: str,
         expected: str,
         hints: dict,
+        rounds: Sequence[tuple[str, str, dict]] = (),
     ):
         with self.connection() as db:
             db.execute("BEGIN IMMEDIATE")
@@ -243,6 +251,13 @@ class Store:
                     json.dumps(hints, ensure_ascii=False),
                 ),
             )
+            db.executemany(
+                "INSERT INTO boss_rounds(exercise_id,comic_id,expected,hints) VALUES(?,?,?,?)",
+                [
+                    (round_id, comic_id, value, json.dumps(round_hints, ensure_ascii=False))
+                    for round_id, value, round_hints in rounds
+                ],
+            )
             progress = db.execute(
                 "UPDATE job_progress SET stage='ready',completed_panels=total_panels "
                 "WHERE job_id=? AND (stage='preparing' OR "
@@ -261,6 +276,8 @@ class Store:
     def exercise(self, exercise_id: str) -> dict | None:
         with self.connection() as db:
             row = db.execute(
-                "SELECT expected,hints FROM comics WHERE exercise_id=?", (exercise_id,)
+                "SELECT expected,hints FROM comics WHERE exercise_id=? UNION ALL "
+                "SELECT expected,hints FROM boss_rounds WHERE exercise_id=?",
+                (exercise_id, exercise_id),
             ).fetchone()
         return {"expected": row["expected"], "hints": json.loads(row["hints"])} if row else None
