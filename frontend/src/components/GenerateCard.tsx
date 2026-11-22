@@ -1,9 +1,11 @@
-import { useEffect, useId, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { api, ART_MODE, resumeComicJob, type JobProgress, DIFFICULTIES, GRADES, LANGS, TOPICS, type ComicJobRequest, type Difficulty, type Grade, type Lang, type Topic } from '../api'
 import { PORTRAITS } from '../art/sheet'
 import { STRINGS, type UiStrings } from '../i18n'
 import { useComicJob, type JobFailure, type JobState } from '../jobs'
+import { STORY_COPY, draftFrom, validateStory, type StoryDraft, type StoryErrors } from '../myStory'
 import { GenerationProgress } from './GenerationProgress'
+import { MyStoryFields } from './MyStoryFields'
 import { SheetCrop } from './SheetCrop'
 
 interface Option<T> {
@@ -173,6 +175,12 @@ export function GenerateCard({ lang, onReady, autoOpen }: {
   const [difficulty, setDifficulty] = useState<Difficulty>(resumed?.difficulty ?? 'basic')
   const [comicLang, setComicLang] = useState<Lang>(resumed?.lang ?? lang)
   const [langTouched, setLangTouched] = useState(resumed !== null)
+  // «Математический экспресс» (classic) or «Моя история» (student-designed story).
+  const [mode, setMode] = useState<'express' | 'story'>(resumed?.story ? 'story' : 'express')
+  const [story, setStory] = useState<StoryDraft>(() => draftFrom(resumed?.story))
+  const [storyErrors, setStoryErrors] = useState<StoryErrors>({})
+  const formRef = useRef<HTMLFormElement>(null)
+  const sc = STORY_COPY[lang]
 
   // The comic language follows the UI language until the user picks one.
   useEffect(() => {
@@ -182,7 +190,18 @@ export function GenerateCard({ lang, onReady, autoOpen }: {
   function onSubmit(e: FormEvent) {
     e.preventDefault()
     if (active) return
-    submit({ grade, topic, lang: comicLang, difficulty })
+    const request: ComicJobRequest = { grade, topic, lang: comicLang, difficulty }
+    if (mode === 'story') {
+      const { errors, options } = validateStory(story)
+      setStoryErrors(errors)
+      if (!options) {
+        // Move focus to the first field that needs attention.
+        requestAnimationFrame(() => formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus())
+        return
+      }
+      request.story = options
+    }
+    submit(request)
   }
 
   const locked = active || resumingGeneration || state.phase === 'ready' || state.phase === 'paused'
@@ -204,7 +223,29 @@ export function GenerateCard({ lang, onReady, autoOpen }: {
         </div>
       </div>
 
-      <form onSubmit={onSubmit} className="flex flex-col gap-4 p-4 sm:p-5">
+      <form ref={formRef} onSubmit={onSubmit} className="flex flex-col gap-4 p-4 sm:p-5" noValidate>
+        <div role="group" aria-label={sc.modeLabel} className="grid grid-cols-2 gap-1.5 rounded-2xl border-[3px] border-ink bg-white p-1.5">
+          {(['express', 'story'] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              aria-pressed={mode === m}
+              disabled={locked}
+              onClick={() => setMode(m)}
+              className="flex min-h-11 items-center justify-center gap-1.5 rounded-xl px-2 text-sm leading-tight font-black text-ink transition sm:px-3 hover:bg-sky aria-pressed:bg-sun aria-pressed:shadow-[inset_0_0_0_2px_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-60 sm:text-base"
+            >
+              <span aria-hidden>{m === 'express' ? '⚡' : '✨'}</span><span>{sc.modes[m]}</span>
+            </button>
+          ))}
+        </div>
+
+        {mode === 'story' && (
+          <fieldset disabled={locked} className="min-w-0">
+            <MyStoryFields lang={lang} draft={story} onChange={setStory} errors={storyErrors} />
+          </fieldset>
+        )}
+
+        {mode === 'story' && <h2 className="-mb-1 text-base font-black text-ink">{sc.mathTitle}</h2>}
         <fieldset disabled={locked} className="grid min-w-0 gap-4 sm:grid-cols-2">
           <Field>
             <Segmented<Grade>
@@ -238,6 +279,9 @@ export function GenerateCard({ lang, onReady, autoOpen }: {
           </div>
         </fieldset>
 
+        {mode === 'story' && Object.keys(storyErrors).length > 0 && state.phase === 'idle' && (
+          <p role="alert" className="rounded-xl border-2 border-rose-600 bg-rose-50 px-3 py-2 font-bold text-rose-800">{sc.fixErrors}</p>
+        )}
         {state.phase === 'failed' ? (
           <JobFailed
             failure={state.failure} progress={state.progress} t={t}

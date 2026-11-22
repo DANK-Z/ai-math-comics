@@ -1,4 +1,4 @@
-import type { CheckStatus, Comic, Difficulty, Grade, Lang } from './types'
+import type { CastHeroId, CheckStatus, Comic, Difficulty, Grade, Lang, StoryOptions } from './types'
 
 // Contract-matching stand-ins for comics produced by POST /api/comic-jobs.
 // One fraction problem per grade × difficulty, in both languages, so the
@@ -250,6 +250,23 @@ export function buildGeneratedComic(comicId: string, lang: Lang): Comic | null {
       imageUrl: `${IMG}${PANEL_ART[i]}.jpg`,
     })),
     exercise: { id: `ex-${comicId}`, panelId: 4, prompt: p.prompt },
+  }
+}
+
+/** My Story in the mocks: student heroes speak panels 3 and 6 with placeholder art. */
+export function applyMockStory(comic: Comic, story: StoryOptions): Comic {
+  const names = story.customHeroes.map((h) => h.name)
+  const cast: Record<string, CastHeroId> = { Аруна: 'aruna', Алдияр: 'aldiyar' }
+  return {
+    ...comic,
+    panels: comic.panels.map((panel) => {
+      const student = panel.id === 3 ? names[0] : panel.id === 6 ? names[1] ?? names[0] : undefined
+      if (student) {
+        return { ...panel, speaker: student, imageUrl: null, placeholder: { setting: story.setting } }
+      }
+      const hero = cast[panel.speaker]
+      return hero && !story.heroes.includes(hero) ? { ...panel, speaker: 'Пифик', imageUrl: `${IMG}pifik.jpg` } : panel
+    }),
   }
 }
 

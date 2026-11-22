@@ -1,7 +1,8 @@
 import { ApiError } from './errors'
 import { fractionsEqual, parseFraction, type Fraction } from './fraction'
 import { MOCK_COMICS, MOCK_FEEDBACK, MOCK_HINTS } from './mockData'
-import { buildGeneratedComic, generatedComicId, generatedExercise } from './mockGenerated'
+import { draftFrom, validateStory } from '../myStory'
+import { applyMockStory, buildGeneratedComic, generatedComicId, generatedExercise } from './mockGenerated'
 import {
   DIFFICULTIES,
   GRADES,
@@ -16,7 +17,25 @@ import {
   type ComicJobCreated,
   type HintResponse,
   type JobStatus,
+  type StoryOptions,
 } from './types'
+
+// My Story options per mock job seed (kept for the tab, like the active job).
+const MOCK_STORIES = 'amc.mock.stories'
+function mockStories(): Record<string, StoryOptions> {
+  try {
+    return JSON.parse(sessionStorage.getItem(MOCK_STORIES) ?? '{}') as Record<string, StoryOptions>
+  } catch {
+    return {}
+  }
+}
+function rememberMockStory(seed: string, story: StoryOptions) {
+  try {
+    sessionStorage.setItem(MOCK_STORIES, JSON.stringify({ ...mockStories(), [seed]: story }))
+  } catch {
+    /* the mock comic just won't show the student's heroes */
+  }
+}
 
 const PIZZA_ANSWER = { num: 3n, den: 4n }
 const LATENCY_MS = 300
@@ -66,7 +85,9 @@ export const mockApi: Api = {
   getComic(comicId, lang, signal) {
     return respond<Comic>(() => {
       if (comicId === 'pizza-fractions') return structuredClone(MOCK_COMICS[lang])
-      const generated = buildGeneratedComic(comicId, lang)
+      const built = buildGeneratedComic(comicId, lang)
+      const story = built ? mockStories()[comicId.split('-').pop() ?? ''] : undefined
+      const generated = built && story ? applyMockStory(built, story) : built
       if (generated) return generated
       throw new ApiError(404, 'Not Found', { detail: 'Comic not found' })
     }, signal)
@@ -98,7 +119,16 @@ export const mockApi: Api = {
       if (!TOPICS.includes(req.topic)) throw new ApiError(422, 'Unprocessable Entity', { detail: 'unsupported topic' })
       if (!LANGS.includes(req.lang)) throw new ApiError(422, 'Unprocessable Entity', { detail: 'unsupported lang' })
       if (!DIFFICULTIES.includes(req.difficulty)) throw new ApiError(422, 'Unprocessable Entity', { detail: 'unsupported difficulty' })
-      const jobId = `job_${req.grade}_${req.difficulty}_${mode}_${Date.now().toString(36)}`
+      if (req.story) {
+        // Same rules as the backend's StoryOptions.
+        const { options } = validateStory(draftFrom(req.story))
+        if (!options || !req.story.heroes.includes('pifik')) {
+          throw new ApiError(422, 'Unprocessable Entity', { detail: 'invalid story options' })
+        }
+      }
+      const seed = Date.now().toString(36)
+      if (req.story) rememberMockStory(seed, req.story)
+      const jobId = `job_${req.grade}_${req.difficulty}_${mode}_${seed}`
       return { jobId, status: 'queued' }
     }, signal)
   },

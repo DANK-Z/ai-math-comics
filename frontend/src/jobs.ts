@@ -97,12 +97,15 @@ export function useComicJob<Request = ComicJobRequest>(
   const [resumeError, setResumeError] = useState(false)
   const readyComicId = state.phase === 'ready' ? state.comicId : null
   const readyLang = state.phase === 'ready' ? requestLang(state.request) : null
+  // A Create Comic request with `story` is a «Моя история» comic.
+  const readyKind: MyComicKind =
+    historyKind === 'generated' && state.phase === 'ready' && (state.request as { story?: unknown }).story ? 'story' : historyKind
 
   // Every successful job ends in 'ready' (freshly polled or restored from this tab's
   // storage); record it once in My Comics. Saving is idempotent per comic ID.
   useEffect(() => {
-    if (readyComicId && readyLang) saveMyComic({ comicId: readyComicId, kind: historyKind, lang: readyLang })
-  }, [readyComicId, readyLang, historyKind])
+    if (readyComicId && readyLang) saveMyComic({ comicId: readyComicId, kind: readyKind, lang: readyLang })
+  }, [readyComicId, readyLang, readyKind])
   const busy = useRef(state.phase === 'waiting' || state.phase === 'paused')
   const pollController = useRef<AbortController | null>(null)
   const onReadyRef = useRef(onReady)

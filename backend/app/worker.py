@@ -25,6 +25,14 @@ from .library_episode import (
     library_prompt,
     validate_library_story,
 )
+from .my_story import (
+    MyStory,
+    my_story_image_prompt,
+    my_story_prompt,
+    prepared_portrait,
+    speaker_name,
+    validate_my_story,
+)
 from .prepared_art import ART_DIR, PREPARED_PANELS, PREPARED_SPEAKERS, live_cast_reference
 from .problems import Problem
 from .providers import (
@@ -36,7 +44,15 @@ from .providers import (
     TextProvider,
     normalize_png,
 )
-from .schemas import Comic, ContinuationRequest, Exercise, JobRequest, Panel
+from .schemas import (
+    Comic,
+    ContinuationRequest,
+    Exercise,
+    JobRequest,
+    Panel,
+    PanelPlaceholder,
+    StoryOptions,
+)
 from .storage import Store
 from .story import (
     PreparedStory,
@@ -130,23 +146,38 @@ class Worker:
     ):
         checkpoint = claim["storyboard"]
         prepared = self.settings.art_mode == "prepared" and checkpoint is None
+        options = request.story  # «Моя история» options, or None for a classic comic
         if prepared and not all((ART_DIR / file).is_file() for _, file, _ in PREPARED_PANELS):
             raise ProviderError("generation_failed", stage="prepared_art_missing")
         if checkpoint is None:
-            story = await self.generate_story(
-                text_prompt(request, problem, prepared=prepared),
-                (PreparedStory if prepared else Story).model_json_schema(),
-                lambda raw: validate_story(raw, problem, prepared=prepared),
-            )
+            if options is not None:
+                story = await self.generate_story(
+                    my_story_prompt(request, problem, prepared=prepared),
+                    MyStory.model_json_schema(),
+                    lambda raw: validate_my_story(raw, problem, options),
+                )
+            else:
+                story = await self.generate_story(
+                    text_prompt(request, problem, prepared=prepared),
+                    (PreparedStory if prepared else Story).model_json_schema(),
+                    lambda raw: validate_story(raw, problem, prepared=prepared),
+                )
             self.store.begin_panels(
                 claim,
                 len(story.ru.panels),
                 live_storyboard=None if prepared else (comic_id, story.model_dump_json()),
             )
+        elif options is not None:
+            story = validate_my_story(json.loads(checkpoint), problem, options)
         else:
             story = validate_story(json.loads(checkpoint), problem)
+        scene_prompt = (
+            image_prompt if options is None else lambda scene: my_story_image_prompt(scene, options)
+        )
         aspects = (
-            {} if prepared else await self.render_live_images(claim, comic_id, story.ru.panels)
+            {}
+            if prepared
+            else await self.render_live_images(claim, comic_id, story.ru.panels, scene_prompt)
         )
 
         exercise_id = f"fractions-{comic_id}"
@@ -154,12 +185,8 @@ class Worker:
         hints = {}
         for lang in ("ru", "kk"):
             localized = getattr(story, lang)
-            comic = Comic(
-                id=comic_id,
-                lang=lang,
-                title=localized.title,
-                artwork="prepared" if prepared else None,
-                panels=[
+            if options is None:
+                panels = [
                     Panel(
                         id=p.id,
                         speaker=PREPARED_SPEAKERS[p.speaker],
@@ -173,7 +200,15 @@ class Worker:
                         ),
                     )
                     for p in localized.panels
-                ],
+                ]
+            else:
+                panels = my_story_panels(comic_id, localized.panels, options, prepared, aspects)
+            comic = Comic(
+                id=comic_id,
+                lang=lang,
+                title=localized.title,
+                artwork="prepared" if prepared else None,
+                panels=panels,
                 exercise=Exercise(id=exercise_id, prompt=localized.exercise),
             )
             payload[lang] = comic.model_dump()
@@ -220,7 +255,11 @@ class Worker:
             ) from None
 
     async def render_live_images(
-        self, claim: dict, comic_id: str, panels: Sequence[ScenePanel]
+        self,
+        claim: dict,
+        comic_id: str,
+        panels: Sequence[ScenePanel],
+        scene_prompt: Callable[[str], str] = image_prompt,
     ) -> dict[int, float]:
         if self.image is None:
             raise ProviderError("image_generation_failed", stage="image:provider_missing")
@@ -248,7 +287,7 @@ class Worker:
                     continue
             try:
                 image = normalize_png(
-                    await self.image.generate(image_prompt(panel.scene), reference)
+                    await self.image.generate(scene_prompt(panel.scene), reference)
                 )
             except ProviderError as exc:
                 stage = f"image:panel_{panel.id}:{exc.stage or exc.code}"
@@ -265,6 +304,41 @@ class Worker:
                 ) from None
             self.store.panel_saved(claim, panel.id)
         return aspects
+
+
+def my_story_panels(
+    comic_id: str,
+    story_panels: Sequence,
+    options: StoryOptions,
+    prepared: bool,
+    aspects: dict[int, float],
+) -> list[Panel]:
+    """Live art for every panel. In prepared mode: the cast portraits, and a setting
+    placeholder for the student's own heroes (they are never drawn)."""
+    seen: dict[str, int] = {}
+    panels = []
+    for p in story_panels:
+        portrait = prepared_portrait(p.speaker, seen) if prepared else None
+        if not prepared:
+            url = f"/api/comic-images/{comic_id}/{p.id}.png"
+        elif portrait is not None:
+            url = f"/api/prepared-art/{portrait}.jpg"
+        else:
+            url = None
+        panels.append(
+            Panel(
+                id=p.id,
+                speaker=speaker_name(p.speaker, options),
+                text=p.text,
+                imageKey=f"{comic_id}-{p.id:02d}",
+                imageAspect=aspects.get(p.id),
+                imageUrl=url,
+                placeholder=(
+                    PanelPlaceholder(setting=options.setting) if prepared and url is None else None
+                ),
+            )
+        )
+    return panels
 
 
 @asynccontextmanager

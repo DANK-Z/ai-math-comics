@@ -9,7 +9,7 @@ const STORAGE_KEY = 'amc.myComics'
 const CHANGE_EVENT = 'amc:my-comics'
 const MAX_ENTRIES = 50
 
-export type MyComicKind = 'generated' | 'continuation'
+export type MyComicKind = 'generated' | 'continuation' | 'story'
 
 export interface MyComic {
   comicId: string
@@ -25,7 +25,7 @@ function isEntry(v: unknown): v is MyComic {
   return (
     typeof e.comicId === 'string' &&
     e.comicId.length > 0 &&
-    (e.kind === 'generated' || e.kind === 'continuation') &&
+    (e.kind === 'generated' || e.kind === 'continuation' || e.kind === 'story') &&
     LANGS.includes(e.lang as Lang) &&
     typeof e.savedAt === 'number'
   )

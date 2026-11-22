@@ -88,7 +88,7 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
           className="panel-enter relative overflow-hidden rounded-2xl border-[5px] border-ink bg-sky-100"
           aria-label={`${panel.speaker}: ${panel.text}`}
         >
-          <PanelArt imageKey={panel.imageKey} imageUrl={panel.imageUrl} lang={lang} speaker={panel.speaker} text={panel.text} imageAspect={panel.imageAspect} priority />
+          <PanelArt imageKey={panel.imageKey} imageUrl={panel.imageUrl} lang={lang} speaker={panel.speaker} text={panel.text} imageAspect={panel.imageAspect} placeholder={panel.placeholder} priority />
           <span className={`absolute ${panel.imageUrl ? 'top-2' : 'bottom-2'} left-2 grid h-9 w-9 place-items-center rounded-full border-[3px] border-ink bg-sun text-lg font-black text-ink`}>
             {panel.id}
           </span>
@@ -147,7 +147,7 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
                     }`}
                   >
                     {reachable ? (
-                      <PanelArt imageKey={p.imageKey} imageUrl={p.imageUrl} lang={lang} speaker={p.speaker} text="" imageAspect={p.imageAspect} thumb />
+                      <PanelArt imageKey={p.imageKey} imageUrl={p.imageUrl} lang={lang} speaker={p.speaker} text="" imageAspect={p.imageAspect} placeholder={p.placeholder} thumb />
                     ) : (
                       <div aria-hidden className="bg-sky-100" style={{ aspectRatio: p.imageAspect ?? PANEL_ASPECT }} />
                     )}
