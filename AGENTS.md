@@ -25,7 +25,8 @@ they are merged and removed. Their old test databases are in `backend/data/_arch
 Do **not** create new worktrees or sibling folders. For a bigger change, make a branch in this
 folder (`git switch -c feature/<name>`), and merge back into `main` when the owner agrees.
 
-There is **no git remote**. Never push. Commit only when the owner asks.
+Remote: `origin` = https://github.com/DANK-Z/ai-math-comics (private). Commit and push only
+when the owner asks; never force-push `main`.
 
 ## Setup (PowerShell, Windows)
 
