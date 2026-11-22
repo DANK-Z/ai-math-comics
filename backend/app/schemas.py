@@ -1,11 +1,22 @@
 """Public API models; field names follow docs/api-contract.md."""
 
+import re
+import unicodedata
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 Language = Literal["ru", "kk"]
 HintStep = Literal[1, 2]
+
+
+StorySetting = Literal["school", "space", "forest", "custom"]
+
+
+class PanelPlaceholder(BaseModel):
+    """A panel without artwork (a student's own hero in prepared-art mode)."""
+
+    setting: StorySetting
 
 
 class Panel(BaseModel):
@@ -15,6 +26,7 @@ class Panel(BaseModel):
     imageKey: str
     imageUrl: str | None = None
     imageAspect: float | None = None
+    placeholder: PanelPlaceholder | None = None
 
 
 class Exercise(BaseModel):
@@ -56,6 +68,79 @@ class HintResponse(BaseModel):
     hasMore: bool
 
 
+# Student-written text (hero names, descriptions, setting, premise) is story data only.
+# Allow letters, spaces and light punctuation; no digits, math symbols, markup or links,
+# so the server keeps sole control of the numbers in the comic.
+STUDENT_TEXT = re.compile(r"[\w\s.,!?'\"«»()\-—–:;]*")
+LINK_HINT = re.compile(r"https?|www\.|\.(?:com|ru|kz|org|net)\b", re.IGNORECASE)
+
+
+def clean_student_text(value: str) -> str:
+    value = re.sub(r"\s+", " ", unicodedata.normalize("NFKC", value)).strip()
+    if any(ch.isdigit() or ch == "_" for ch in value) or not STUDENT_TEXT.fullmatch(value):
+        raise ValueError("only letters, spaces and basic punctuation are allowed")
+    if LINK_HINT.search(value):
+        raise ValueError("links are not allowed")
+    return value
+
+
+class CustomHero(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    name: str = Field(min_length=1, max_length=24)
+    description: str = Field(default="", max_length=80)
+
+    @field_validator("name", "description")
+    @classmethod
+    def _clean(cls, value: str) -> str:
+        return clean_student_text(value)
+
+    @field_validator("name")
+    @classmethod
+    def _non_empty(cls, value: str) -> str:
+        if not value:
+            raise ValueError("name is required")
+        return value
+
+
+CastHero = Literal["aldiyar", "aruna", "pifik"]
+
+
+class StoryOptions(BaseModel):
+    """«Моя история»: the student's heroes, style, setting and premise."""
+
+    model_config = {"extra": "forbid"}
+
+    heroes: list[CastHero] = Field(min_length=1, max_length=3)
+    customHeroes: list[CustomHero] = Field(default_factory=list, max_length=2)
+    style: Literal["comic", "cartoon", "pixel"]
+    setting: StorySetting
+    customSetting: str | None = Field(default=None, max_length=60)
+    premise: str | None = Field(default=None, max_length=280)
+
+    @field_validator("customSetting", "premise")
+    @classmethod
+    def _clean_optional(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return clean_student_text(value) or None
+
+    @model_validator(mode="after")
+    def _consistent(self):
+        if len(set(self.heroes)) != len(self.heroes):
+            raise ValueError("heroes must be unique")
+        if "pifik" not in self.heroes:
+            # Pifik presents the exercise and gives the hints.
+            raise ValueError("pifik is always part of the story")
+        names = [hero.name.casefold() for hero in self.customHeroes]
+        reserved = {"пифик", "аруна", "алдияр", "pifik", "aruna", "aldiyar"}
+        if len(set(names)) != len(names) or reserved & set(names):
+            raise ValueError("custom hero names must be unique and differ from the cast")
+        if (self.setting == "custom") != bool(self.customSetting):
+            raise ValueError("customSetting is required exactly when setting is custom")
+        return self
+
+
 class JobRequest(BaseModel):
     model_config = {"extra": "forbid"}
 
@@ -63,6 +148,7 @@ class JobRequest(BaseModel):
     topic: Literal["fractions"]
     lang: Language
     difficulty: Literal["basic", "intermediate", "advanced"]
+    story: StoryOptions | None = None
 
 
 class ContinuationRequest(BaseModel):

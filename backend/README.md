@@ -73,6 +73,22 @@ around `/`, signs, and equivalent fractions are accepted with exact `Fraction` a
 Unequal fractions return `incorrect`; malformed input and zero denominators return `invalid`.
 These outcomes use HTTP 200 with localized feedback; numeric JSON answers return HTTP 422.
 
+### My Story jobs
+
+`POST /api/comic-jobs` accepts an optional `story` object (heroes, up to two student
+heroes, style, setting, premise; see the contract). The logic lives in `app/my_story.py`:
+
+- Input validation (`schemas.StoryOptions`) allows only letters, spaces and basic
+  punctuation in student text, requires Pifik, and limits lengths.
+- `my_story_prompt` passes student text as clearly marked data with child-safety rules;
+  the problem, exercise, hints and answer stay server-owned exactly as in classic comics.
+- `validate_my_story` applies the classic checks (exact exercise and hints, ordered scenes,
+  no numbers outside panel 4) after masking the student's own names and place, and also
+  requires selected speakers only, Pifik on panel 4, and a line for every student hero.
+- Live images use `my_story_image_prompt` (style, setting, selected cast only). Prepared
+  mode maps cast speakers to the bundled portraits and gives student-hero panels a
+  `placeholder`. Live jobs resume with the saved storyboard like classic jobs.
+
 ### Chapter 3 continuation jobs
 
 In the library-key preview, live mode sends `POST /api/continuation-jobs` with

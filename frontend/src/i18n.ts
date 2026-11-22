@@ -142,7 +142,7 @@ export interface UiStrings {
     /** Accessible names that include the comic title. */
     openLabel: (title: string) => string
     replayLabel: (title: string) => string
-    kind: { generated: string; continuation: string }
+    kind: { generated: string; continuation: string; story: string }
     savedOn: (date: string) => string
     unavailable: string
     remove: string
@@ -327,7 +327,7 @@ export const STRINGS: Record<Lang, UiStrings> = {
       replay: 'Пройти заново',
       openLabel: (title) => `Открыть «${title}»`,
       replayLabel: (title) => `Пройти заново «${title}»`,
-      kind: { generated: 'Новый комикс', continuation: 'Продолжение' },
+      kind: { generated: 'Новый комикс', continuation: 'Продолжение', story: 'Моя история' },
       savedOn: (date) => `Создан ${date}`,
       unavailable: 'Не удалось загрузить этот комикс.',
       remove: 'Убрать из списка',
@@ -506,7 +506,7 @@ export const STRINGS: Record<Lang, UiStrings> = {
       replay: 'Қайта өту',
       openLabel: (title) => `«${title}» ашу`,
       replayLabel: (title) => `«${title}» қайта өту`,
-      kind: { generated: 'Жаңа комикс', continuation: 'Жалғасы' },
+      kind: { generated: 'Жаңа комикс', continuation: 'Жалғасы', story: 'Менің оқиғам' },
       savedOn: (date) => `Жасалды: ${date}`,
       unavailable: 'Бұл комиксті жүктеу мүмкін болмады.',
       remove: 'Тізімнен алып тастау',

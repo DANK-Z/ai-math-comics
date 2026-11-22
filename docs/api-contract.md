@@ -74,6 +74,37 @@ Supported values: integer grades `5`, `6`; topic `fractions`; languages `ru`, `k
 difficulties `basic`, `intermediate`, `advanced`. Unsupported values, extra fields,
 or malformed requests return HTTP 422.
 
+### My Story mode (optional `story`)
+
+Add `story` to let the student shape the comic around the same trusted problem:
+
+```json
+{"grade":5,"topic":"fractions","lang":"ru","difficulty":"basic",
+ "story":{"heroes":["pifik","aruna"],
+          "customHeroes":[{"name":"Тришка","description":"Любит собирать шестерёнки"}],
+          "style":"pixel","setting":"custom","customSetting":"На дне океана",
+          "premise":"Герои нашли старую карту сокровищ."}}
+```
+
+- `heroes`: 1–3 unique cast IDs from `aldiyar`, `aruna`, `pifik`; `pifik` is required
+  because he presents the exercise and gives the hints.
+- `customHeroes`: 0–2 student heroes, `name` 1–24 characters, `description` up to 80.
+  Names must be unique and differ from the cast names.
+- `style`: `comic`, `cartoon` or `pixel`. `setting`: `school`, `space`, `forest` or
+  `custom`; `customSetting` (up to 60) is required exactly when `setting` is `custom`.
+- `premise`: optional, up to 280 characters. Empty means the model invents a beginning.
+- Student text is normalized (spaces collapsed) and may contain only letters, spaces and
+  basic punctuation: no digits, math symbols, markup or links. Violations return 422.
+
+The comic keeps the usual six panels with the exercise on panel 4, spoken by Pifik,
+and the server still owns the problem, exercise text, hints and answer. Student text is
+passed to the model as data and never as instructions. In live art mode every panel is
+drawn in the chosen style and setting showing only the selected cast; student heroes
+are not drawn and their descriptions and the premise never reach the image model. In
+prepared art mode cast speakers get their bundled portraits, and panels spoken by a
+student hero have no `imageUrl` and instead carry `"placeholder":{"setting":"…"}`.
+Panel `speaker` is the display name, so student heroes appear under their own names.
+
 Return HTTP **202** immediately after persisting the job:
 
 ```json

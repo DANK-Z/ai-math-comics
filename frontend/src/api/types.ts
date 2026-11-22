@@ -10,6 +10,8 @@ export interface Panel {
   /** Generated comics: server-rendered artwork. May be relative to the API origin. */
   imageUrl?: string | null
   imageAspect?: number
+  /** My Story, prepared art: a student hero's panel has no picture, only its setting. */
+  placeholder?: { setting: StorySetting } | null
 }
 
 export interface Exercise {
@@ -60,11 +62,26 @@ export const TOPICS: readonly Topic[] = ['fractions']
 export type Difficulty = 'basic' | 'intermediate' | 'advanced'
 export const DIFFICULTIES: readonly Difficulty[] = ['basic', 'intermediate', 'advanced']
 
+export type CastHeroId = 'aldiyar' | 'aruna' | 'pifik'
+export type StoryStyle = 'comic' | 'cartoon' | 'pixel'
+export type StorySetting = 'school' | 'space' | 'forest' | 'custom'
+
+/** «Моя история» options for POST /api/comic-jobs (see docs/api-contract.md). */
+export interface StoryOptions {
+  heroes: CastHeroId[]
+  customHeroes: { name: string; description: string }[]
+  style: StoryStyle
+  setting: StorySetting
+  customSetting: string | null
+  premise: string | null
+}
+
 export interface ComicJobRequest {
   grade: Grade
   topic: Topic
   lang: Lang
   difficulty: Difficulty
+  story?: StoryOptions
 }
 
 export interface ContinuationJobRequest {
