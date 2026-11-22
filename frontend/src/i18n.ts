@@ -127,6 +127,22 @@ export interface UiStrings {
   readComic: string
   backHome: string
   navigation: { menu: string; close: string; label: string; createAnother: string; hints: string }
+  myComics: {
+    title: string
+    lead: string
+    count: (n: number) => string
+    empty: string
+    emptyCta: string
+    open: string
+    replay: string
+    /** Accessible names that include the comic title. */
+    openLabel: (title: string) => string
+    replayLabel: (title: string) => string
+    kind: { generated: string; continuation: string }
+    savedOn: (date: string) => string
+    unavailable: string
+    remove: string
+  }
   imageError: string
 }
 
@@ -291,6 +307,25 @@ export const STRINGS: Record<Lang, UiStrings> = {
     readComic: 'Читать комикс',
     backHome: 'Все комиксы',
     navigation: { menu: 'Меню', close: 'Закрыть меню', label: 'Основная навигация', createAnother: 'Создать ещё один', hints: 'Подсказки Пифика' },
+    myComics: {
+      title: 'Мои комиксы',
+      lead: 'Комиксы, которые ты создал в этом браузере. Новые — сверху.',
+      count: (n) => {
+        const m10 = n % 10, m100 = n % 100
+        const word = m10 === 1 && m100 !== 11 ? 'комикс' : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? 'комикса' : 'комиксов'
+        return `${n} ${word}`
+      },
+      empty: 'Здесь появятся комиксы, которые ты создашь, и продолжения историй.',
+      emptyCta: 'Создать свой комикс',
+      open: 'Открыть',
+      replay: 'Пройти заново',
+      openLabel: (title) => `Открыть «${title}»`,
+      replayLabel: (title) => `Пройти заново «${title}»`,
+      kind: { generated: 'Новый комикс', continuation: 'Продолжение' },
+      savedOn: (date) => `Создан ${date}`,
+      unavailable: 'Не удалось загрузить этот комикс.',
+      remove: 'Убрать из списка',
+    },
     imageError: 'Картинка не загрузилась',
   },
   kk: {
@@ -453,6 +488,21 @@ export const STRINGS: Record<Lang, UiStrings> = {
     readComic: 'Комиксті оқу',
     backHome: 'Барлық комикстер',
     navigation: { menu: 'Мәзір', close: 'Мәзірді жабу', label: 'Негізгі навигация', createAnother: 'Тағы біреуін жасау', hints: 'Пификтің кеңестері' },
+    myComics: {
+      title: 'Менің комикстерім',
+      lead: 'Осы браузерде жасаған комикстерің. Жаңалары — жоғарыда.',
+      count: (n) => `${n} комикс`,
+      empty: 'Сен жасаған комикстер мен оқиғалардың жалғасы осында пайда болады.',
+      emptyCta: 'Өз комиксіңді жасау',
+      open: 'Ашу',
+      replay: 'Қайта өту',
+      openLabel: (title) => `«${title}» ашу`,
+      replayLabel: (title) => `«${title}» қайта өту`,
+      kind: { generated: 'Жаңа комикс', continuation: 'Жалғасы' },
+      savedOn: (date) => `Жасалды: ${date}`,
+      unavailable: 'Бұл комиксті жүктеу мүмкін болмады.',
+      remove: 'Тізімнен алып тастау',
+    },
     imageError: 'Сурет жүктелмеді',
   },
 }

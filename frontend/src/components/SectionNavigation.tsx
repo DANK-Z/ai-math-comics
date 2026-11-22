@@ -8,13 +8,16 @@ interface Props {
   active: Section
   completed: number
   remaining: number
+  /** Saved generated comics in this browser. */
+  myComics: number
 }
 
-function SectionLinks({ t, active, completed, remaining, onSelect }: Props & { onSelect?: () => void }) {
+function SectionLinks({ t, active, completed, remaining, myComics, onSelect }: Props & { onSelect?: () => void }) {
   const id = useId()
   const links = [
     { section: 'map', icon: '🗺️', label: t.fairRoute.title, detail: t.seasonProgress(completed, SCHOOL_FAIR_CHAPTER_COUNT) },
     { section: 'comics', icon: '📚', label: t.backHome },
+    { section: 'myComics', icon: '🖍️', label: t.myComics.title, detail: myComics > 0 ? t.myComics.count(myComics) : undefined },
     { section: 'backpack', icon: '🎒', label: t.backpack.title, detail: t.backpack.progress(completed, SCHOOL_FAIR_CHAPTER_COUNT) },
     { section: 'guardian', icon: remaining > 0 ? '🔒' : '★', label: t.guardian.title, detail: remaining > 0 ? t.guardian.remaining(remaining) : t.fairRoute.guardianUnlocked },
     { section: 'create', icon: '✨', label: t.createOwn },
