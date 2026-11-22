@@ -12,3 +12,5 @@ the six-chapter season “Operation: School Fair” and AI-generated comics.
   live artwork).
 - [API contract](docs/api-contract.md)
 - [Roadmap](docs/ROADMAP.md): what is done, in progress, and planned.
+- [AGENTS.md](AGENTS.md): setup, checks, rules and current state for coding agents (Codex,
+  Claude Code). Everything lives in this one folder on `main`.

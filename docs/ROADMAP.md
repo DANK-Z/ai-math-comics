@@ -1,6 +1,6 @@
 # AI Math Comics roadmap
 
-Status was checked against the code and Git history on `main` at `576e2fa` (2026-11-22).
+Status was checked against the code and Git history on `main` at `a964b80` (2026-11-22).
 Commit hashes point to the change that introduced the behavior.
 
 | Status | Meaning |
@@ -23,18 +23,23 @@ These items are not on the request list, but the planned work builds on them.
 | Comic generation | Gemini or OpenAI story text; prepared or live artwork | `030c440`, `18d3a54` |
 | Chapter 3 continuation | A generated library episode after Chapter 3 | `f1ab300` |
 | My Comics | Browser history of generated comics with Open and Replay | `efbd962` |
+| Road Guardian | Motion-problems boss: pursuit, head-on and river phases, 90 HP | `4f60846` |
+| Panel-four boss fight | Every generated comic: Fraction Slime or X Master, 90 HP, three server rounds | `a964b80` |
+| Equations generation | `topic: "equations"`: find x, whole-number answers, three difficulty levels | `a964b80` |
+| Storyboard retries | Up to `TEXT_ATTEMPTS` model attempts, the retry names the broken rule | `a964b80` |
 
 ## Roadmap
 
-### 1. My Story mode — Planned
+### 1. My Story mode — Done (with known limits)
 
-| Part | Status | Notes |
+| Part | Status | Evidence / notes |
 | --- | --- | --- |
-| Custom heroes | Planned | The cast is fixed to Aldiyar, Aruna, and Pifik (`backend/app/story.py`, `CHARACTERS`). |
-| Visual styles | Planned | Live art uses one bright comic style. |
-| Settings | Planned | Generated comics use one fixed setting, the school fair courtyard. |
-| Student premise | Planned | The Create Comic form takes only grade, topic, language, and difficulty. |
-| Consistent character references across panels | Planned for custom heroes | The fixed cast already uses a reference strip in every live panel (`prepared_art.live_cast_reference`). Custom heroes will need their own references. |
+| Custom heroes | Done as text | `d74bfb5`. Up to two student heroes speak in the comic. With prepared art their panels show a setting placeholder; live art draws only the cast. |
+| Visual styles | Done for live art | Comic, cartoon and pixel styles go into the image prompt. Prepared art ignores the style. |
+| Settings | Done for live art | School, space, forest or a custom place. |
+| Student premise | Done | Optional; Pifik invents a beginning when it is empty. |
+| Drawing custom heroes with consistent references | Planned | Needs per-hero reference images. |
+| Stronger moderation of student text | Planned | Today: input rules + prompt instructions. |
 
 ### 2. Story continuations — In progress
 
@@ -88,7 +93,11 @@ These items are not on the request list, but the planned work builds on them.
 | Chapter collectibles in the backpack | Done | `895b1a3` |
 | More optional secret puzzles and stickers | Planned | |
 
-### 8. Guardian upgrades — Planned
+### 8. Guardian upgrades — In progress
+
+Generated comics now end in a panel-four boss fight with an animated HP bar (`a964b80`), and the
+Road Guardian has visual phases (`4f60846`). The season's Guardian final challenge is unchanged.
+Boss-fight progress is not saved: reloading restarts the fight.
 
 The Guardian final challenge exists (`9dc0af2`): three fixed rounds (fractions, percentages, scale) and an HP bar.
 
@@ -97,13 +106,13 @@ The Guardian final challenge exists (`9dc0af2`): three fixed rounds (fractions, 
 | Visual phases | Planned | |
 | New problem numbers on replay | Planned | Round answers are fixed in `frontend/src/guardian.ts`. |
 
-### 9. Motion League — Planned
+### 9. Motion League — In progress
 
 | Part | Status |
 | --- | --- |
-| Pursuit problems | Planned |
-| Head-on meeting problems | Planned |
-| River current problems | Planned |
+| Pursuit problems | Done in Road Guardian (`4f60846`) |
+| Head-on meeting problems | Done in Road Guardian (`4f60846`) |
+| River current problems | Done in Road Guardian (`4f60846`) |
 | Average speed problems | Planned |
 | Practice mode | Planned |
 | Challenge mode with optional hearts, a timer, and crystals | Planned |
@@ -122,5 +131,5 @@ Progress and history are saved only in the student's browser. There are no accou
 
 | Part | Status | Notes |
 | --- | --- | --- |
-| New comics and exercise templates from the upcoming Grade 5–6 teaching materials | Planned | Generation supports grades 5–6, the `fractions` topic, and three difficulties. Bundled chapters also cover percentages, scale, equations, proportions, and perimeter. |
+| New comics and exercise templates from the upcoming Grade 5–6 teaching materials | In progress | Generation supports grades 5–6, the `fractions` and `equations` topics (`a964b80`), and three difficulties. Bundled chapters also cover percentages, scale, proportions, and perimeter. |
 | Russian and Kazakh support | Done, keep for all new content | `LANGS = ['ru', 'kk']` |

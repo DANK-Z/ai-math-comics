@@ -44,7 +44,7 @@ panels and exercises in the frontend and work in both API modes.
 
 ## Generate Comic flow
 
-1. The form (grade 5/6, topic `fractions`, comic language `ru`/`kk`, difficulty
+1. The form (grade 5/6, topic `fractions`/`equations`, comic language `ru`/`kk`, difficulty
    `basic`/`intermediate`/`advanced`) sends `POST /api/comic-jobs` → `202 {jobId, status}`.
 2. `GET /api/comic-jobs/{jobId}` is polled every 1.5 s until `ready` or `failed`
    (`src/jobs.ts`). If Create Comic is the selected section, a ready job opens the reader

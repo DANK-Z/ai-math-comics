@@ -1,0 +1,128 @@
+# AGENTS.md — AI Math Comics
+
+Guide for any coding agent (Codex, Claude Code, …) working in this repository.
+Read it before changing anything. The owner speaks Russian: reply in Russian unless asked otherwise.
+
+## What this is
+
+Interactive math comics for grades 5–6 in **Russian and Kazakh**. A student reads a six-panel
+comic, fights a boss on panel 4 by solving exercises (with Pifik's hints), and unlocks the ending.
+There is a bundled season «Операция: школьная ярмарка», a Road Guardian boss, and AI-generated
+comics («Математический экспресс» and «Моя история»).
+
+- `frontend/` — React 19 + TypeScript + Tailwind v4 (Vite). Hash routes (`#/`, `#/comics`,
+  `#/my-comics`, `#/create`, `#/comic/{id}`, `#/guardian`, `#/road-guardian`, `#/backpack`).
+- `backend/` — FastAPI API (`app/main.py`) + separate generation worker (`app/worker.py`),
+  SQLite in `backend/data/` (git-ignored, holds private answers).
+- `docs/api-contract.md` — the API contract; keep frontend types, mocks and backend in sync with it.
+- `docs/ROADMAP.md` — what is done / in progress / planned. Update it when you finish an item.
+
+## One folder, no worktrees
+
+Everything lives in `C:\Users\Danial\Documents\ai-math-comics` on branch `main`.
+Earlier sibling folders (`ai-math-comics-backend`, `-frontend`, `-resumable`) were git worktrees;
+they are merged and removed. Their old test databases are in `backend/data/_archive/`.
+Do **not** create new worktrees or sibling folders. For a bigger change, make a branch in this
+folder (`git switch -c feature/<name>`), and merge back into `main` when the owner agrees.
+
+There is **no git remote**. Never push. Commit only when the owner asks.
+
+## Setup (PowerShell, Windows)
+
+```powershell
+# backend
+cd backend
+python -m venv .venv                      # already exists; recreate if missing
+.venv\Scripts\python -m pip install -r requirements-dev.txt
+# backend/.env already holds the owner's keys (COMIC_PROVIDER=gemini, prepared art). Never print,
+# copy or commit it. Template: backend/.env.example
+
+# frontend
+cd ..\frontend
+npm install
+```
+
+## Run
+
+```powershell
+# API (from backend/)
+.venv\Scripts\python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+# worker, second terminal (from backend/)
+.venv\Scripts\python -m app.worker
+# frontend with in-browser mocks, no backend needed (from frontend/)
+npm run dev          # http://localhost:5173
+# frontend against the real backend
+npm run dev:live     # uses .env.live (+ git-ignored .env.live.local overrides)
+```
+
+CORS allows only `http://localhost:5173` and `http://127.0.0.1:5173`.
+Real generation costs money (Gemini/OpenAI). Ask the owner before running a real provider job.
+
+## Checks (run before saying something is done)
+
+```powershell
+cd backend
+.venv\Scripts\python -m ruff check .
+.venv\Scripts\python -m ruff format --check .
+.venv\Scripts\python -m pytest            # no credentials, no paid calls
+cd ..\frontend
+npm run build                             # tsc -b + vite build
+```
+
+For UI changes also open the app (mock mode is enough) and check desktop 1440 px and phone
+360 px in **both** languages: no horizontal scroll, text fits.
+
+## Rules that must not be broken
+
+1. **Russian + Kazakh everywhere.** Every user-facing string has `ru` and `kk` (see
+   `frontend/src/i18n.ts`, `myStory.ts`, `boss.ts`, backend problem templates).
+2. **The server owns the math.** Operands, exercise text, hints and answers come from
+   `backend/app/problems.py` (fractions, equations) and `library_episode.py`. The text model only
+   writes narrative. It never chooses numbers, and answers never go to the model or the client.
+3. **Narrative validation** (`backend/app/story.py`, `validate_narrative`): titles and dialogue
+   outside panel 4 must be Cyrillic and have no digits, math symbols or number words
+   (RU/KK, including collective numerals like «двое», «трое»). Panel 4 text is exactly the
+   server exercise. Do not loosen these checks to make a model pass — retries handle it.
+4. **Student input is data** («Моя история»): validated on input (`schemas.clean_student_text`),
+   marked as data in the prompt, never sent to the image model except the custom setting.
+5. **Secrets and local files never go into commits:** `backend/.env`, `backend/data/`,
+   `frontend/.env*.local`, `frontend/dist/`, `.claude/`, and the reference PNGs in `docs/`
+   (untracked on purpose).
+6. **Design system:** card radius 16px (`rounded-2xl`), inputs/buttons 12px (`rounded-xl`),
+   chips/badges 8px (`rounded-lg`); 3px ink borders with a solid ink drop shadow; a selected
+   option is **yellow (`bg-sun`) with a ✓**; the primary action button is yellow. Errors: red
+   border via `aria-invalid`, the message linked with `aria-describedby`, and focus moved to
+   the field.
+7. Keep `docs/api-contract.md`, `frontend/src/api/types.ts`, the mocks (`frontend/src/api/mock*.ts`)
+   and the backend models in sync. Add backend tests for every backend change.
+
+## Where things are
+
+| Feature | Backend | Frontend |
+| --- | --- | --- |
+| Problem templates (fractions, equations), boss rounds | `app/problems.py` | — |
+| Classic story prompt + validation, scenes per topic | `app/story.py` | — |
+| «Моя история» prompt, validation, placeholders | `app/my_story.py` | `myStory.ts`, `components/MyStoryFields.tsx` |
+| Job queue, publish, boss_rounds table | `app/storage.py` | `jobs.ts`, `components/GenerateCard.tsx` |
+| Worker: storyboard retries (`TEXT_ATTEMPTS`), images, boss block | `app/worker.py` | `components/GenerationProgress.tsx` |
+| Answer check (fraction `a/b` / whole number for `equations-*`) | `app/main.py` | `hooks.ts` (`useAnswerCheck`) |
+| Panel-4 boss fight (90 HP, 3 rounds × 30) | `schemas.Boss` | `components/BossFight.tsx`, `boss.ts`, `components/ComicReader.tsx` |
+| Road Guardian (motion problems) | — | `roadGuardian.ts`, `components/RoadGuardianScreen.tsx` |
+| Season, catalog, backpack, Guardian | — | `schoolFair.ts`, `guardian.ts`, `components/*` |
+| My Comics history (localStorage `amc.myComics`) | — | `myComics.ts`, `components/MyComicsScreen.tsx` |
+| Providers (Gemini/OpenAI) | `app/gemini.py`, `app/providers.py`, `app/config.py` | — |
+
+## Current state (2026-11-22, `main` at `a964b80`)
+
+Done recently: «Моя история» (custom heroes as text + placeholder art, style, setting, premise);
+topic «Уравнения»; storyboard retries with rule feedback (verified live: a Gemini 503 was retried
+and the comic was published); panel-4 boss fight (Дробный Слайм / Магистр Иксов);
+Road Guardian; 16/12/8 design pass.
+
+Known gaps / good next steps (see `docs/ROADMAP.md` for the full list):
+- Boss-fight progress is in memory only; reloading restarts the fight.
+- With prepared art, style/setting choices do not change pictures; custom heroes are never drawn.
+- Live image generation with the real provider has not been re-checked since the equations/boss work.
+- Moderation of student text is rule- and prompt-based only.
+- `backend/README.md` has a small uncommitted doc edit (library episode paragraph) — keep it.
+- Branch `feat/frontend-redesign` is an old, superseded redesign; do not merge it.
