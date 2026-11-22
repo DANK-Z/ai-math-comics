@@ -6,7 +6,7 @@ export function LanguageSwitcher({ lang, onChange }: { lang: Lang; onChange: (l:
     <div
       role="radiogroup"
       aria-label={STRINGS[lang].langLabel}
-      className="inline-flex rounded-full border-[3px] border-ink bg-white p-1 shadow-[0_3px_0_var(--color-ink)]"
+      className="inline-flex gap-1 rounded-full border-[3px] border-ink bg-white p-1.5 shadow-[0_3px_0_var(--color-ink)]"
     >
       {LANGS.map((l) => {
         const active = l === lang
@@ -18,7 +18,7 @@ export function LanguageSwitcher({ lang, onChange }: { lang: Lang; onChange: (l:
             aria-checked={active}
             lang={l}
             onClick={() => onChange(l)}
-            className={`min-h-9 rounded-full px-2.5 text-sm sm:px-3 font-black transition-colors focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun ${
+            className={`min-h-9 rounded-full px-3 text-sm sm:px-4 font-black transition-colors focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun ${
               active ? 'bg-brand-dark text-white' : 'text-ink hover:bg-sky'
             }`}
           >

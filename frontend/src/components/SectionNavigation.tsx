@@ -34,12 +34,12 @@ function SectionLinks({ t, active, completed, remaining, myComics, onSelect }: P
               aria-label={label}
               aria-describedby={detail ? `${id}-${section}` : undefined}
               aria-current={section === active ? 'page' : undefined}
-              className="flex min-h-12 items-center gap-2 rounded-xl border-2 border-transparent px-2 py-2 leading-tight text-ink hover:bg-sky focus-visible:outline-3 focus-visible:outline-offset-1 focus-visible:outline-brand aria-[current=page]:border-ink aria-[current=page]:bg-sun"
+              className="flex min-h-12 items-center gap-3 rounded-xl border-2 border-transparent px-3 py-2.5 leading-tight text-ink hover:bg-sky focus-visible:outline-3 focus-visible:outline-offset-1 focus-visible:outline-brand aria-[current=page]:border-ink aria-[current=page]:bg-sun"
             >
-              <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-lg border border-ink/35 bg-white text-base">{icon}</span>
+              <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-lg border border-ink/35 bg-white text-base">{icon}</span>
               <span className="min-w-0">
                 <span className="block text-sm font-black">{label}</span>
-                {detail && <span id={`${id}-${section}`} className="mt-1 block text-xs font-bold text-ink/80">{detail}</span>}
+                {detail && <span id={`${id}-${section}`} className="mt-1 block text-[13px] leading-snug font-semibold text-ink/90">{detail}</span>}
               </span>
             </a>
           </li>
@@ -51,7 +51,7 @@ function SectionLinks({ t, active, completed, remaining, myComics, onSelect }: P
 
 export function DesktopNavigation(props: Props) {
   return (
-    <div className="sticky top-5 hidden self-start rounded-2xl border-2 border-ink bg-cream p-2 shadow-[0_4px_0_var(--color-ink)] lg:block">
+    <div className="sticky top-5 hidden self-start rounded-2xl border-2 border-ink bg-cream p-3 shadow-[0_4px_0_var(--color-ink)] lg:block">
       <SectionLinks {...props} />
     </div>
   )

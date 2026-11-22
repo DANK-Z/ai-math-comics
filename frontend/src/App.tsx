@@ -81,7 +81,7 @@ export default function App() {
       <div className="mx-auto max-w-[90rem] px-3 pt-3 sm:px-6 lg:hidden">
         <MobileNavigation {...navigation} />
       </div>
-      <div className="mx-auto grid max-w-[90rem] gap-6 px-3 py-4 sm:px-6 sm:py-6 lg:grid-cols-[14rem_minmax(0,1fr)]">
+      <div className="mx-auto grid max-w-[90rem] gap-6 px-3 py-4 sm:px-6 sm:py-6 lg:grid-cols-[16rem_minmax(0,1fr)]">
         <DesktopNavigation {...navigation} />
         <main className="min-w-0">
           {route.name === 'map' && (

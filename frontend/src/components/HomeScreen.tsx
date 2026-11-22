@@ -137,10 +137,10 @@ export function HomeScreen({ lang, completedChapters, remaining, guardianWon }: 
 }) {
   const t = STRINGS[lang]
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-5">
       <div>
-        <h1 className="text-2xl font-black text-ink sm:text-3xl">{t.schoolFairTitle}</h1>
-        <p className="mt-1 text-base font-bold text-brand-dark sm:text-lg">{t.catalogLead}</p>
+        <h1 className="text-3xl leading-tight font-black text-ink sm:text-4xl">{t.schoolFairTitle}</h1>
+        <p className="mt-1.5 text-base font-semibold text-ink/85 sm:text-lg">{t.catalogLead}</p>
       </div>
       <SchoolFairRoute t={t} covers={ROUTE_COVERS} completedChapters={completedChapters}
         remaining={remaining} guardianWon={guardianWon} />
