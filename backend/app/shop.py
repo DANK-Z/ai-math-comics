@@ -1,0 +1,156 @@
+"""Fair shop and backpack: students spend server-awarded coins on Pifik skins.
+
+The catalog lives here (prices are server-owned). Buying is atomic: the profile row is locked,
+coins are taken with a conditional UPDATE (never below zero) and the item is added in the same
+transaction. Each skin can be bought once. One skin is worn at a time; it is the profile's
+``avatar_item_id`` and changes Pifik's picture everywhere in the app.
+"""
+
+from typing import Annotated, Literal
+
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
+from sqlalchemy import select, update
+
+from .auth import Session, current_student
+from .db import BackpackItem, StudentProfile, User
+
+SkinKey = Literal["smart-glasses", "yellow-backpack", "racer-helmet"]
+CATALOG: dict[str, dict] = {
+    "smart-glasses": {"type": "skin", "price": 40},
+    "yellow-backpack": {"type": "skin", "price": 50},
+    "racer-helmet": {"type": "skin", "price": 60},
+}
+
+
+class ShopItem(BaseModel):
+    id: str
+    type: str
+    price: int
+    owned: bool
+    equipped: bool
+    backpackItemId: int | None = None
+
+
+class Shop(BaseModel):
+    coins: int
+    equippedSkin: str | None
+    items: list[ShopItem]
+
+
+class BuyRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    itemId: str = Field(min_length=1, max_length=40)
+
+
+class EquipRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    # A backpack item id, or null to take the skin off.
+    itemId: int | None
+
+
+router = APIRouter(prefix="/api/v1")
+Student = Annotated[User, Depends(current_student)]
+
+
+async def profile_for(session, student: User, *, lock: bool = False) -> StudentProfile:
+    # populate_existing: always read fresh values (coins change through UPDATE statements).
+    query = (
+        select(StudentProfile)
+        .where(StudentProfile.user_id == student.id)
+        .execution_options(populate_existing=True)
+    )
+    if lock:
+        query = query.with_for_update()
+    profile = await session.scalar(query)
+    if profile is None:
+        profile = StudentProfile(user_id=student.id, total_coins=0, stars_collected=0, season={})
+        session.add(profile)
+        await session.flush()
+    return profile
+
+
+async def build_shop(session, student: User) -> Shop:
+    profile = await profile_for(session, student)
+    owned = {
+        item.item_key: item
+        for item in (
+            await session.scalars(select(BackpackItem).where(BackpackItem.student_id == student.id))
+        ).all()
+    }
+    equipped = next((i.item_key for i in owned.values() if i.is_equipped), None)
+    return Shop(
+        coins=profile.total_coins,
+        equippedSkin=equipped,
+        items=[
+            ShopItem(
+                id=key,
+                type=info["type"],
+                price=info["price"],
+                owned=key in owned,
+                equipped=key == equipped,
+                backpackItemId=owned[key].id if key in owned else None,
+            )
+            for key, info in CATALOG.items()
+        ],
+    )
+
+
+@router.get("/shop", response_model=Shop)
+async def read_shop(user: Student, session: Session):
+    return await build_shop(session, user)
+
+
+@router.post("/shop/buy", status_code=201, response_model=Shop)
+async def buy(body: BuyRequest, user: Student, session: Session):
+    info = CATALOG.get(body.itemId)
+    if info is None:
+        raise HTTPException(404, "item_not_found")
+    # Lock the profile so two purchases from the same student run one after another.
+    await profile_for(session, user, lock=True)
+    owned = await session.scalar(
+        select(BackpackItem.id).where(
+            BackpackItem.student_id == user.id, BackpackItem.item_key == body.itemId
+        )
+    )
+    if owned is not None:
+        await session.rollback()
+        raise HTTPException(409, "already_owned")
+    paid = await session.execute(
+        update(StudentProfile)
+        .where(StudentProfile.user_id == user.id, StudentProfile.total_coins >= info["price"])
+        .values(total_coins=StudentProfile.total_coins - info["price"])
+    )
+    if paid.rowcount != 1:
+        await session.rollback()
+        raise HTTPException(409, "not_enough_coins")
+    session.add(
+        BackpackItem(
+            student_id=user.id, item_type=info["type"], item_key=body.itemId, is_equipped=False
+        )
+    )
+    await session.commit()
+    return await build_shop(session, user)
+
+
+@router.post("/backpack/equip", response_model=Shop)
+async def equip(body: EquipRequest, user: Student, session: Session):
+    profile = await profile_for(session, user, lock=True)
+    items = (
+        await session.scalars(select(BackpackItem).where(BackpackItem.student_id == user.id))
+    ).all()
+    chosen = None
+    if body.itemId is not None:
+        chosen = next((i for i in items if i.id == body.itemId), None)
+        if chosen is None:  # someone else's item, or unknown
+            raise HTTPException(404, "item_not_found")
+        if chosen.item_type != "skin":
+            raise HTTPException(422, "not_a_skin")
+    for item in items:
+        if item.item_type == "skin":
+            item.is_equipped = item is chosen
+    profile.avatar_item_id = chosen.id if chosen else None
+    await session.commit()
+    return await build_shop(session, user)

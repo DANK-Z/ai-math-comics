@@ -229,6 +229,21 @@ correctly, the check response carries
 `"reward": {"coins", "stars", "misses", "totalCoins"}` once: stars 3 / 2 / 1 for 0 / 1–2 / 3+
 misses before each round was solved, coins `10 + 10 × stars`.
 
+### Fair shop and Pifik skins
+
+| Method and path | Who | Body / result |
+| --- | --- | --- |
+| `GET /api/v1/shop` | student | `{coins, equippedSkin, items:[{id, type:"skin", price, owned, equipped, backpackItemId}]}` |
+| `POST /api/v1/shop/buy` | student | `{"itemId":"racer-helmet"}` → 201 shop. 409 `not_enough_coins` / `already_owned`, 404 `item_not_found`. |
+| `POST /api/v1/backpack/equip` | student | `{"itemId": <backpackItemId>}` or `{"itemId": null}` to take it off → shop. 404 for someone else's item. |
+
+Catalog and prices are server-owned: `smart-glasses` 40, `yellow-backpack` 50, `racer-helmet` 60.
+A purchase locks the profile row, takes the coins with a conditional `UPDATE … WHERE coins >= price`
+and adds the `backpack_items` row in the same transaction. One skin is worn at a time
+(`student_profiles.avatar_item_id`); `GET /api/me` lists owned items with `equipped`, and the
+frontend draws the worn skin on Pifik everywhere (constructor, hints, cast card, boss fight, map).
+Panel illustrations are pictures and do not change.
+
 ## POST /api/continuation-jobs
 
 ```json

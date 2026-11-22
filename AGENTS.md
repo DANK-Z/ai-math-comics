@@ -38,8 +38,8 @@ python -m venv .venv                      # already exists; recreate if missing
 # backend/.env already holds the owner's keys (COMIC_PROVIDER=gemini, prepared art). Never print,
 # copy or commit it. Template: backend/.env.example
 
-# accounts database: PostgreSQL in Docker (from the repo root; Docker Desktop must be running)
-docker compose up -d db
+# PostgreSQL (+pgvector) and Redis in Docker (from the repo root; Docker Desktop must be running)
+docker compose up -d
 # backend/.env has DATABASE_URL (port 5433) and JWT_SECRET; without DATABASE_URL the API uses
 # backend/data/accounts.sqlite3 instead
 
@@ -118,6 +118,8 @@ For UI changes also open the app (mock mode is enough) and check desktop 1440 px
 | My Comics history (localStorage `amc.myComics`) | — | `myComics.ts`, `components/MyComicsScreen.tsx` |
 | Providers (Gemini/OpenAI) | `app/gemini.py`, `app/providers.py`, `app/config.py` | — |
 | Accounts, roles, JWT | `app/auth.py`, `app/db.py` (tables) | `account.tsx`, `api/authToken.ts`, `components/AuthScreen.tsx` |
+| Fair shop, Pifik skins | `app/shop.py` | `components/FairShop.tsx`, `components/PifikSprite.tsx` (skin overlay in sheet coordinates) |
+| Story cache (Redis exact, pgvector semantic; fresh math) | `app/story_cache.py`, `Worker.cached_story` | — |
 | Classes, codes, progress, coins, analytics, dashboard | `app/accounts.py` | `components/TeacherScreen.tsx`, `components/ProfileScreen.tsx`, `bossProgress.ts`, `accountCopy.ts`, mock `api/mockAccounts.ts` |
 
 ## Current state (2026-11-22, `main` at `a964b80`)
@@ -130,8 +132,9 @@ Road Guardian; 16/12/8 design pass.
 Known gaps / good next steps (see `docs/ROADMAP.md` for the full list):
 - Accounts (sprint 4) are on branch `feature/accounts-dashboard` until merged: students sign in
   with a login, teachers with e-mail; coins/stars are awarded by the server from logged answers.
-  Next: backpack shop (skins, potions) on top of `backpack_items`, Alembic migrations, sign-in
-  rate limiting, password reset.
+  Next: Alembic migrations, sign-in rate limiting, password reset, power-ups (potions) for boss fights.
+- Shop and story cache: branch `feature/shop-cache` until merged. Tests for Redis/pgvector run with
+  `TEST_REDIS_URL=redis://127.0.0.1:6380/15` and `TEST_DATABASE_URL=…/amc_test`.
 - In mock mode the teacher dashboard shows fixed demo statistics.
 - With prepared art, style/setting choices do not change pictures; custom heroes are never drawn.
 - Live image generation with the real provider has not been re-checked since the equations/boss work.

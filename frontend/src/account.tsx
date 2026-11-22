@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { accounts, ApiError, type AuthResponse, type Me } from './api'
+import { accounts, ApiError, type AuthResponse, type Me, type SkinKey } from './api'
 import { authToken } from './api/authToken'
 
 // The signed-in user (student or teacher), shared by the header, navigation and screens.
@@ -16,6 +16,10 @@ interface AccountContextValue {
   saveProgress(completedChapters: string[], stickers: string[]): Promise<void>
   /** Update the coin balance after the server awarded a boss reward. */
   setCoins(total: number): void
+  /** Reload the profile (after a purchase or a skin change). */
+  refresh(): Promise<void>
+  /** The Pifik skin the signed-in student wears, if any. */
+  skin: SkinKey | null
 }
 
 const AccountContext = createContext<AccountContextValue | null>(null)
@@ -66,6 +70,10 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       setCoins(total) {
         setUser((u) => (u?.profile ? { ...u, profile: { ...u.profile, coins: total } } : u))
       },
+      async refresh() {
+        setUser(await accounts.me())
+      },
+      skin: (user?.profile?.items.find((i) => i.type === 'skin' && i.equipped)?.key as SkinKey | undefined) ?? null,
     }),
     [user, ready, finish],
   )

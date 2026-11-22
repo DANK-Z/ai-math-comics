@@ -5,6 +5,7 @@ import { BOSS_COPY } from '../boss'
 import { useAnswerCheck } from '../hooks'
 import { STRINGS } from '../i18n'
 import { RichText } from './RichText'
+import { PifikSprite } from './PifikSprite'
 import { TriumphModal } from './TriumphModal'
 
 // Panel four of a generated comic as a boss fight: three server-owned rounds,
@@ -273,7 +274,10 @@ export function BossFight({ boss, lang, cleared, onRoundCleared, misses, onMiss,
           </p>
         ) : (
           <>
-            <p className="mb-2 text-sm font-black text-brand-dark">{copy.round(cleared + 1, total)}</p>
+            <div className="mb-2 flex items-center gap-2">
+              <PifikSprite className="w-10 shrink-0 rounded-full border-2 border-ink bg-white" />
+              <p className="text-sm font-black text-brand-dark">{copy.round(cleared + 1, total)}</p>
+            </div>
             <RoundForm key={round.exerciseId} round={round} lang={lang} onHit={onHit} onMiss={onMiss} />
           </>
         )}

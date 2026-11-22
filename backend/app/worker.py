@@ -65,6 +65,7 @@ from .story import (
     text_prompt,
     validate_story,
 )
+from .story_cache import CachedStory, StoryCache, story_cache_from_settings
 
 logger = logging.getLogger(__name__)
 LANGS = ("ru", "kk")
@@ -97,12 +98,18 @@ StoryType = TypeVar("StoryType")
 
 class Worker:
     def __init__(
-        self, store: Store, text: TextProvider, image: ImageProvider | None, settings: Settings
+        self,
+        store: Store,
+        text: TextProvider,
+        image: ImageProvider | None,
+        settings: Settings,
+        cache: StoryCache | None = None,
     ):
         self.store = store
         self.text = text
         self.image = image
         self.settings = settings
+        self.cache = cache
 
     async def run_once(self) -> bool:
         claim = self.store.claim(self.settings.job_timeout + 30)
@@ -180,7 +187,12 @@ class Worker:
         options = request.story  # «Моя история» options, or None for a classic comic
         if prepared and not all((ART_DIR / file).is_file() for _, file, _ in PREPARED_PANELS):
             raise ProviderError("generation_failed", stage="prepared_art_missing")
-        if checkpoint is None:
+        cached = await self.cached_story(request, problem, prepared) if checkpoint is None else None
+        if cached is not None:
+            story, hit = cached
+            # Nothing to write or draw: the story and pictures are reused, the math is new.
+            self.store.begin_panels(claim, len(story.ru.panels))
+        elif checkpoint is None:
             if options is not None:
                 story = await self.generate_story(
                     my_story_prompt(request, problem, prepared=prepared),
@@ -209,11 +221,16 @@ class Worker:
                 return image_prompt(scene, topic)
             return my_story_image_prompt(scene, options, topic)
 
-        aspects = (
-            {}
-            if prepared
-            else await self.render_live_images(claim, comic_id, story.ru.panels, scene_prompt)
-        )
+        if cached is not None:
+            aspects = hit.aspects
+            image_owner = hit.source_comic_id
+        else:
+            aspects = (
+                {}
+                if prepared
+                else await self.render_live_images(claim, comic_id, story.ru.panels, scene_prompt)
+            )
+            image_owner = comic_id
 
         exercise_id = f"{topic}-{comic_id}"
         answer_format = "whole-number" if topic == "equations" else None
@@ -238,13 +255,15 @@ class Worker:
                         imageUrl=(
                             f"/api/prepared-art/{p.id}.jpg"
                             if prepared
-                            else f"/api/comic-images/{comic_id}/{p.id}.png"
+                            else f"/api/comic-images/{image_owner}/{p.id}.png"
                         ),
                     )
                     for p in localized.panels
                 ]
             else:
-                panels = my_story_panels(comic_id, localized.panels, options, prepared, aspects)
+                panels = my_story_panels(
+                    comic_id, localized.panels, options, prepared, aspects, image_owner
+                )
             comic = Comic(
                 id=comic_id,
                 lang=lang,
@@ -286,6 +305,42 @@ class Worker:
             skill=problem.skill,
             round_skills=[p.skill for p in extra],
         )
+        if self.cache is not None and cached is None and checkpoint is None:
+            await self.cache.remember(
+                request,
+                self.settings.art_mode,
+                CachedStory(
+                    story=json.loads(story.model_dump_json()),
+                    source_comic_id=comic_id,
+                    aspects=aspects,
+                    kind="new",
+                ),
+            )
+
+    async def cached_story(self, request: JobRequest, problem, prepared: bool):
+        """A cached story with this job's own exercise, hints and panel-four text, or None."""
+        if self.cache is None:
+            return None
+        hit = await self.cache.lookup(request, self.settings.art_mode)
+        if hit is None:
+            return None
+        raw = json.loads(json.dumps(hit.story))
+        for lang in LANGS:
+            raw[lang]["exercise"] = problem.prompt(lang)
+            raw[lang]["hints"] = problem.hints(lang)
+            raw[lang]["panels"][3]["text"] = problem.prompt(lang)
+        try:
+            if request.story is not None:
+                story = validate_my_story(raw, problem, request.story)
+            else:
+                story = validate_story(raw, problem, prepared=prepared)
+        except (StoryRuleError, ValidationError):
+            logger.info("Cached story no longer valid; generating a new one")
+            return None
+        if not prepared and self.store.comic(hit.source_comic_id) is None:
+            return None  # its pictures are gone
+        logger.info("Reused a cached story (%s, similarity %.2f)", hit.kind, hit.similarity)
+        return story, hit
 
     async def generate_story(
         self, prompt: str, schema: dict, validate: Callable[[dict], StoryType]
@@ -405,6 +460,7 @@ def my_story_panels(
     options: StoryOptions,
     prepared: bool,
     aspects: dict[int, float],
+    image_owner: str | None = None,
 ) -> list[Panel]:
     """Live art for every panel. In prepared mode: the cast portraits, and a setting
     placeholder for the student's own heroes (they are never drawn)."""
@@ -413,7 +469,7 @@ def my_story_panels(
     for p in story_panels:
         portrait = prepared_portrait(p.speaker, seen) if prepared else None
         if not prepared:
-            url = f"/api/comic-images/{comic_id}/{p.id}.png"
+            url = f"/api/comic-images/{image_owner or comic_id}/{p.id}.png"
         elif portrait is not None:
             url = f"/api/prepared-art/{portrait}.jpg"
         else:
@@ -451,8 +507,9 @@ async def configured_providers(
 async def run(once: bool = False):
     settings = Settings.from_env()
     store = Store(settings.data_dir)
+    cache = story_cache_from_settings(settings, store.db_path)
     async with configured_providers(settings) as (text, image):
-        worker = Worker(store, text, image, settings)
+        worker = Worker(store, text, image, settings, cache)
         while True:
             worked = await worker.run_once()
             if once:

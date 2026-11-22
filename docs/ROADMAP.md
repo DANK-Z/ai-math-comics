@@ -126,7 +126,9 @@ The Guardian final challenge exists (`9dc0af2`): three fixed rounds (fractions, 
 | Class codes (`KOKSH-5A-2026`) and joining a class | Done |
 | Class dashboard: ranking by stars, combo, misses; error heatmap by round and skill; review recommendation | Done |
 | Server-side coins and stars from boss fights; boss and season progress restored after reload / on another device | Done |
-| Backpack shop, Pifik skins, power-ups | Planned (the `backpack_items` table exists) |
+| Backpack shop and Pifik skins (glasses, yellow backpack, racer helmet) | Done |
+| Power-ups for boss fights | Planned |
+| Story cache: Redis for Express, pgvector + local embeddings for «Моя история» (fresh math every time) | Done |
 | Shareable chapter assignments | Planned |
 | Configurable Guardian rounds for review or assessment | Planned |
 | Password reset, teacher-managed student accounts, rate limiting of sign-in | Planned |

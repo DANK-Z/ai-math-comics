@@ -16,6 +16,7 @@ import {
   type StoryErrors,
 } from '../myStory'
 import { SheetCrop } from './SheetCrop'
+import { PifikSprite } from './PifikSprite'
 
 const STYLE_PREVIEW: Record<StoryStyle, string> = { comic: comicPreview, cartoon: cartoonPreview, pixel: pixelPreview }
 
@@ -78,7 +79,11 @@ export function MyStoryFields({ lang, draft, onChange, errors }: {
                 onChange={() => toggleHero(hero)}
               />
               <span aria-hidden className={CHECK}>✓</span>
-              <SheetCrop rect={CHARACTERS[hero].portrait} className="w-full max-w-24 rounded-xl border-2 border-ink/40 bg-white" />
+              {hero === 'pifik' ? (
+                <PifikSprite rect={CHARACTERS.pifik.portrait} className="w-full max-w-24 rounded-xl border-2 border-ink/40 bg-white" />
+              ) : (
+                <SheetCrop rect={CHARACTERS[hero].portrait} className="w-full max-w-24 rounded-xl border-2 border-ink/40 bg-white" />
+              )}
               <span className="text-sm sm:text-base">{t.cast[hero].name}</span>
             </label>
           ))}

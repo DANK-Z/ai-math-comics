@@ -1,11 +1,10 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import type { CheckStatus, Lang } from '../api/types'
-import { PORTRAITS } from '../art/sheet'
 import { DAMAGE_PER_ROUND, GUARDIAN_MAX_HP, GUARDIAN_ROUNDS, type useGuardianChallenge } from '../guardian'
 import { STRINGS } from '../i18n'
 import { SECTION_HREFS } from '../route'
 import { RichText } from './RichText'
-import { SheetCrop } from './SheetCrop'
+import { PifikSprite } from './PifikSprite'
 
 const BUTTON = 'inline-flex min-h-11 items-center justify-center rounded-2xl border-[3px] border-ink px-4 py-2 text-center font-black text-ink shadow-[0_4px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-50 disabled:shadow-none'
 const CARD = 'rounded-[28px] border-[3px] border-ink bg-white p-4 shadow-[0_6px_0_var(--color-ink)] sm:p-6'
@@ -111,7 +110,7 @@ export function GuardianScreen({ lang, remaining, challenge }: {
       <section className={CARD}>
         <h1 className="text-2xl font-black text-ink sm:text-3xl">{c.title}</h1>
         <div className="mt-3 flex items-center gap-3">
-          <SheetCrop rect={PORTRAITS.pifikFace} eager className="w-16 shrink-0 rounded-2xl border-[3px] border-ink bg-sky sm:w-24" />
+          <PifikSprite eager className="w-16 shrink-0 rounded-2xl border-[3px] border-ink bg-sky sm:w-24" />
           <div className="min-w-0">
             <p className="text-lg font-black text-brand-dark">{c.name}</p>
             <p className="text-sm font-semibold sm:text-base">{c.intro}</p>

@@ -1,12 +1,11 @@
 import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { api, ART_MODE, resumeComicJob, type JobProgress, DIFFICULTIES, GRADES, LANGS, TOPICS, type ComicJobRequest, type Difficulty, type Grade, type Lang, type Topic } from '../api'
-import { PORTRAITS } from '../art/sheet'
 import { STRINGS, type UiStrings } from '../i18n'
 import { useComicJob, type JobFailure, type JobState } from '../jobs'
 import { STORY_COPY, draftFrom, validateStory, type StoryDraft, type StoryErrors } from '../myStory'
 import { GenerationProgress } from './GenerationProgress'
 import { MyStoryFields } from './MyStoryFields'
-import { SheetCrop } from './SheetCrop'
+import { PifikSprite } from './PifikSprite'
 
 interface Option<T> {
   value: T
@@ -94,7 +93,7 @@ function WaitingJob({ state, t, onStop }: {
   return (
     <div className="rounded-2xl border-[3px] border-ink bg-sky p-4">
       <div className="flex items-center gap-3">
-        <SheetCrop rect={PORTRAITS.pifikFace} className="w-12 shrink-0 rounded-full border-[3px] border-ink bg-white" />
+        <PifikSprite className="w-12 shrink-0 rounded-full border-[3px] border-ink bg-white" />
         <div className="min-w-0 flex-1">
           <GenerationProgress t={t} stage={stage} progress={waiting?.progress} />
           <p className="mt-2 text-sm font-semibold text-ink/70">

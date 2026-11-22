@@ -1,4 +1,7 @@
+import { useState } from 'react'
+import type { Lang } from '../api'
 import type { UiStrings } from '../i18n'
+import { FairShop } from './FairShop'
 import { SCHOOL_FAIR_CHAPTER_COUNT, SCHOOL_FAIR_STOPS, type SchoolFairCollectible } from '../schoolFair'
 
 const ICONS = {
@@ -23,12 +26,18 @@ export function CollectibleIcon({ item }: { item: SchoolFairCollectible }) {
   )
 }
 
-export function BackpackCollection({ t, completedChapters, hasPriceTagSticker }: {
+const TABS = { ru: { collection: 'Коллекция', shop: 'Магазин ярмарки' }, kk: { collection: 'Коллекция', shop: 'Жәрмеңке дүкені' } }
+const TAB =
+  'min-h-11 rounded-xl border-[3px] border-ink px-4 font-black text-ink shadow-[0_3px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand aria-selected:translate-y-[2px] aria-selected:bg-sun aria-selected:shadow-[0_1px_0_var(--color-ink)]'
+
+export function BackpackCollection({ t, lang, completedChapters, hasPriceTagSticker }: {
   t: UiStrings
+  lang: Lang
   completedChapters: ReadonlySet<string>
   hasPriceTagSticker: boolean
 }) {
   const earned = SCHOOL_FAIR_STOPS.filter(({ comicId }) => completedChapters.has(comicId))
+  const [tab, setTab] = useState<'collection' | 'shop'>('collection')
 
   return (
     <section aria-labelledby="backpack-title" className="rounded-2xl border-2 border-ink bg-cream p-3 shadow-[0_4px_0_var(--color-ink)] sm:p-5">
@@ -36,6 +45,28 @@ export function BackpackCollection({ t, completedChapters, hasPriceTagSticker }:
         <h1 id="backpack-title" className="text-2xl font-black text-ink sm:text-3xl">{t.backpack.title}</h1>
         <p className="text-sm font-bold text-brand-dark">{t.backpack.progress(earned.length, SCHOOL_FAIR_CHAPTER_COUNT)}</p>
       </div>
+      <div role="tablist" aria-label={t.backpack.title} className="mt-3 mb-3 flex flex-wrap gap-2">
+        {(['collection', 'shop'] as const).map((name) => (
+          <button
+            key={name}
+            type="button"
+            role="tab"
+            id={`backpack-tab-${name}`}
+            aria-selected={tab === name}
+            aria-controls={`backpack-panel-${name}`}
+            onClick={() => setTab(name)}
+            className={`${TAB} ${tab === name ? '' : 'bg-white hover:bg-sky'}`}
+          >
+            {name === 'shop' && <span aria-hidden>🏬 </span>}
+            {TABS[lang][name]}
+            {tab === name && <span aria-hidden> ✓</span>}
+          </button>
+        ))}
+      </div>
+      <div role="tabpanel" id="backpack-panel-shop" aria-labelledby="backpack-tab-shop" hidden={tab !== 'shop'}>
+        {tab === 'shop' && <FairShop lang={lang} />}
+      </div>
+      <div role="tabpanel" id="backpack-panel-collection" aria-labelledby="backpack-tab-collection" hidden={tab !== 'collection'}>
       {earned.length > 0 ? (
         <ul role="list" className="mt-2 grid gap-2 md:grid-cols-3">
           {earned.map(({ collectible }) => {
@@ -65,6 +96,7 @@ export function BackpackCollection({ t, completedChapters, hasPriceTagSticker }:
           <p className="mt-1 text-sm font-semibold">{t.priceTagBonus.empty}</p>
         )}
       </section>
+      </div>
     </section>
   )
 }

@@ -45,6 +45,24 @@ Run the account tests on PostgreSQL too with
 They drop and recreate that database's tables, so never point it at `amc`. Create it once with
 `docker compose exec db psql -U amc -d amc -c "CREATE DATABASE amc_test"`.
 
+### Story cache (Redis + pgvector)
+
+The worker reuses stories to save model calls and time (`app/story_cache.py`). It reuses the
+**story and pictures only**: the new job's exercise, hints and boss rounds replace the cached ones,
+and the result is validated again, so classmates never share answers.
+
+* Express comics: exact key topic + grade + difficulty + art mode in Redis (`REDIS_URL`), up to
+  `CACHE_VARIANTS` stories per key (default 1); a different language is the same story.
+* «Моя история»: all choices except the premise must match exactly (the student's heroes, style,
+  setting, topic, grade, difficulty). The premise is compared by meaning with a local multilingual
+  embedding model (fastembed, `paraphrase-multilingual-MiniLM-L12-v2`, ~220 MB, downloaded once into
+  `backend/data/models`, ~4 ms per premise on CPU) and pgvector; a story is reused at cosine
+  similarity ≥ `SEMANTIC_THRESHOLD` (0.92). Measured: «Пифик летит на Луну» / «…отправляется на
+  Луну» 0.95 (reused), «…на Марс» 0.78, «потеряла ключ» / «нашла ключ» 0.80 (new stories).
+  Kazakh paraphrases score lower (~0.84), so they are reused less often.
+* Without `REDIS_URL` / PostgreSQL the cache uses tables in `comics.sqlite3`. `STORY_CACHE=0`
+  turns it off. Any cache error falls back to normal generation.
+
 ## Start API and worker
 
 Start the API in one terminal:
@@ -153,6 +171,11 @@ See [`.env.example`](.env.example) for all settings:
 | `DATABASE_URL` | `data/accounts.sqlite3` | Accounts DB (`postgresql+asyncpg://…`) |
 | `JWT_SECRET` | random per process | Signs sign-in tokens; set a long random value |
 | `JWT_HOURS` | `12` | Token lifetime |
+| `STORY_CACHE` | `1` | Reuse stories (see Story cache) |
+| `REDIS_URL` | empty (SQLite) | Express story cache, e.g. `redis://127.0.0.1:6380/0` |
+| `CACHE_VARIANTS` | `1` | Stories kept per Express key before reuse starts |
+| `SEMANTIC_THRESHOLD` | `0.92` | Minimum premise similarity for «Моя история» reuse |
+| `EMBEDDING_MODEL` | multilingual MiniLM | fastembed model for premises |
 | `COMIC_DATA_DIR` | `data` | Shared SQLite and image directory; relative to `backend/` |
 | `PUBLIC_BASE_URL` | `http://127.0.0.1:8000` | Externally reachable API base, including any reverse-proxy prefix |
 

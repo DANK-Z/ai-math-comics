@@ -1,6 +1,6 @@
 import { authToken } from './authToken'
 import { ApiError } from './errors'
-import type { AccountApi, Api, AuthResponse, BossState, CheckResponse, ClassInfo, Comic, ComicJob, ComicJobCreated, ContinuationJobRequest, Dashboard, HintResponse, Me } from './types'
+import type { AccountApi, Api, AuthResponse, BossState, CheckResponse, ClassInfo, Comic, ComicJob, ComicJobCreated, ContinuationJobRequest, Dashboard, HintResponse, Me, Shop } from './types'
 
 /** Pulls `detail` / `message` / `errorCode` out of an error body (FastAPI uses `detail`). */
 async function readError(res: Response): Promise<ApiError> {
@@ -105,6 +105,15 @@ export function createHttpApi(baseUrl: string): Api & AccountApi & {
     },
     dashboard(classId, signal) {
       return request<Dashboard>(`/api/teacher/classes/${classId}`, { signal })
+    },
+    shop(signal) {
+      return request<Shop>('/api/v1/shop', { signal })
+    },
+    buy(itemId) {
+      return request<Shop>('/api/v1/shop/buy', { method: 'POST', body: JSON.stringify({ itemId }) })
+    },
+    equip(backpackItemId) {
+      return request<Shop>('/api/v1/backpack/equip', { method: 'POST', body: JSON.stringify({ itemId: backpackItemId }) })
     },
   }
 }

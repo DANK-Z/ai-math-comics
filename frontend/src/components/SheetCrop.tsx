@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { SHEET, type Rect } from '../art/sheet'
 
 /**
@@ -9,11 +10,14 @@ export function SheetCrop({
   alt = '',
   className = '',
   eager = false,
+  children,
 }: {
   rect: Rect
   alt?: string
   className?: string
   eager?: boolean
+  /** Drawn over the crop (e.g. Pifik's skin). */
+  children?: ReactNode
 }) {
   return (
     <div
@@ -37,6 +41,7 @@ export function SheetCrop({
           top: `${(-rect.y / rect.h) * 100}%`,
         }}
       />
+      {children}
     </div>
   )
 }

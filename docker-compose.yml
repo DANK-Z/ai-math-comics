@@ -1,11 +1,13 @@
-# Local PostgreSQL for accounts, progress, coins and teacher analytics.
-# Start: docker compose up -d db   (data persists in the "amc-postgres" volume)
-# The backend connects with DATABASE_URL from backend/.env, e.g.
+# Local services for development (credentials are for local use only):
+#   db    — PostgreSQL 16 with pgvector: accounts, progress, coins, analytics, semantic story cache
+#   redis — Redis 7: exact-match story cache for Express comics
+# Start: docker compose up -d   (data persists in named volumes)
+# backend/.env:
 #   DATABASE_URL=postgresql+asyncpg://amc:amc-dev-password@127.0.0.1:5433/amc
-# These credentials are for local development only.
+#   REDIS_URL=redis://127.0.0.1:6380/0
 services:
   db:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     restart: unless-stopped
     environment:
       POSTGRES_USER: amc
@@ -21,5 +23,21 @@ services:
       timeout: 3s
       retries: 20
 
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # Keep the cache across restarts; it can always be rebuilt by generating again.
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    ports:
+      - "127.0.0.1:6380:6379"
+    volumes:
+      - amc-redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
 volumes:
   amc-postgres:
+  amc-redis:

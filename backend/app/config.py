@@ -32,6 +32,12 @@ class Settings:
     database_url: str = field(default="", repr=False)
     jwt_secret: str = field(default="", repr=False)
     jwt_hours: float = 12
+    # Story cache (app/story_cache.py). Off unless enabled; from_env enables it by default.
+    story_cache: bool = False
+    redis_url: str = field(default="", repr=False)
+    cache_variants: int = 1
+    semantic_threshold: float = 0.92
+    embedding_model: str = ""
 
     def __post_init__(self):
         if self.provider not in ("openai", "gemini"):
@@ -40,6 +46,10 @@ class Settings:
             raise ValueError("COMIC_ART_MODE must be live or prepared")
         if self.text_reasoning_effort not in (None, "none", "minimal", "low", "medium", "high"):
             raise ValueError("Unsupported text reasoning effort")
+        if not 1 <= self.cache_variants <= 20:
+            raise ValueError("CACHE_VARIANTS must be between 1 and 20")
+        if not 0 < self.semantic_threshold <= 1:
+            raise ValueError("SEMANTIC_THRESHOLD must be in (0, 1]")
         if not 1 <= self.text_attempts <= 5:
             raise ValueError("TEXT_ATTEMPTS must be between 1 and 5")
         for value in (self.provider_timeout, self.job_timeout, self.poll_interval):
@@ -75,4 +85,11 @@ class Settings:
             database_url=os.getenv("DATABASE_URL", "").strip(),
             jwt_secret=os.getenv("JWT_SECRET", "").strip(),
             jwt_hours=float(os.getenv("JWT_HOURS", "12")),
+            story_cache=os.getenv("STORY_CACHE", "1").strip().lower() not in ("0", "false", "no"),
+            redis_url=os.getenv("REDIS_URL", "").strip(),
+            cache_variants=int(os.getenv("CACHE_VARIANTS", "1")),
+            semantic_threshold=float(os.getenv("SEMANTIC_THRESHOLD", "0.92")),
+            embedding_model=os.getenv(
+                "EMBEDDING_MODEL", "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+            ).strip(),
         )

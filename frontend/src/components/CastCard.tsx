@@ -2,6 +2,7 @@ import type { Lang } from '../api'
 import { CAST, CHARACTERS, characterFor } from '../characters'
 import { STRINGS } from '../i18n'
 import { SheetCrop } from './SheetCrop'
+import { PifikSprite } from './PifikSprite'
 
 /** The three heroes from the style sheet; highlights whoever speaks in the current panel. */
 export function CastCard({ lang, activeSpeaker, compact }: { lang: Lang; activeSpeaker: string; compact: boolean }) {
@@ -23,10 +24,17 @@ export function CastCard({ lang, activeSpeaker, compact }: { lang: Lang; activeS
                 compact ? '' : 'lg:flex-row lg:text-left'
               } ${on ? 'border-ink bg-sun/25' : 'border-transparent bg-sky'}`}
             >
-              <SheetCrop
-                rect={c.portrait}
-                className={`w-full max-w-[96px] shrink-0 rounded-xl border-[3px] border-ink bg-white ${compact ? '' : 'lg:w-20'}`}
-              />
+              {id === 'pifik' ? (
+                <PifikSprite
+                  rect={c.portrait}
+                  className={`w-full max-w-[96px] shrink-0 rounded-xl border-[3px] border-ink bg-white ${compact ? '' : 'lg:w-20'}`}
+                />
+              ) : (
+                <SheetCrop
+                  rect={c.portrait}
+                  className={`w-full max-w-[96px] shrink-0 rounded-xl border-[3px] border-ink bg-white ${compact ? '' : 'lg:w-20'}`}
+                />
+              )}
               <div className="min-w-0">
                 <p className="leading-tight font-black text-ink">
                   <span className={`mr-1 inline-block rounded-md px-1.5 ${c.tag}`}>{info.name}</span>

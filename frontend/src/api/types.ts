@@ -228,6 +228,15 @@ export interface Dashboard {
   recommendation: { topic: Topic; round: number; skill: string | null; mistakeRate: number } | null
 }
 
+export type SkinKey = 'smart-glasses' | 'yellow-backpack' | 'racer-helmet'
+
+/** GET /api/v1/shop: the fair shop for a signed-in student. */
+export interface Shop {
+  coins: number
+  equippedSkin: SkinKey | null
+  items: { id: SkinKey; type: 'skin'; price: number; owned: boolean; equipped: boolean; backpackItemId: number | null }[]
+}
+
 export interface AccountApi {
   signUpStudent(body: { login: string; password: string; displayName: string; classCode?: string }): Promise<AuthResponse>
   signUpTeacher(body: { email: string; password: string; displayName: string }): Promise<AuthResponse>
@@ -239,4 +248,8 @@ export interface AccountApi {
   createClass(body: { grade: Grade; letter: string; school: string }): Promise<ClassInfo>
   listClasses(): Promise<ClassInfo[]>
   dashboard(classId: number, signal?: AbortSignal): Promise<Dashboard>
+  shop(signal?: AbortSignal): Promise<Shop>
+  buy(itemId: SkinKey): Promise<Shop>
+  /** A backpack item id, or null to take the skin off. */
+  equip(backpackItemId: number | null): Promise<Shop>
 }

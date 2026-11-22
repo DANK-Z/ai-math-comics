@@ -183,7 +183,7 @@ function AppShell() {
           {route.name === 'comics' && <CatalogScreen lang={lang} completedChapters={completedChapters} />}
           {route.name === 'myComics' && <MyComicsScreen lang={lang} comics={myComics} />}
           {route.name === 'backpack' && (
-            <BackpackCollection t={t} completedChapters={completedChapters} hasPriceTagSticker={priceTagSticker.earned} />
+            <BackpackCollection t={t} lang={lang} completedChapters={completedChapters} hasPriceTagSticker={priceTagSticker.earned} />
           )}
           {route.name === 'guardian' && <GuardianScreen lang={lang} remaining={remaining} challenge={guardian} />}
           {route.name === 'roadGuardian' && <RoadGuardianScreen lang={lang} challenge={roadGuardian} />}

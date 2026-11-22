@@ -32,6 +32,7 @@ from .schemas import (
     Language,
     ResumeJobRequest,
 )
+from .shop import router as shop_router
 from .storage import Store
 
 # Restrict input to an integer numerator and denominator, allowing spaces and signs.
@@ -107,6 +108,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_headers=["Content-Type", "Authorization"],
     )
     app.include_router(accounts_router)
+    app.include_router(shop_router)
 
     @app.post("/api/comic-jobs", status_code=202, response_model=JobAccepted)
     def create_job(body: JobRequest, request: Request) -> JobAccepted:

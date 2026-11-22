@@ -1,8 +1,7 @@
-import { PORTRAITS } from '../art/sheet'
 import type { UiStrings } from '../i18n'
 import { comicHref, GUARDIAN_HREF } from '../route'
 import { SCHOOL_FAIR_CHAPTER_COUNT, SCHOOL_FAIR_STOPS } from '../schoolFair'
-import { SheetCrop } from './SheetCrop'
+import { PifikSprite } from './PifikSprite'
 
 interface StopArt {
   src: string
@@ -96,7 +95,7 @@ export function SchoolFairRoute({ t, covers, completedChapters, remaining, guard
             className={`${CARD} min-h-20 border-[3px] ${unlocked ? 'border-ink bg-sun/40' : 'border-dashed border-ink/60 bg-white'}`}
           >
             <span className="grid size-14 shrink-0 place-items-center rounded-2xl border-2 border-ink/30 bg-sky p-1.5 sm:size-16">
-              <SheetCrop rect={PORTRAITS.pifikFace} eager className="w-full rounded-xl" />
+              <PifikSprite eager className="w-full rounded-xl" />
             </span>
             <span className="min-w-0 flex-1">
               <span id="fair-route-guardian-title" className="block text-lg leading-snug font-black sm:text-xl">{t.guardian.title}</span>

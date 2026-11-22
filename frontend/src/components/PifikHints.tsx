@@ -1,12 +1,11 @@
 import type { Lang } from '../api'
-import { PORTRAITS } from '../art/sheet'
 import { useHints } from '../hooks'
 import { STRINGS } from '../i18n'
 import { RichText } from './RichText'
-import { SheetCrop } from './SheetCrop'
+import { PifikSprite } from './PifikSprite'
 
 function PifikAvatar() {
-  return <SheetCrop rect={PORTRAITS.pifikFace} className="w-12 shrink-0 rounded-full border-[3px] border-ink bg-white" />
+  return <PifikSprite className="w-12 shrink-0 rounded-full border-[3px] border-ink bg-white" />
 }
 
 export function PifikHints({ exerciseId, lang }: { exerciseId: string; lang: Lang }) {
@@ -43,7 +42,7 @@ export function PifikHints({ exerciseId, lang }: { exerciseId: string; lang: Lan
           onClick={requestNext}
           className="inline-flex min-h-11 items-center gap-2 rounded-full border-[3px] border-ink bg-sky-300 py-1 pr-4 pl-1 font-black text-ink shadow-[0_4px_0_var(--color-ink)] transition active:translate-y-[3px] active:shadow-[0_1px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun"
         >
-          <SheetCrop rect={PORTRAITS.pifikFace} className="w-8 rounded-full border-2 border-ink bg-white" />
+          <PifikSprite className="w-8 rounded-full border-2 border-ink bg-white" />
           {buttonLabel}
         </button>
       ) : (

@@ -1,6 +1,6 @@
 import { authToken } from './authToken'
 import { ApiError } from './errors'
-import type { AccountApi, ClassInfo, Dashboard, Grade, Me } from './types'
+import type { AccountApi, ClassInfo, Dashboard, Grade, Me, Shop, SkinKey } from './types'
 
 // In-browser stand-in for the accounts API (demo mode, no backend): accounts and classes live
 // in localStorage, passwords are not secured, and a class dashboard shows fixed demo statistics.
@@ -16,6 +16,9 @@ interface MockUser {
   classId?: number
   completedChapters: string[]
   stickers: string[]
+  /** Demo coins: the mock has no server-side boss rewards. */
+  coins?: number
+  skins?: { id: number; key: SkinKey; equipped: boolean }[]
 }
 interface MockState {
   users: MockUser[]
@@ -61,6 +64,27 @@ function later<T>(value: () => T): Promise<T> {
 }
 
 const fail = (status: number, detail: string) => new ApiError(status, String(status), { detail })
+const DEMO_COINS = 120
+const PRICES: Record<SkinKey, number> = { 'smart-glasses': 40, 'yellow-backpack': 50, 'racer-helmet': 60 }
+
+function shopOf(user: MockUser): Shop {
+  const skins = user.skins ?? []
+  const equipped = skins.find((s) => s.equipped)?.key ?? null
+  return {
+    coins: user.coins ?? DEMO_COINS,
+    equippedSkin: equipped,
+    items: (Object.keys(PRICES) as SkinKey[]).map((key) => {
+      const owned = skins.find((s) => s.key === key)
+      return { id: key, type: 'skin', price: PRICES[key], owned: !!owned, equipped: key === equipped, backpackItemId: owned?.id ?? null }
+    }),
+  }
+}
+
+function student(state: MockState) {
+  const user = currentUser(state)
+  if (user.role !== 'student') throw fail(403, 'students_only')
+  return user
+}
 
 function currentUser(state: MockState): MockUser {
   const id = Number(authToken.get()?.replace(/^mock-/, ''))
@@ -81,7 +105,13 @@ function toMe(state: MockState, user: MockUser): Me {
     ...(user.role === 'student'
       ? {
           schoolClass: schoolClass ? { id: schoolClass.id, name: schoolClass.name, grade: schoolClass.grade, code: schoolClass.code, teacherName: teacher?.displayName } : undefined,
-          profile: { coins: 0, stars: 0, completedChapters: user.completedChapters, stickers: user.stickers, items: [] },
+          profile: {
+            coins: user.coins ?? DEMO_COINS,
+            stars: 0,
+            completedChapters: user.completedChapters,
+            stickers: user.stickers,
+            items: (user.skins ?? []).map((s) => ({ id: s.id, type: 'skin', key: s.key, equipped: s.equipped })),
+          },
         }
       : {}),
   }
@@ -230,6 +260,36 @@ export const mockAccounts: AccountApi = {
       return state.classes
         .filter((c) => c.teacherId === user.id)
         .map((c) => ({ ...c, students: state.users.filter((u) => u.classId === c.id).length }))
+    })
+  },
+  shop() {
+    return later(() => shopOf(student(load())))
+  },
+  buy(itemId) {
+    return later(() => {
+      const state = load()
+      const user = student(state)
+      const price = PRICES[itemId]
+      if (!price) throw fail(404, 'item_not_found')
+      const skins = (user.skins ??= [])
+      if (skins.some((s) => s.key === itemId)) throw fail(409, 'already_owned')
+      const coins = user.coins ?? DEMO_COINS
+      if (coins < price) throw fail(409, 'not_enough_coins')
+      user.coins = coins - price
+      skins.push({ id: Date.now(), key: itemId, equipped: false })
+      save(state)
+      return shopOf(user)
+    })
+  },
+  equip(backpackItemId) {
+    return later(() => {
+      const state = load()
+      const user = student(state)
+      const skins = user.skins ?? []
+      if (backpackItemId !== null && !skins.some((s) => s.id === backpackItemId)) throw fail(404, 'item_not_found')
+      for (const s of skins) s.equipped = s.id === backpackItemId
+      save(state)
+      return shopOf(user)
     })
   },
   dashboard(classId) {
