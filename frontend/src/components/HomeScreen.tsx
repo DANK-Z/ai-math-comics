@@ -88,19 +88,19 @@ function CatalogCard({ entry, lang, t, completed }: {
       href={comicHref(entry.id)}
       aria-labelledby={titleId}
       aria-describedby={chapter ? chapterId : undefined}
-      className="group flex flex-col rounded-[28px] border-[3px] border-ink/10 bg-white p-3 shadow-[0_10px_30px_rgb(36_57_159/0.15)] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-sun sm:p-4"
+      className="group flex flex-col rounded-2xl border-[3px] border-ink/10 bg-white p-3 shadow-[0_10px_30px_rgb(36_57_159/0.15)] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-sun sm:p-4"
     >
       <div
         style={vars}
-        className="relative aspect-(--ar-phone) overflow-hidden rounded-2xl border-[5px] border-ink bg-sky-100 transition group-hover:-translate-y-0.5 sm:aspect-(--ar-wide)"
+        className="relative aspect-(--ar-phone) overflow-hidden rounded-xl border-[5px] border-ink bg-sky-100 transition group-hover:-translate-y-0.5 sm:aspect-(--ar-wide)"
       >
         <img src={entry.cover} alt="" className="h-full w-full object-cover object-(--focus-phone) sm:object-(--focus-wide)" />
         <p className="absolute top-2 left-2 flex flex-wrap gap-1.5">
-          <span className="rounded-full border-[3px] border-ink bg-sun px-2.5 py-0.5 text-sm font-black text-ink shadow-[0_2px_0_var(--color-ink)]">
+          <span className="rounded-lg border-[3px] border-ink bg-sun px-2.5 py-0.5 text-sm font-black text-ink shadow-[0_2px_0_var(--color-ink)]">
             {t.catalogTopics[entry.topic]}
           </span>
           {entry.grade !== undefined && (
-            <span className="rounded-full border-[3px] border-ink bg-white px-2.5 py-0.5 text-sm font-black text-ink shadow-[0_2px_0_var(--color-ink)]">
+            <span className="rounded-lg border-[3px] border-ink bg-white px-2.5 py-0.5 text-sm font-black text-ink shadow-[0_2px_0_var(--color-ink)]">
               {t.gradeOption(entry.grade)}
             </span>
           )}
@@ -111,7 +111,7 @@ function CatalogCard({ entry, lang, t, completed }: {
           <p id={chapterId} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-black text-brand-dark">
             <span>{t.chapterLabel(chapter.number)}</span>
             {completed && (
-              <span className="rounded-full border-2 border-emerald-700 bg-emerald-100 px-2 text-emerald-900">
+              <span className="rounded-lg border-2 border-emerald-700 bg-emerald-100 px-2 text-emerald-900">
                 {t.chapterCompleted}
               </span>
             )}
@@ -122,7 +122,7 @@ function CatalogCard({ entry, lang, t, completed }: {
         </h3>
         <p className="mt-0.5 font-bold text-ink/80">{entry.hook(lang, t)}</p>
       </div>
-      <span className="flex min-h-12 items-center justify-center rounded-2xl border-[3px] border-ink bg-sun text-lg font-black text-ink shadow-[0_4px_0_var(--color-ink)] transition group-active:translate-y-[3px] group-active:shadow-[0_1px_0_var(--color-ink)]">
+      <span className="flex min-h-12 items-center justify-center rounded-xl border-[3px] border-ink bg-sun text-lg font-black text-ink shadow-[0_4px_0_var(--color-ink)] transition group-active:translate-y-[3px] group-active:shadow-[0_1px_0_var(--color-ink)]">
         {t.readComic} <span className="ml-2" aria-hidden>→</span>
       </span>
     </a>

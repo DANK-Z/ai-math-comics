@@ -7,7 +7,7 @@ import { comicHref, replayHref, SECTION_HREFS } from '../route'
 import { PanelArt } from './PanelArt'
 
 const ACTION =
-  'inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-2xl border-[3px] border-ink px-3 font-black text-ink shadow-[0_3px_0_var(--color-ink)] transition active:translate-y-[2px] active:shadow-[0_1px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun'
+  'inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border-[3px] border-ink px-4 font-black text-ink shadow-[0_3px_0_var(--color-ink)] transition active:translate-y-[2px] active:shadow-[0_1px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun'
 
 function formatDate(savedAt: number, lang: Lang) {
   const d = new Date(savedAt)
@@ -53,10 +53,10 @@ function MyComicCard({ entry, lang, t }: { entry: MyComic; lang: Lang; t: UiStri
   const titleId = `my-comic-${entry.comicId}`
 
   return (
-    <li className="flex flex-col overflow-hidden rounded-[24px] border-[3px] border-ink bg-white shadow-[0_5px_0_var(--color-ink)]">
+    <li className="flex flex-col overflow-hidden rounded-2xl border-[3px] border-ink bg-white shadow-[0_5px_0_var(--color-ink)]">
       <div className="relative border-b-[3px] border-ink bg-sky-100">
         <Thumbnail comic={comic} loading={loading} lang={lang} />
-        <span className="absolute top-2 left-2 rounded-full border-2 border-ink bg-sun px-2 py-0.5 text-xs font-black text-ink">
+        <span className="absolute top-2 left-2 rounded-lg border-2 border-ink bg-sun px-2 py-0.5 text-xs font-black text-ink">
           {copy.kind[entry.kind]}
         </span>
       </div>
@@ -104,7 +104,7 @@ export function MyComicsScreen({ lang, comics }: { lang: Lang; comics: MyComic[]
       </div>
 
       {comics.length === 0 ? (
-        <div className="flex flex-col items-start gap-3 rounded-[24px] border-[3px] border-dashed border-ink/40 bg-white/70 p-5">
+        <div className="flex flex-col items-start gap-3 rounded-2xl border-[3px] border-dashed border-ink/40 bg-white/70 p-5">
           <p className="font-bold text-ink/80">{copy.empty}</p>
           <a href={SECTION_HREFS.create} className={`${ACTION} flex-none bg-sun px-4`}>
             <span aria-hidden>✨</span> {copy.emptyCta}
