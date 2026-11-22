@@ -1,0 +1,13 @@
+**
+!backend/
+!backend/requirements.txt
+!backend/alembic.ini
+!backend/app/
+!backend/app/**
+!backend/migrations/
+!backend/migrations/**
+!frontend/
+!frontend/public/
+!frontend/public/mock-images/
+!frontend/public/mock-images/**
+**/__pycache__/

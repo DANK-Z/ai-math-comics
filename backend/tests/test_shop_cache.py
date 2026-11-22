@@ -241,6 +241,7 @@ def test_semantic_cache_for_my_story(env):
     ]
     run_job(settings, client, my_story("Пифик летит на Луну", customHeroes=other_hero), text, cache)
     assert len(text.calls) == 3
+    assert len(text.moderation_calls) == 4
 
 
 def test_my_story_without_premise_uses_the_exact_cache(env):
@@ -252,6 +253,7 @@ def test_my_story_without_premise_uses_the_exact_cache(env):
     run_job(settings, client, my_story(""), text, cache)
     run_job(settings, client, my_story(""), text, cache)
     assert len(text.calls) == 1 and embedder.calls == []
+    assert len(text.moderation_calls) == 2
 
 
 def test_a_broken_cache_entry_falls_back_to_generation(env):

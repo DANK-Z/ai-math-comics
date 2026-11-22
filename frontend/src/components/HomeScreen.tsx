@@ -129,11 +129,12 @@ function CatalogCard({ entry, lang, t, completed }: {
   )
 }
 
-export function HomeScreen({ lang, completedChapters, remaining, guardianWon }: {
+export function HomeScreen({ lang, completedChapters, remaining, guardianWon, lastComicId }: {
   lang: Lang
   completedChapters: ReadonlySet<string>
   remaining: number
   guardianWon: boolean
+  lastComicId: string | null
 }) {
   const t = STRINGS[lang]
   return (
@@ -143,7 +144,7 @@ export function HomeScreen({ lang, completedChapters, remaining, guardianWon }: 
         <p className="mt-1.5 text-base font-semibold text-ink/85 sm:text-lg">{t.catalogLead}</p>
       </div>
       <SchoolFairRoute t={t} covers={ROUTE_COVERS} completedChapters={completedChapters}
-        remaining={remaining} guardianWon={guardianWon} />
+        remaining={remaining} guardianWon={guardianWon} lastComicId={lastComicId} />
     </div>
   )
 }

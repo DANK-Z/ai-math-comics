@@ -1,4 +1,4 @@
-import { createContinuationJob, type ContinuationJobRequest, type Lang } from './api'
+import { createContinuationJob, type ContinuationChoice, type ContinuationJobRequest, type Lang } from './api'
 import { useComicJob } from './jobs'
 
 export function useContinuationJob() {
@@ -19,7 +19,6 @@ interface Choice {
   preview: Localized<string>
 }
 
-// IDs are stable across languages and can be used by a future generation endpoint.
 export const CONTINUATION_CHOICES = {
   'library-cabinet-key': {
     label: {
@@ -51,7 +50,14 @@ export const CONTINUATION_CHOICES = {
       kk: 'Конверттен жәрмеңкедегі сақина лақтыру ойынына билет түсті. Аруна дәл сондай сақиналары бар дүңгіршекті көрді, ал Пифик кезек жоқта ойнап көруді ұсынды. Алдияр конвертті сары сөмкеге салып, бағытты қай жерден жалғастыратынын картаға белгіледі.',
     },
   },
-} satisfies Record<string, Choice>
+  'free-premise': {
+    label: { ru: 'Моя завязка', kk: 'Өз ойым' },
+    preview: {
+      ru: 'Расскажи, что случилось рядом с открытым конвертом. Алдияр, Аруна и Пифик продолжат путь по ярмарке.',
+      kk: 'Ашық конверттің жанында не болғанын жаз. Алдияр, Аруна және Пифик жәрмеңкедегі жолын жалғастырады.',
+    },
+  },
+} satisfies Record<ContinuationChoice, Choice>
 
 export type ContinuationChoiceId = keyof typeof CONTINUATION_CHOICES
 export const CONTINUATION_CHOICE_IDS = Object.keys(CONTINUATION_CHOICES) as ContinuationChoiceId[]
@@ -72,6 +78,12 @@ export const CONTINUATION_COPY = {
     unavailable: 'Создание эпизода доступно при подключении к серверу.',
     failed: 'Не удалось создать эпизод. Отрывок по-прежнему доступен.',
     generationNote: 'ИИ напишет историю на русском и казахском. Иллюстрации уже готовы.',
+    freeTitle: 'Твоя завязка',
+    freePrompt: 'Что случилось дальше?',
+    freePlaceholder: 'Например, у флажков друзья услышали музыку…',
+    moderationNote: 'Перед созданием Пифик проверит, подходит ли текст для школьной истории.',
+    activeElsewhere: 'Уже создаётся эпизод для другого варианта. Выбери тот вариант, чтобы проверить его.',
+    rejected: 'Эта завязка не прошла проверку. Измени её и попробуй снова.',
   },
   kk: {
     create: 'Оқиғаны жалғастыру',
@@ -88,5 +100,11 @@ export const CONTINUATION_COPY = {
     unavailable: 'Эпизод жасау үшін серверге қосылу керек.',
     failed: 'Эпизод жасалмады. Дайын үзіндіні әлі де оқуға болады.',
     generationNote: 'ЖИ оқиғаны қазақша және орысша жазады. Суреттер дайын.',
+    freeTitle: 'Оқиғаңның басы',
+    freePrompt: 'Одан әрі не болды?',
+    freePlaceholder: 'Мысалы, достар жалаушалардың жанынан әуен естіді…',
+    moderationNote: 'Эпизод жасалмас бұрын, Пифик мәтіннің мектеп оқиғасына сай екенін тексереді.',
+    activeElsewhere: 'Басқа нұсқаға эпизод жасалып жатыр. Тексеру үшін сол нұсқаны таңда.',
+    rejected: 'Бұл мәтін тексеруден өтпеді. Оны өзгертіп, қайта байқап көр.',
   },
 } satisfies Localized<Record<string, string>>

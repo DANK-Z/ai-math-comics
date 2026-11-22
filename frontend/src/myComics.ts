@@ -8,6 +8,7 @@ import { LANGS, type Lang } from './api'
 const STORAGE_KEY = 'amc.myComics'
 const CHANGE_EVENT = 'amc:my-comics'
 const MAX_ENTRIES = 50
+export const MY_COMIC_TITLE_LIMIT = 100
 
 export type MyComicKind = 'generated' | 'continuation' | 'story'
 
@@ -17,6 +18,7 @@ export interface MyComic {
   /** Language the comic was generated in; used to load its title first. */
   lang: Lang
   savedAt: number
+  customTitle?: string
 }
 
 function isEntry(v: unknown): v is MyComic {
@@ -27,7 +29,9 @@ function isEntry(v: unknown): v is MyComic {
     e.comicId.length > 0 &&
     (e.kind === 'generated' || e.kind === 'continuation' || e.kind === 'story') &&
     LANGS.includes(e.lang as Lang) &&
-    typeof e.savedAt === 'number'
+    typeof e.savedAt === 'number' &&
+    Number.isFinite(e.savedAt) &&
+    (e.customTitle === undefined || (typeof e.customTitle === 'string' && e.customTitle.length <= MY_COMIC_TITLE_LIMIT))
   )
 }
 
@@ -60,6 +64,16 @@ export function saveMyComic(entry: Omit<MyComic, 'savedAt'>) {
 
 export function removeMyComic(comicId: string) {
   write(loadMyComics().filter((c) => c.comicId !== comicId))
+}
+
+export function renameMyComic(comicId: string, title: string) {
+  const customTitle = title.trim().slice(0, MY_COMIC_TITLE_LIMIT) || undefined
+  write(loadMyComics().map((entry) => entry.comicId === comicId ? { ...entry, customTitle } : entry))
+}
+
+export function restoreMyComic(entry: MyComic) {
+  const list = loadMyComics().filter((item) => item.comicId !== entry.comicId)
+  write([...list, entry].sort((a, b) => b.savedAt - a.savedAt))
 }
 
 /** Live view of the saved list (this tab and other tabs). */

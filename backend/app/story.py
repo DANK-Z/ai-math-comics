@@ -60,6 +60,28 @@ TOPIC_RESOLUTION = {
     "fractions": "In the last two scenes they share the picnic and enjoy the fair.",
     "equations": "In the last two scenes the riddle lock opens and they celebrate.",
 }
+TOPIC_LIVE_PROPS = {
+    "fractions": (
+        "Keep the same square kraft-paper pizza box with a plain red border on its lid, "
+        "and the same cream plates with narrow blue rims. Keep the box closed until the "
+        "scene calls for the lid to open. Once opened, it stays open."
+    ),
+    "equations": (
+        "Keep the same small dark wooden chest with brass corners and a plain round "
+        "turquoise lock. Keep the lid closed and the lock intact until they open; "
+        "after that, keep the lid open and the lock released."
+    ),
+}
+TOPIC_ENDING = {
+    "fractions": {
+        "ru": "Теперь мы знаем, как разделить угощение поровну.",
+        "kk": "Енді дәмді асты қалай тең бөлу керегін білеміз.",
+    },
+    "equations": {
+        "ru": "Мы решили уравнение и разгадали загадку замка.",
+        "kk": "Теңдеуді шешіп, құлыптың жұмбағын таптық.",
+    },
+}
 TOPIC_IMAGINED = {
     "fractions": "Discuss the given pizza problem as an imagined situation.",
     "equations": "Discuss the given equation riddle as an imagined magic lock to open.",
@@ -251,7 +273,7 @@ def text_prompt(request: JobRequest, problem: Problem, *, prepared: bool = False
 def image_prompt(scene: str, topic: str = "fractions") -> str:
     # No model-authored text, operands, expected answer, or dialogue reaches image generation.
     return (
-        f"{CHARACTERS}\n{TOPIC_SCENES[topic][scene]}\n"
+        f"{CHARACTERS}\n{TOPIC_LIVE_PROPS[topic]}\n{TOPIC_SCENES[topic][scene]}\n"
         "Create a new single full-scene comic illustration showing all three characters. "
         "The reference strip shows Aldiyar on the left, Aruna in the middle and Pifik "
         "on the right. Keep their exact faces, hairstyles, outfits and colors. "

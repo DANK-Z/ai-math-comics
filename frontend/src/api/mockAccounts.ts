@@ -64,6 +64,18 @@ function later<T>(value: () => T): Promise<T> {
 }
 
 const fail = (status: number, detail: string) => new ApiError(status, String(status), { detail })
+const loginWindows = new Map<string, { expires: number; attempts: number }>()
+
+function countLogin(name: string) {
+  const now = Math.floor(Date.now() / 1000)
+  for (const [key, window] of loginWindows) if (window.expires <= now) loginWindows.delete(key)
+  for (const { key, duration, limit } of [{ key: 'browser', duration: 60, limit: 60 }, { key: `login:${name}`, duration: 300, limit: 8 }]) {
+    const window = loginWindows.get(key) ?? { expires: (Math.floor(now / duration) + 1) * duration, attempts: 0 }
+    if (window.attempts >= limit) throw fail(429, 'sign_in_rate_limited')
+    loginWindows.set(key, { ...window, attempts: window.attempts + 1 })
+  }
+}
+
 const DEMO_COINS = 120
 const PRICES: Record<SkinKey, number> = { 'smart-glasses': 40, 'yellow-backpack': 50, 'racer-helmet': 60 }
 
@@ -202,6 +214,7 @@ export const mockAccounts: AccountApi = {
     return later(() => {
       const state = load()
       const name = body.login.trim().toLowerCase()
+      countLogin(name)
       const user = state.users.find((u) => (name.includes('@') ? u.email : u.login) === name)
       if (!user || user.password !== body.password) throw fail(401, 'wrong_login_or_password')
       return signIn(state, user)

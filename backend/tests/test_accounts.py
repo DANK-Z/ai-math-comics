@@ -7,16 +7,21 @@ on PostgreSQL too. Its tables are dropped and recreated for every test: never us
 
 import asyncio
 import os
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from fractions import Fraction
+from pathlib import Path
 
 import jwt
 import pytest
+from alembic import command
+from alembic.config import Config
 from fastapi.testclient import TestClient
 from test_generation import DeterministicImages, DeterministicText
 
+from app import auth as auth_module
 from app.config import Settings
-from app.db import Base, Database
+from app.db import Base, Database, SignInWindow, default_database_url
 from app.main import create_app
 from app.storage import Store
 from app.worker import Worker
@@ -36,6 +41,7 @@ def env(request, tmp_path):
             database = Database(url)
             async with database.engine.begin() as conn:
                 await conn.run_sync(Base.metadata.drop_all)
+                await conn.exec_driver_sql("DROP TABLE IF EXISTS alembic_version")
             await database.dispose()
 
         asyncio.run(reset())
@@ -102,6 +108,80 @@ def answer(client, token, exercise_id, text):
     )
     assert response.status_code == 200, response.text
     return response.json()
+
+
+def test_sign_in_limit_is_shared_and_expires(env, monkeypatch):
+    settings, client = env
+    clock = [1_800_000_015]
+    monkeypatch.setattr(auth_module, "time", lambda: clock[0])
+    student(client, "aruna_5a", "Аруна")
+    wrong = {"login": " Aruna_5A ", "password": "wrong-password"}
+    for _ in range(8):
+        assert client.post("/api/auth/login", json=wrong).status_code == 401
+
+    with TestClient(create_app(settings)) as other:
+        good = {"login": "ARUNA_5A", "password": "student-pass"}
+        limited = other.post("/api/auth/login", json=good)
+        assert limited.status_code == 429
+        assert limited.json() == {"detail": "sign_in_rate_limited"}
+        assert limited.headers["Retry-After"] == "285"
+        assert other.post("/api/auth/login", json={**wrong, "login": "unknown"}).status_code == 401
+        clock[0] += 285
+        assert other.post("/api/auth/login", json=good).status_code == 200
+
+
+def test_sign_in_ip_limit_applies_across_unknown_logins(env, monkeypatch):
+    _, client = env
+    monkeypatch.setattr(auth_module, "time", lambda: 1_800_000_015)
+    monkeypatch.setattr("app.accounts.verify_password", lambda *_: False)
+
+    for number in range(60):
+        body = {"login": f"nonexistent-{number}", "password": "wrong-password"}
+        assert client.post("/api/auth/login", json=body).status_code == 401
+    limited = client.post("/api/auth/login", json={**body, "login": "a-new-name"})
+    assert limited.status_code == 429
+    assert limited.headers["Retry-After"] == "45"
+
+
+@pytest.mark.parametrize("legacy", [False, True])
+def test_account_migrations_preserve_existing_accounts(env, legacy):
+    settings, client = env
+    if legacy:
+        student(client, "aruna_5a", "Аруна")
+
+    checked = replace(settings, require_account_migrations=True)
+    with (
+        pytest.raises(RuntimeError, match="migrations required"),
+        TestClient(create_app(checked)),
+    ):
+        pass
+
+    def migrate(connection):
+        config = Config(Path(__file__).resolve().parents[1] / "alembic.ini")
+        config.attributes["connection"] = connection
+        if legacy:
+            SignInWindow.__table__.drop(connection)
+            command.stamp(config, "0001")
+        command.upgrade(config, "head")
+        command.check(config)
+
+    async def run_migrations():
+        database = Database(settings.database_url or default_database_url(settings.data_dir))
+        try:
+            async with database.engine.begin() as connection:
+                await connection.run_sync(migrate)
+        finally:
+            await database.dispose()
+
+    asyncio.run(run_migrations())
+    with TestClient(create_app(checked)) as migrated:
+        if not legacy:
+            student(migrated, "aruna_5a", "Аруна")
+        login = migrated.post(
+            "/api/auth/login", json={"login": "aruna_5a", "password": "student-pass"}
+        )
+        assert login.status_code == 200
+        assert login.json()["user"]["displayName"] == "Аруна"
 
 
 def test_student_and_teacher_sign_up_and_sign_in(env):

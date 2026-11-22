@@ -11,6 +11,7 @@ from uuid import uuid4
 from .library_episode import LibraryProblem
 from .problems import choose_problem
 from .schemas import ContinuationRequest, ErrorCode, JobProgress, JobRequest, JobStatus
+from .side_episode import SideProblem
 
 
 class Store:
@@ -81,11 +82,14 @@ class Store:
 
     def enqueue(self, request: JobRequest | ContinuationRequest) -> str:
         job_id = str(uuid4())
-        problem = (
-            LibraryProblem.choose()
-            if isinstance(request, ContinuationRequest)
-            else choose_problem(request)
-        )
+        if isinstance(request, ContinuationRequest):
+            problem = (
+                LibraryProblem.choose()
+                if request.choiceId == "library-cabinet-key"
+                else SideProblem.choose(request.choiceId)
+            )
+        else:
+            problem = choose_problem(request)
         with self.connection() as db:
             db.execute(
                 "INSERT INTO jobs(id,request,problem,status,created_at) VALUES(?,?,?,'queued',?)",

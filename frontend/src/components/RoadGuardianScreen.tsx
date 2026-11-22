@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import type { CheckStatus, Lang } from '../api/types'
 import { PORTRAITS } from '../art/sheet'
 import { STRINGS } from '../i18n'
+import { MOTION_COPY } from '../motionLeague'
 import { ROAD_COPY, ROAD_DAMAGE, ROAD_MAX_HP, ROAD_ROUNDS, type RoadPhase, type useRoadGuardian } from '../roadGuardian'
 import { SECTION_HREFS } from '../route'
 import { RichText } from './RichText'
@@ -97,10 +98,9 @@ function PhaseScene({ phase, lang }: { phase: RoadPhase; lang: Lang }) {
   )
 }
 
-function PhaseExercise({ lang, index, submit }: { lang: Lang; index: number; submit: Challenge['submit'] }) {
+export function MotionExercise({ lang, round, check }: { lang: Lang; round: (typeof ROAD_ROUNDS)[number]; check: (answer: string) => CheckStatus | null }) {
   const t = STRINGS[lang]
   const copy = ROAD_COPY[lang]
-  const round = ROAD_ROUNDS[index]
   const [value, setValue] = useState('')
   const [result, setResult] = useState<CheckStatus | null>(null)
   const [showHint, setShowHint] = useState(false)
@@ -115,8 +115,8 @@ function PhaseExercise({ lang, index, submit }: { lang: Lang; index: number; sub
         onSubmit={(event) => {
           event.preventDefault()
           if (!value.trim()) return
-          const status = submit(index, value)
-          if (status && status !== 'correct') setResult(status)
+          const status = check(value)
+          if (status) setResult(status)
         }}
       >
         <label className="mb-1 block text-sm font-black" htmlFor={inputId}>{t.answerLabel}</label>
@@ -137,6 +137,7 @@ function PhaseExercise({ lang, index, submit }: { lang: Lang; index: number; sub
       <div role="status" className="mt-2 text-sm font-bold text-ink">
         {result === 'incorrect' && <p className="rounded-xl bg-rose-50 p-2">{copy.wrong}</p>}
         {result === 'invalid' && <p className="rounded-xl bg-sun/25 p-2">{copy.invalid}</p>}
+        {result === 'correct' && <p className="rounded-xl bg-emerald-100 p-2">{t.status.correct}</p>}
       </div>
       <button type="button" aria-expanded={showHint} aria-controls={hintId} onClick={() => setShowHint(!showHint)} className={`${BUTTON} mt-3 bg-white`}>
         {t.askHint}
@@ -175,6 +176,7 @@ export function RoadGuardianScreen({ lang, challenge }: { lang: Lang; challenge:
       <section className={`${CARD} transition-colors duration-500 ${river ? 'bg-[linear-gradient(180deg,#e0f2ff,#bfe3ff)]' : 'bg-white'}`}>
         <h1 className="text-2xl font-black text-ink sm:text-3xl">{copy.title}</h1>
         <p className="text-sm font-bold text-brand-dark">{copy.subtitle}</p>
+        <a href={SECTION_HREFS.motionLeague} className={`${BUTTON} mt-3 bg-white`}>{MOTION_COPY[lang].title}</a>
         <div className="mt-3 flex items-center gap-3">
           <BossIcon className="size-16 text-4xl sm:size-20" />
           <p className="min-w-0 text-sm font-semibold sm:text-base">{copy.intro}</p>
@@ -215,7 +217,7 @@ export function RoadGuardianScreen({ lang, challenge }: { lang: Lang; challenge:
           {current ? `${copy.phase(run.cleared + 1, total)} · ${current.text[lang].tab}` : copy.victory}
         </h2>
         {current ? (
-          <PhaseExercise key={current.id} lang={lang} index={run.cleared} submit={submit} />
+          <MotionExercise key={current.id} lang={lang} round={current} check={(answer) => submit(run.cleared, answer)} />
         ) : (
           <>
             <p className="mt-2 font-semibold">{copy.victoryText}</p>

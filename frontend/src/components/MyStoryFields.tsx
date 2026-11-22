@@ -151,7 +151,7 @@ export function MyStoryFields({ lang, draft, onChange, errors }: {
         ) : (
           <p className="mt-3 text-sm font-semibold text-ink/80">{c.heroLimit}</p>
         )}
-        {draft.customHeroes.length > 0 && <p className="mt-2 text-sm font-semibold text-ink/80">{c.customHeroNote}</p>}
+        {draft.customHeroes.length > 0 && <p className="mt-2 text-sm font-semibold text-ink/80">{ART_MODE === 'live' ? c.liveHeroNote : c.customHeroNote}</p>}
       </Section>
 
       <Section title={c.styleTitle} note={ART_MODE === 'prepared' ? c.preparedStyleNote : undefined}>

@@ -1,13 +1,15 @@
 import { useId, useRef, useState } from 'react'
 import { checkWholeNumberAnswer } from '../api/localComics'
 import type { CheckStatus, Lang } from '../api/types'
+import { bonusPuzzle, type BonusSticker } from '../bonusPuzzles'
 import { STRINGS } from '../i18n'
 
 const BUTTON = 'min-h-11 rounded-xl border-2 border-ink px-3 py-2 text-sm font-black focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-50'
 
-export function PriceTagBonus({ lang, onEarnSticker }: { lang: Lang; onEarnSticker: () => boolean }) {
+export function BonusPuzzle({ lang, sticker, onEarnSticker }: { lang: Lang; sticker: BonusSticker; onEarnSticker: (id: BonusSticker) => boolean }) {
   const t = STRINGS[lang]
-  const copy = t.priceTagBonus
+  const puzzle = bonusPuzzle(sticker, lang, t)
+  const { copy } = puzzle
   const id = useId()
   const trigger = useRef<HTMLButtonElement>(null)
   const [open, setOpen] = useState(false)
@@ -33,7 +35,7 @@ export function PriceTagBonus({ lang, onEarnSticker }: { lang: Lang; onEarnStick
         aria-controls={id}
         onClick={() => setOpen(!open)}
       >
-        <span aria-hidden="true">🏷️ </span>{copy.inspect}
+        <span aria-hidden="true">{puzzle.icon} </span>{copy.inspect}
       </button>
       <section
         id={id}
@@ -46,9 +48,9 @@ export function PriceTagBonus({ lang, onEarnSticker }: { lang: Lang; onEarnStick
         <form className="mt-3" onSubmit={event => {
           event.preventDefault()
           if (solved || !answer.trim()) return
-          const status = checkWholeNumberAnswer(answer, 600)
+          const status = checkWholeNumberAnswer(answer, puzzle.answer)
           setResult(status)
-          if (status === 'correct' && onEarnSticker()) setAwarded(true)
+          if (status === 'correct' && onEarnSticker(sticker)) setAwarded(true)
         }}>
           <label htmlFor={`${id}-answer`} className="block text-sm font-bold">{t.answerLabel}</label>
           <div className="mt-1 flex flex-wrap gap-2">

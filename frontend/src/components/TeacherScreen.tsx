@@ -1,8 +1,11 @@
-import { useCallback, useEffect, useId, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { accounts, API_MODE, isAbortError, type ClassInfo, type Dashboard, type Grade, type HeatCell, type Lang, type Topic } from '../api'
 import { useAccount } from '../account'
 import { ACCOUNT_COPY, skillCopy } from '../accountCopy'
-import { teacherClassHref, SECTION_HREFS } from '../route'
+import { GUARDIAN_SETUP, GUARDIAN_TOPICS, guardianAssignmentHref, type GuardianTopic } from '../guardianAssignment'
+import { STRINGS } from '../i18n'
+import { comicHref, teacherClassHref, SECTION_HREFS } from '../route'
+import { SCHOOL_FAIR_STOPS } from '../schoolFair'
 import { CARD, errorKey, FieldError, INPUT, PRIMARY, SECONDARY } from './AuthScreen'
 
 // Teacher area: classes with join codes, and a class dashboard (ranking + error heatmap).
@@ -24,6 +27,112 @@ function CopyCode({ code, lang }: { code: string; lang: Lang }) {
         {copied ? c.copied : c.copy}
       </button>
     </span>
+  )
+}
+
+const ASSIGNMENT = {
+  ru: { title: 'Задание по комиксу', chapter: 'Глава для класса', link: 'Ссылка для учеников', copy: 'Скопировать ссылку', copied: 'Ссылка скопирована.', manual: 'Скопируй выделенную ссылку.' },
+  kk: { title: 'Комикс бойынша тапсырма', chapter: 'Сыныпқа арналған тарау', link: 'Оқушыларға арналған сілтеме', copy: 'Сілтемені көшіру', copied: 'Сілтеме көшірілді.', manual: 'Белгіленген сілтемені көшір.' },
+}
+
+function ChapterAssignment({ lang }: { lang: Lang }) {
+  const copy = ASSIGNMENT[lang]
+  const t = STRINGS[lang]
+  const titleId = useId()
+  const linkInput = useRef<HTMLInputElement>(null)
+  const [chapter, setChapter] = useState(SCHOOL_FAIR_STOPS[0].comicId)
+  const [status, setStatus] = useState<'copied' | 'manual' | null>(null)
+  const link = new URL(comicHref(chapter), window.location.href).href
+
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(link)
+      setStatus('copied')
+    } catch {
+      linkInput.current?.focus()
+      linkInput.current?.select()
+      setStatus('manual')
+    }
+  }
+
+  return (
+    <section className={CARD} aria-labelledby={titleId}>
+      <h2 id={titleId} className="text-xl font-black">{copy.title}</h2>
+      <div className="mt-3 grid gap-3">
+        <label className="grid min-w-0 gap-1 text-sm font-black">
+          {copy.chapter}
+          <select className={INPUT} value={chapter} onChange={(event) => {
+            setChapter(event.target.value)
+            setStatus(null)
+          }}>
+            {SCHOOL_FAIR_STOPS.map(({ comicId, number, location }) => (
+              <option key={comicId} value={comicId}>{t.chapterLabel(number)} · {t.fairRoute.locations[location]}</option>
+            ))}
+          </select>
+        </label>
+        <label className="grid min-w-0 gap-1 text-sm font-black">
+          {copy.link}
+          <input ref={linkInput} className={INPUT} type="url" readOnly value={link} />
+        </label>
+        <button type="button" onClick={copyLink} className={`${PRIMARY} w-fit`}>{copy.copy}</button>
+        {status && <p role="status" className="text-sm font-bold">{copy[status]}</p>}
+      </div>
+    </section>
+  )
+}
+
+function GuardianAssignmentForm({ lang }: { lang: Lang }) {
+  const copy = GUARDIAN_SETUP[lang]
+  const id = useId()
+  const [selected, setSelected] = useState<GuardianTopic[]>([...GUARDIAN_TOPICS])
+  const [variant, setVariant] = useState(0)
+  const [boosts, setBoosts] = useState(true)
+  const [status, setStatus] = useState<'copied' | 'manual' | null>(null)
+  const linkRef = useRef<HTMLInputElement>(null)
+  const topics = GUARDIAN_TOPICS.filter((topic) => selected.includes(topic))
+  const link = topics.length ? new URL(guardianAssignmentHref({ topics, variant, boosts }), window.location.href).href : ''
+
+  async function copyAssignment() {
+    try {
+      await navigator.clipboard.writeText(link)
+      setStatus('copied')
+    } catch {
+      linkRef.current?.focus()
+      linkRef.current?.select()
+      setStatus('manual')
+    }
+  }
+
+  return (
+    <section className={CARD} aria-labelledby={id}>
+      <h2 id={id} className="text-xl font-black">{copy.title}</h2>
+      <p className="mt-1 text-sm font-semibold">{copy.lead}</p>
+      <fieldset className="mt-3 flex flex-wrap gap-2">
+        <legend className="font-bold">{copy.topics}</legend>
+        {GUARDIAN_TOPICS.map((topic) => (
+          <label className="flex min-h-11 items-center gap-2 rounded-xl border-2 border-ink px-3 font-bold has-checked:bg-sun" key={topic}>
+            <input type="checkbox" checked={selected.includes(topic)} onChange={(event) => {
+              setStatus(null)
+              setSelected((items) => event.target.checked ? [...items, topic] : items.filter((item) => item !== topic))
+            }} />{copy.topicNames[topic]}
+          </label>
+        ))}
+      </fieldset>
+      <div className="mt-3 grid gap-2">
+        <label className="grid gap-1 font-bold">
+          {copy.preset}
+          <select className={INPUT} value={variant} onChange={(event) => { setVariant(Number(event.target.value)); setStatus(null) }}>
+            {copy.numbers.map((label, index) => <option key={index} value={index}>{label}</option>)}
+          </select>
+        </label>
+        <label className="flex min-h-11 items-center gap-2 font-bold">
+          <input type="checkbox" checked={boosts} onChange={(event) => { setBoosts(event.target.checked); setStatus(null) }} />{copy.boosts}
+        </label>
+        <label className="grid gap-1 font-bold">{copy.link}<input ref={linkRef} className={INPUT} readOnly value={link} /></label>
+        <button type="button" disabled={!link} onClick={copyAssignment} className={`${PRIMARY} w-fit`}>{copy.copy}</button>
+        {status && <p role="status" className="text-sm font-bold">{copy[status]}</p>}
+      </div>
+    </section>
   )
 }
 
@@ -202,6 +311,9 @@ export function ClassDashboard({ lang, classId }: { lang: Lang; classId: number 
         </div>
         {API_MODE === 'mock' && <p className="mt-3 rounded-lg bg-sun/40 px-2 py-1 text-sm font-bold text-ink">{c.teacherArea.demo}</p>}
       </section>
+
+      <ChapterAssignment lang={lang} />
+      <GuardianAssignmentForm lang={lang} />
 
       <section className={`${CARD} ${rec ? 'border-rose-700 bg-rose-50' : fewAnswers ? 'bg-cream' : 'bg-emerald-50'}`} aria-live="polite">
         <p className="flex items-start gap-3 text-lg leading-snug font-black text-ink">

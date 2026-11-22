@@ -30,6 +30,7 @@ class Settings:
     text_attempts: int = 3
     # Accounts DB; empty = data/accounts.sqlite3. PostgreSQL: see docker-compose.yml.
     database_url: str = field(default="", repr=False)
+    require_account_migrations: bool = False
     jwt_secret: str = field(default="", repr=False)
     jwt_hours: float = 12
     # Story cache (app/story_cache.py). Off unless enabled; from_env enables it by default.
@@ -83,6 +84,8 @@ class Settings:
             poll_interval=float(os.getenv("WORKER_POLL_SECONDS", "1")),
             text_attempts=int(os.getenv("TEXT_ATTEMPTS", "3")),
             database_url=os.getenv("DATABASE_URL", "").strip(),
+            require_account_migrations=os.getenv("REQUIRE_ACCOUNT_MIGRATIONS", "0").strip().lower()
+            in ("1", "true", "yes"),
             jwt_secret=os.getenv("JWT_SECRET", "").strip(),
             jwt_hours=float(os.getenv("JWT_HOURS", "12")),
             story_cache=os.getenv("STORY_CACHE", "1").strip().lower() not in ("0", "false", "no"),

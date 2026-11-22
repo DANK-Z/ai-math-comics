@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import type { CheckStatus, Lang } from '../api/types'
-import { DAMAGE_PER_ROUND, GUARDIAN_MAX_HP, GUARDIAN_ROUNDS, type useGuardianChallenge } from '../guardian'
+import { DAMAGE_PER_ROUND, type GuardianRound, type useGuardianChallenge } from '../guardian'
+import { GUARDIAN_SETUP } from '../guardianAssignment'
 import { STRINGS } from '../i18n'
 import { SECTION_HREFS } from '../route'
 import { RichText } from './RichText'
@@ -11,13 +12,13 @@ const CARD = 'rounded-[28px] border-[3px] border-ink bg-white p-4 shadow-[0_6px_
 
 type Challenge = ReturnType<typeof useGuardianChallenge>
 
-function RoundExercise({ lang, index, submit }: {
+function RoundExercise({ lang, index, round, submit }: {
   lang: Lang
   index: number
+  round: GuardianRound
   submit: Challenge['submit']
 }) {
   const t = STRINGS[lang]
-  const round = GUARDIAN_ROUNDS[index]
   const [value, setValue] = useState('')
   const [result, setResult] = useState<CheckStatus | null>(null)
   const [showHint, setShowHint] = useState(false)
@@ -71,20 +72,29 @@ function RoundExercise({ lang, index, submit }: {
   )
 }
 
-export function GuardianScreen({ lang, remaining, challenge }: {
+export default function GuardianScreen({ lang, remaining, challenge, assigned = false }: {
   lang: Lang
   remaining: number
   challenge: Challenge
+  assigned?: boolean
 }) {
   const t = STRINGS[lang]
   const c = t.guardian
-  const { run, submit, replay } = challenge
-  const total = GUARDIAN_ROUNDS.length
+  const copy = GUARDIAN_SETUP[lang]
+  const { run, rounds, submit, replay } = challenge
+  const total = rounds.length
   const roundHeading = useRef<HTMLHeadingElement>(null)
   const lastRound = useRef(run.cleared)
   const hpId = useId()
-  const hp = GUARDIAN_MAX_HP - run.cleared * DAMAGE_PER_ROUND
-  const current = GUARDIAN_ROUNDS[run.cleared]
+  const maxHp = rounds.length * DAMAGE_PER_ROUND
+  const hp = maxHp - run.cleared * DAMAGE_PER_ROUND
+  const current = rounds[run.cleared]
+  const art = {
+    pizzas: { icon: '🍕', background: 'bg-orange-100' },
+    prize: { icon: '🏷️', background: 'bg-amber-100' },
+    map: { icon: '🗺️', background: 'bg-sky-100' },
+  }
+  const phaseArt = current ? art[current.id] : { icon: '🏆', background: 'bg-emerald-100' }
 
   useEffect(() => {
     if (lastRound.current !== run.cleared) {
@@ -109,17 +119,18 @@ export function GuardianScreen({ lang, remaining, challenge }: {
     <div className="mx-auto flex max-w-2xl flex-col gap-5">
       <section className={CARD}>
         <h1 className="text-2xl font-black text-ink sm:text-3xl">{c.title}</h1>
+        {assigned && <p className="font-bold text-brand-dark">{copy.task}</p>}
         <div className="mt-3 flex items-center gap-3">
           <PifikSprite eager className="w-16 shrink-0 rounded-2xl border-[3px] border-ink bg-sky sm:w-24" />
           <div className="min-w-0">
             <p className="text-lg font-black text-brand-dark">{c.name}</p>
-            <p className="text-sm font-semibold sm:text-base">{c.intro}</p>
+            <p className="text-sm font-semibold sm:text-base">{assigned ? copy.lead : c.intro}</p>
           </div>
         </div>
-        <p id={hpId} aria-live="polite" className="mt-3 font-black">{c.hp(hp, GUARDIAN_MAX_HP)}</p>
-        <progress aria-labelledby={hpId} max={GUARDIAN_MAX_HP} value={hp} className="mt-1 block h-3 w-full accent-brand" />
+        <p id={hpId} aria-live="polite" className="mt-3 font-black">{c.hp(hp, maxHp)}</p>
+        <progress aria-labelledby={hpId} max={maxHp} value={hp} className="mt-1 block h-3 w-full accent-brand" />
         <ol className="mt-3 grid grid-cols-3 gap-1.5 text-center text-xs font-bold sm:text-sm">
-          {GUARDIAN_ROUNDS.map((round, index) => {
+          {rounds.map((round, index) => {
             const cleared = index < run.cleared
             const active = index === run.cleared
             return (
@@ -130,6 +141,10 @@ export function GuardianScreen({ lang, remaining, challenge }: {
             )
           })}
         </ol>
+        <div className={`mt-4 flex min-h-16 items-center justify-center gap-3 rounded-xl border-2 border-ink p-2 text-center font-black ${phaseArt.background}`}>
+          <span aria-hidden="true" className="text-3xl">{phaseArt.icon}</span>
+          {current ? current.text[lang].title : c.victory}
+        </div>
       </section>
 
       <section className={CARD}>
@@ -137,10 +152,27 @@ export function GuardianScreen({ lang, remaining, challenge }: {
           {current ? c.round(run.cleared + 1, total) : c.victory}
         </h2>
         {current ? (
-          <RoundExercise key={current.id} lang={lang} index={run.cleared} submit={submit} />
+          <>
+            <RoundExercise key={`${run.variant}-${current.id}`} lang={lang} index={run.cleared} round={current} submit={submit} />
+            {challenge.boosts && (
+              <fieldset className="mt-4 grid gap-2">
+                <legend className="font-black">{copy.powers}</legend>
+                {(['example', 'plan'] as const).map((id) => (
+                  <div key={id}>
+                    <button type="button" className={`${BUTTON} bg-white`} disabled={run.used[id] !== undefined} onClick={() => challenge.useBoost(id, run.cleared)}>
+                      {copy[id]}{run.used[id] !== undefined ? ` · ${copy.used}` : ''}
+                    </button>
+                    {run.used[id] === run.cleared && <p role="status" className="mt-2 rounded-xl bg-sky p-2 font-semibold">
+                      {id === 'example' ? copy.examples[current.id] : copy.plans[current.id]}
+                    </p>}
+                  </div>
+                ))}
+              </fieldset>
+            )}
+          </>
         ) : (
           <>
-            <p className="mt-2 font-semibold">{c.victoryText}</p>
+            <p className="mt-2 font-semibold">{assigned ? copy.finished : c.victoryText}</p>
             <div className="mt-4 flex flex-wrap gap-2">
               <button type="button" onClick={replay} className={`${BUTTON} bg-sun`}>{c.replay}</button>
               {catalog}

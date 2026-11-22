@@ -84,6 +84,8 @@ def my_story_key(request: JobRequest, art_mode: str) -> str:
     exact = options.model_dump(exclude={"premise"})
     exact.update(topic=request.topic, grade=request.grade, difficulty=request.difficulty)
     exact["art"] = art_mode
+    if art_mode == "live" and options.customHeroes:
+        exact["custom_art_version"] = 1
     digest = hashlib.sha256(json.dumps(exact, sort_keys=True, ensure_ascii=False).encode())
     return f"amc:story:{KEY_VERSION}:my-story:{digest.hexdigest()[:32]}"
 

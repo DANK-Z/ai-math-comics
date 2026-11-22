@@ -17,7 +17,7 @@ from app.problems import Problem
 from app.providers import ProviderError
 from app.schemas import JobRequest
 from app.storage import Store
-from app.story import LIVE_SCENES, SCENES, PreparedStory, validate_story
+from app.story import LIVE_SCENES, SCENES, TOPIC_ENDING, PreparedStory, validate_story
 from app.worker import Worker, configured_providers
 
 REQUEST = {"grade": 5, "topic": "fractions", "lang": "ru", "difficulty": "basic"}
@@ -158,6 +158,9 @@ def test_generation_round_trip_and_restart(setup, grade, lang, difficulty):
             ]
             assert [p["id"] for p in comic["panels"]] == list(range(1, 7))
             assert comic["panels"][3]["text"] == comic["exercise"]["prompt"]
+            ending = TOPIC_ENDING["fractions"][language]
+            assert comic["panels"][-1]["text"].endswith(ending)
+            assert all(ending not in panel["text"] for panel in comic["panels"][:-1])
             for panel in comic["panels"]:
                 assert set(panel) == {
                     "id",
@@ -549,6 +552,9 @@ def test_fixed_problem_math_and_no_solution_in_prompts():
     for scene in LIVE_SCENES:
         image = image_prompt(scene)
         assert "29/96" not in image and "5/6" not in image and "3/8" not in image
+        assert "same square kraft-paper pizza box" in image
+        assert "same small dark wooden chest" in image_prompt(scene, "equations")
+        assert all(ending not in image for ending in TOPIC_ENDING["fractions"].values())
 
 
 def test_incomplete_files_are_not_published(setup):

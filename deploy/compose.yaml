@@ -1,0 +1,100 @@
+x-backend: &backend
+  image: ai-math-comics-backend:local
+  build:
+    context: ..
+    dockerfile: backend/Dockerfile
+  environment:
+    DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL for the account database}
+    JWT_SECRET: ${JWT_SECRET:?Set a long random JWT_SECRET}
+    REQUIRE_ACCOUNT_MIGRATIONS: "1"
+    COMIC_DATA_DIR: /app/data
+    PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:?Set the public HTTPS origin}
+    COMIC_ART_MODE: ${COMIC_ART_MODE:-prepared}
+    COMIC_PROVIDER: ${COMIC_PROVIDER:-gemini}
+    GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    GEMINI_TEXT_MODEL: ${GEMINI_TEXT_MODEL:-gemini-3.8-flash}
+    GEMINI_IMAGE_MODEL: ${GEMINI_IMAGE_MODEL:-gemini-3.1-flash-image}
+    OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    OPENAI_TEXT_MODEL: ${OPENAI_TEXT_MODEL:-gpt-6-luna}
+    OPENAI_IMAGE_MODEL: ${OPENAI_IMAGE_MODEL:-gpt-image-2.5-flare}
+    STORY_CACHE: ${STORY_CACHE:-1}
+    REDIS_URL: redis://redis:6379/0
+  volumes:
+    - comic-data:/app/data
+
+services:
+  migrate:
+    <<: *backend
+    command: ["python", "-m", "alembic", "upgrade", "head"]
+    depends_on:
+      db:
+        condition: service_healthy
+  api:
+    <<: *backend
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8000/api/comics/pizza-fractions?lang=ru', timeout=2).close()"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+  worker:
+    <<: *backend
+    restart: unless-stopped
+    command: ["python", "-m", "app.worker"]
+    depends_on:
+      api:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+  frontend:
+    build:
+      context: ../frontend
+      args:
+        COMIC_ART_MODE: ${COMIC_ART_MODE:-prepared}
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      AMC_SITE: ${AMC_SITE:?Set the public domain (or :80 for an HTTP smoke test)}
+    ports:
+      - "${AMC_BIND_ADDRESS:-0.0.0.0}:${AMC_HTTP_PORT:-80}:80"
+      - "${AMC_BIND_ADDRESS:-0.0.0.0}:${AMC_HTTPS_PORT:-443}:443"
+    volumes:
+      - caddy-data:/data
+      - caddy-config:/config
+  db:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: amc
+      POSTGRES_DB: amc
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set a PostgreSQL password}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "amc", "-d", "amc"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  comic-data:
+  postgres-data:
+  redis-data:
+  caddy-data:
+  caddy-config:

@@ -68,8 +68,8 @@ export function useAnswerCheck(exerciseId: string, lang: Lang, onCorrect: (respo
  * Pifik's hints. Revealed steps are cached per language, so switching language
  * re-fetches the already revealed hints in the new language.
  */
-export function useHints(exerciseId: string, lang: Lang) {
-  const [revealed, setRevealed] = useState(0)
+export function useHints(exerciseId: string, lang: Lang, initialRevealed = 0) {
+  const [revealed, setRevealed] = useState(initialRevealed)
   const [cache, setCache] = useState<Partial<Record<Lang, Partial<Record<number, HintResponse>>>>>({})
   const [error, setError] = useState(false)
   const [nonce, setNonce] = useState(0)

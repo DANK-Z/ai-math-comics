@@ -75,6 +75,7 @@ export function ExerciseCard({ exercise, lang, check, reward }: Props) {
 
         <div aria-live="polite" className="mt-3 min-h-[1.5rem]">
           {error && <p className="font-bold text-rose-700">{t.checkError}</p>}
+          {solved && !result && <p className="font-bold text-emerald-900">{t.status.correct}</p>}
           {result && !error && (
             <div className={`flex items-start gap-3 rounded-2xl border-[3px] p-3 ${STATUS_STYLE[result.status].box}`}>
               <span aria-hidden className="text-2xl leading-none font-black">

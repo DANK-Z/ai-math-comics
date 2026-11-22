@@ -1,7 +1,7 @@
 import { createHttpApi } from './httpApi'
 import { mockAccounts } from './mockAccounts'
 import { mockApi } from './mockApi'
-import { FAIR_CHAPTERS, LIBRARY_BOXES } from './fairChapters'
+import { FAIR_CHAPTERS, LIBRARY_BOXES, SCHOOL_MAP } from './fairChapters'
 import { buildLocalComic, checkLocalAnswer, localHint, type LocalComicDef } from './localComics'
 import { SCHOOL_STORE } from './schoolStore'
 import type { AccountApi, Api } from './types'
@@ -38,15 +38,17 @@ export const api: Api = {
       return buildLocalComic(local, lang)
     }
     const comic = await configuredApi.getComic(id, lang, signal)
-    if (comic.continuation?.nextChapterId === LIBRARY_BOXES.id) {
+    const choice = comic.continuation?.choiceId
+    const artSource = choice === 'library-cabinet-key' ? LIBRARY_BOXES : choice === 'new-route-note' ? SCHOOL_MAP : null
+    if (artSource) {
       return {
         ...comic,
         panels: comic.panels.map((panel) => {
-          const art = LIBRARY_BOXES.panels[panel.id - 1]
+          const art = artSource.panels[panel.id - 1]
           return art ? {
             ...panel,
             imageUrl: new URL(art.image, window.location.href).href,
-            imageAspect: LIBRARY_BOXES.imageAspect,
+            imageAspect: artSource.imageAspect,
           } : panel
         }),
       }

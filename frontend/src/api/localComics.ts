@@ -14,6 +14,7 @@ export interface LocalComicText {
   prompt: string
   hints: [string, string]
   feedback: Record<CheckStatus, string>
+  commonMistakes?: Readonly<Partial<Record<number, string>>>
 }
 
 export interface LocalComicDef {
@@ -67,7 +68,10 @@ export function checkWholeNumberAnswer(answer: string, expected: number): CheckS
 
 export function checkLocalAnswer(def: LocalComicDef, answer: string, lang: Lang): CheckResponse {
   const status = checkWholeNumberAnswer(answer, def.answer)
-  return { status, message: def.text[lang].feedback[status] }
+  const copy = def.text[lang]
+  const value = status === 'incorrect' ? parseWholeNumber(answer) : null
+  const targeted = value === null ? undefined : copy.commonMistakes?.[value]
+  return { status, message: targeted ?? copy.feedback[status] }
 }
 
 export function localHint(def: LocalComicDef, lang: Lang, step: HintStep): HintResponse {

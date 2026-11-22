@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { API_MODE, type ComicJobRequest, type Lang } from './api'
 import { AccountProvider, useAccount } from './account'
 import { ACCOUNT_COPY } from './accountCopy'
@@ -8,22 +8,30 @@ import { ClassDashboard, TeacherHome } from './components/TeacherScreen'
 import { BackpackCollection } from './components/BackpackCollection'
 import { GenerateCard } from './components/GenerateCard'
 import { CatalogScreen, HomeScreen } from './components/HomeScreen'
-import { GuardianScreen } from './components/GuardianScreen'
 import { LanguageSwitcher } from './components/LanguageSwitcher'
-import { MyComicsScreen } from './components/MyComicsScreen'
 import { ReaderScreen } from './components/ReaderScreen'
 import { RoadGuardianScreen } from './components/RoadGuardianScreen'
 import { DesktopNavigation, MobileNavigation } from './components/SectionNavigation'
 import { useContinuationJob } from './continuation'
 import { useGuardianChallenge } from './guardian'
+import { guardianAssignmentHref, type GuardianAssignment } from './guardianAssignment'
 import { ROAD_DAMAGE, ROAD_MAX_HP, useRoadGuardian } from './roadGuardian'
 import { useLang } from './hooks'
 import { useMyComics } from './myComics'
 import { STRINGS } from './i18n'
-import { usePriceTagSticker } from './priceTagSticker'
+import { useBonusStickers } from './bonusStickers'
 import { comicHref, parseRoute, SCHOOL_MAP_COMIC_ID, SECTION_HREFS, useRoute, type Route } from './route'
 import { useSeasonProgress } from './seasonProgress'
 import { SCHOOL_FAIR_CHAPTER_COUNT } from './schoolFair'
+
+const MotionLeague = lazy(() => import('./components/MotionLeague'))
+const GuardianScreen = lazy(() => import('./components/GuardianScreen'))
+const MyComicsScreen = lazy(() => import('./components/MyComicsScreen'))
+
+function AssignedGuardian({ assignment, remaining, lang }: { assignment: GuardianAssignment; remaining: number; lang: Lang }) {
+  const challenge = useGuardianChallenge(assignment)
+  return <GuardianScreen lang={lang} remaining={remaining} challenge={challenge} assigned />
+}
 
 function Logo({ tagline }: { tagline: string }) {
   return (
@@ -89,10 +97,17 @@ export default function App() {
 function AppShell() {
   const [lang, setLang] = useLang()
   const [route, navigate] = useRoute()
+  const [lastComicId, setLastComicId] = useState(() => {
+    try { return localStorage.getItem('amc.lastOpenedComic') } catch { return null }
+  })
+  const rememberComic = useCallback((id: string) => {
+    setLastComicId(id)
+    try { localStorage.setItem('amc.lastOpenedComic', id) } catch { /* keep it for this visit */ }
+  }, [])
   const account = useAccount()
   const role = account.user?.role ?? null
   const { completedChapters, completeChapter, mergeChapters } = useSeasonProgress()
-  const priceTagSticker = usePriceTagSticker()
+  const { earned: bonusStickers, award: awardBonusSticker, restore: restoreBonusStickers } = useBonusStickers()
   const ready = account.ready
   useEffect(() => {
     if (!ready) return
@@ -115,18 +130,18 @@ function AppShell() {
     if (synced.current !== student.id) {
       synced.current = student.id
       mergeChapters(serverChapters ?? [])
-      if (serverStickers?.includes('price-tag')) priceTagSticker.restore()
+      restoreBonusStickers(serverStickers ?? [])
     }
-  }, [student, serverChapters, serverStickers, mergeChapters, priceTagSticker])
+  }, [student, serverChapters, serverStickers, mergeChapters, restoreBonusStickers])
   const { saveProgress } = account
   useEffect(() => {
     if (!student || synced.current !== student.id) return
     const chapters = [...completedChapters].sort()
-    const stickers = priceTagSticker.earned ? ['price-tag'] : []
+    const stickers = [...bonusStickers].sort()
     const known = new Set(serverChapters ?? [])
-    const missing = chapters.some((id) => !known.has(id)) || (stickers.length > 0 && !serverStickers?.includes('price-tag'))
+    const missing = chapters.some((id) => !known.has(id)) || stickers.some((id) => !serverStickers?.includes(id))
     if (missing) saveProgress(chapters, stickers).catch(() => {})
-  }, [student, completedChapters, priceTagSticker.earned, serverChapters, serverStickers, saveProgress])
+  }, [student, completedChapters, bonusStickers, serverChapters, serverStickers, saveProgress])
   const guardian = useGuardianChallenge()
   const roadGuardian = useRoadGuardian()
   const continuationJob = useContinuationJob()
@@ -135,7 +150,8 @@ function AppShell() {
   const myComics = useMyComics()
   // A saved generated comic belongs to My Comics; everything else to the catalog.
   const readerSection = route.name === 'comic' && myComics.some((c) => c.comicId === route.comicId) ? 'myComics' as const : 'comics' as const
-  const navigation = { t, active: route.name === 'comic' ? readerSection : route.name === 'teacherClass' ? 'teacher' as const : route.name, completed: completedChapters.size, remaining, myComics: myComics.length, roadHp: ROAD_MAX_HP - roadGuardian.run.cleared * ROAD_DAMAGE, roadWon: roadGuardian.run.won, lang }
+  const activeSection = route.name === 'comic' ? readerSection : route.name === 'teacherClass' ? 'teacher' : route.name === 'motionLeague' ? 'roadGuardian' : route.name === 'guardianAssignment' ? 'guardian' : route.name
+  const navigation = { t, active: activeSection, completed: completedChapters.size, remaining, myComics: myComics.length, roadHp: ROAD_MAX_HP - roadGuardian.run.cleared * ROAD_DAMAGE, roadWon: roadGuardian.run.won, lang }
 
   const openGenerated = useCallback(
     (comicId: string, request: ComicJobRequest) => {
@@ -178,27 +194,32 @@ function AppShell() {
           {route.name === 'login' && <AuthScreen lang={lang} />}
           {route.name === 'profile' && role === 'student' && <ProfileScreen lang={lang} />}
           {route.name === 'map' && (
-            <HomeScreen lang={lang} completedChapters={completedChapters} remaining={remaining} guardianWon={guardian.run.won} />
+            <HomeScreen lang={lang} completedChapters={completedChapters} remaining={remaining} guardianWon={guardian.run.won}
+              lastComicId={lastComicId} />
           )}
           {route.name === 'comics' && <CatalogScreen lang={lang} completedChapters={completedChapters} />}
-          {route.name === 'myComics' && <MyComicsScreen lang={lang} comics={myComics} />}
+          {route.name === 'myComics' && <Suspense><MyComicsScreen lang={lang} comics={myComics} /></Suspense>}
           {route.name === 'backpack' && (
-            <BackpackCollection t={t} lang={lang} completedChapters={completedChapters} hasPriceTagSticker={priceTagSticker.earned} />
+            <BackpackCollection t={t} lang={lang} completedChapters={completedChapters} bonusStickers={bonusStickers} />
           )}
-          {route.name === 'guardian' && <GuardianScreen lang={lang} remaining={remaining} challenge={guardian} />}
+          {route.name === 'guardian' && <Suspense><GuardianScreen lang={lang} remaining={remaining} challenge={guardian} /></Suspense>}
+          {route.name === 'guardianAssignment' && <Suspense><AssignedGuardian key={guardianAssignmentHref(route.assignment)} assignment={route.assignment} remaining={remaining} lang={lang} /></Suspense>}
           {route.name === 'roadGuardian' && <RoadGuardianScreen lang={lang} challenge={roadGuardian} />}
+          {route.name === 'motionLeague' && <Suspense><MotionLeague lang={lang} /></Suspense>}
           {route.name === 'comic' && (
             <ReaderScreen
               key={`${comicHref(route.comicId, route.ending)}|${route.replay ?? ''}`}
               comicId={route.comicId}
               lang={lang}
               onChapterComplete={completeChapter}
-              onEarnPriceTagSticker={priceTagSticker.award}
+              onEarnBonusSticker={awardBonusSticker}
               continuationJob={continuationJob}
               chapterThreeSolved={route.comicId === SCHOOL_MAP_COMIC_ID && completedChapters.has(route.comicId)}
               openEnding={route.ending && !route.replay}
               backTo={readerSection}
-              replay={!!route.replay}
+              rememberReading={readerSection === 'myComics'}
+              replay={route.replay}
+              onOpen={rememberComic}
             />
           )}
           <div hidden={route.name !== 'create'} className="max-w-2xl">

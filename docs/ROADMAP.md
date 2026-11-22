@@ -1,11 +1,11 @@
 # AI Math Comics roadmap
 
-Status was checked against the code and Git history on `main` at `a964b80` (2026-11-22).
+The baseline was checked against `main` at `7faa312` (2026-11-22). Sections updated in the current roadmap work also describe the changes in this branch.
 Commit hashes point to the change that introduced the behavior.
 
 | Status | Meaning |
 | --- | --- |
-| **Done** | Implemented on `main`. |
+| **Done** | Implemented on `main` or in the current roadmap branch where noted. |
 | **In progress** | Part of the item is implemented; the remaining parts are listed. |
 | **Planned** | Not implemented yet. |
 
@@ -34,20 +34,20 @@ These items are not on the request list, but the planned work builds on them.
 
 | Part | Status | Evidence / notes |
 | --- | --- | --- |
-| Custom heroes | Done as text | `d74bfb5`. Up to two student heroes speak in the comic. With prepared art their panels show a setting placeholder; live art draws only the cast. |
+| Custom heroes | Done | Up to two student heroes speak in the comic. Prepared art uses placeholders, and live art uses their moderated descriptions to draw them. |
 | Visual styles | Done for live art | Comic, cartoon and pixel styles go into the image prompt. Prepared art ignores the style. |
 | Settings | Done for live art | School, space, forest or a custom place. |
 | Student premise | Done | Optional; Pifik invents a beginning when it is empty. |
-| Drawing custom heroes with consistent references | Planned | Needs per-hero reference images. |
-| Stronger moderation of student text | Planned | Today: input rules + prompt instructions. |
+| Drawing custom heroes with consistent references | Done | One private custom cast reference per job, shared by all images and retained across resume. |
+| Stronger moderation of student text | Done | Format checks at intake and provider classification before generation. |
 
-### 2. Story continuations — In progress
+### 2. Story continuations — Done
 
 | Part | Status | Evidence / notes |
 | --- | --- | --- |
 | Generate the "library cabinet key" episode after Chapter 3 | Done | `f1ab300`, `POST /api/continuation-jobs` |
-| Generate episodes for the other two Chapter 3 choices ("new route note", "fair attraction ticket") | Planned | They appear only as previews (`1074bcf`). The API accepts only `choiceId: "library-cabinet-key"`. |
-| Free-form student choice | Planned | No free-text input. |
+| Generate episodes for the other two Chapter 3 choices ("new route note", "fair attraction ticket") | Done | Both use server-owned math and prepared artwork. |
+| Free-form student choice | Done | The story job checks and moderates the student premise before generation. |
 
 ### 3. Generation quality — In progress
 
@@ -56,67 +56,66 @@ These items are not on the request list, but the planned work builds on them.
 | Panel-by-panel progress | Done | `29e3d7c` (job `progress`, `GenerationProgress.tsx`) |
 | Resume missing panels after a failed live-art job | Done | `b7fd4fe` (`POST /api/comic-jobs/{jobId}/resume`) |
 | Consistent characters | In progress | Each live panel gets fixed character descriptions and the cast reference strip. There is no automated consistency check yet. |
-| Consistent props | In progress | The courtyard, bunting, and picnic table are fixed in the prompt. Props are not tracked from panel to panel. |
-| Clear story resolution | In progress | Live comics use a fixed scene order that ends with "serve" and "celebrate", and the library episode has an `ending` line. The resolution is not yet required to follow from the solved problem. |
+| Consistent props | In progress | Every live panel receives the same description and state rules for the pizza box or chest. Visual consistency across completed images still needs verification. |
+| Clear story resolution | Done | The final panel includes a bilingual server-authored consequence of solving the story's problem. The illustration prompt does not receive this text or the answer. |
 
-### 4. My Comics — In progress
+### 4. My Comics — Done
 
 | Part | Status | Evidence / notes |
 | --- | --- | --- |
 | Saved list with Open and Replay | Done | `efbd962`. Keep Replay. |
-| Rename | Planned | |
-| Remove from the personal list with undo | Planned | Removal exists only for comics that fail to load, without undo. |
-| Search and filter | Planned | |
-| Continue from the last panel with saved hints | Planned | Reader position, answers, and hints are not saved. Open starts at panel 1. |
+| Rename | Done | A custom title is saved in the browser and can be cleared to restore the original. |
+| Remove from the personal list with undo | Done | The list entry can be restored from the confirmation on the same screen. |
+| Search and filter | Done | Search by title and filter by comic type. |
+| Continue from the last panel with saved hints | Done | Open restores the last panel, revealed hints, and whether the exercise is solved. Replay starts over. |
 
-### 5. Navigation — In progress
+### 5. Navigation — Done
 
 | Part | Status | Evidence / notes |
 | --- | --- | --- |
-| Continue Season | In progress | The route map highlights the next unfinished chapter as «Следующая остановка» (`0e6a76e`). There is no dedicated Continue Season action. |
-| Quick access to the last opened comic | Planned | |
+| Continue Season | Done | The map highlights the first unfinished chapter and links to it from a dedicated action. |
+| Quick access to the last opened comic | Done | The map links to the last comic that loaded in this browser. |
 
-### 6. Pifik hints — Planned
+### 6. Pifik hints — In progress
 
 | Part | Status | Notes |
 | --- | --- | --- |
-| Visual diagrams | Planned | Hints are text only. |
-| First-step explanations | Planned | Each exercise has two fixed text hints. |
-| Similar examples | Planned | |
-| Targeted feedback for common mistakes | Planned | Feedback depends only on whether the answer is correct, incorrect, or invalid. |
+| Visual diagrams | In progress | Chapter 3 offers a selectable map-scale diagram in Russian and Kazakh. |
+| Rule reminders and guided steps | Done | Chapters 1, 2, 4, 5 and 6 have a bilingual rule reminder and a guided hint. Chapter 3 retains the selectable first step, diagram and example. |
+| Similar examples | In progress | Chapter 3 offers a solved example with a different map distance. |
+| Targeted feedback for common mistakes | In progress | Chapter 3 recognizes copying the map distance, using a single scale segment, and adding the operands. Other exercises still use their existing feedback. |
 
-### 7. Secret puzzles and stickers — In progress
+### 7. Secret puzzles and stickers — Done
 
 | Part | Status | Evidence / notes |
 | --- | --- | --- |
 | Optional secret puzzle with a sticker | Done | School Store second price tag bonus (`7e838ae`). |
 | Chapter collectibles in the backpack | Done | `895b1a3` |
-| More optional secret puzzles and stickers | Planned | |
+| More optional secret puzzles and stickers | Done | Library bookmark and lemon-slice puzzles after chapters 4 and 5. They use the existing sticker sync and do not count as chapter collectibles. |
 
-### 8. Guardian upgrades — In progress
+### 8. Guardian upgrades — Done
 
 Generated comics now end in a panel-four boss fight with an animated HP bar (`a964b80`), a draft
 pad and a victory screen (chest, coin burst, trophy card with stars, share with a copy fallback), and the
-Road Guardian has visual phases (`4f60846`). The season's Guardian final challenge is unchanged.
-Boss-fight progress is not saved: reloading restarts the fight.
+Road Guardian has visual phases (`4f60846`). Progress in the generated-comic boss fight is saved in the browser and can be restored from the answer log for signed-in students.
 
-The Guardian final challenge exists (`9dc0af2`): three fixed rounds (fractions, percentages, scale) and an HP bar.
+The Guardian final challenge exists (`9dc0af2`): three rounds (fractions, percentages, scale) and an HP bar.
 
 | Part | Status | Notes |
 | --- | --- | --- |
-| Visual phases | Planned | |
-| New problem numbers on replay | Planned | Round answers are fixed in `frontend/src/guardian.ts`. |
+| Visual phases | Done | Each topic has a distinct panel accent and icon. |
+| New problem numbers on replay | Done | Replay alternates two additional sets of operands and saves the active set across reloads. |
 
-### 9. Motion League — In progress
+### 9. Motion League — Done
 
 | Part | Status |
 | --- | --- |
 | Pursuit problems | Done in Road Guardian (`4f60846`) |
 | Head-on meeting problems | Done in Road Guardian (`4f60846`) |
 | River current problems | Done in Road Guardian (`4f60846`) |
-| Average speed problems | Planned |
-| Practice mode | Planned |
-| Challenge mode with optional hearts, a timer, and crystals | Planned |
+| Average speed problems | Done in Motion League |
+| Practice mode | Done. Choose a topic and retry without penalties. |
+| Challenge mode with optional hearts, a timer, and crystals | Done. Four tasks, with independent options for three hearts, three minutes, and a crystal per correct answer. |
 
 ### 10. Teacher features — In progress
 
@@ -127,12 +126,13 @@ The Guardian final challenge exists (`9dc0af2`): three fixed rounds (fractions, 
 | Class dashboard: ranking by stars, combo, misses; error heatmap by round and skill; review recommendation | Done |
 | Server-side coins and stars from boss fights; boss and season progress restored after reload / on another device | Done |
 | Backpack shop and Pifik skins (glasses, yellow backpack, racer helmet) | Done |
-| Power-ups for boss fights | Planned |
+| Power-ups for boss fights | Done for the School Fair Guardian. Students get one worked example and one solution plan per run. |
 | Story cache: Redis for Express, pgvector + local embeddings for «Моя история» (fresh math every time) | Done |
-| Shareable chapter assignments | Planned |
-| Configurable Guardian rounds for review or assessment | Planned |
-| Password reset, teacher-managed student accounts, rate limiting of sign-in | Planned |
-| Database migrations (Alembic) before a pilot | Planned |
+| Shareable chapter assignments | Done. A teacher can choose a chapter and copy its direct student link from the class dashboard. |
+| Configurable Guardian rounds for review or assessment | Done. Teachers choose topics, a number set, and whether to allow boosts, then share a link. The season unlock rule still applies. |
+| Password reset, teacher-managed student accounts | Planned |
+| Rate limiting of sign-in | Done. Shared counters cap attempts per IP and per login/IP. |
+| Database migrations (Alembic) before a pilot | Done for the accounts database. See [migration instructions](account-migrations.md). |
 
 Accounts are optional: guests still play with progress saved only in the browser.
 
@@ -142,3 +142,12 @@ Accounts are optional: guests still play with progress saved only in the browser
 | --- | --- | --- |
 | New comics and exercise templates from the upcoming Grade 5–6 teaching materials | In progress | Generation supports grades 5–6, the `fractions` and `equations` topics (`a964b80`), and three difficulties. Bundled chapters also cover percentages, scale, proportions, and perimeter. |
 | Russian and Kazakh support | Done, keep for all new content | `LANGS = ['ru', 'kk']` |
+
+### 12. Pilot hosting — In progress
+
+| Part | Status |
+| --- | --- |
+| API, worker and frontend containers, with shared comic storage | Done |
+| Same-origin routing and HTTPS configuration | Done |
+| Account and comic backup workflow | Done |
+| External deployment and public certificate validation | Planned. Requires the pilot host and domain. |

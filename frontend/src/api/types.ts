@@ -44,7 +44,7 @@ export interface Comic {
   artwork?: 'prepared'
   continuation?: {
     sourceChapterId: 'school-quest-map'
-    choiceId: 'library-cabinet-key'
+    choiceId: ContinuationChoice
     nextChapterId: 'library-boxes'
   }
   panels: Panel[]
@@ -103,11 +103,12 @@ export interface ComicJobRequest {
   story?: StoryOptions
 }
 
-export interface ContinuationJobRequest {
-  sourceChapterId: 'school-quest-map'
-  choiceId: 'library-cabinet-key'
-  locale: Lang
-}
+export type ContinuationChoice = 'library-cabinet-key' | 'new-route-note' | 'fair-attraction-ticket' | 'free-premise'
+
+export type ContinuationJobRequest = { sourceChapterId: 'school-quest-map'; locale: Lang } & (
+  | { choiceId: Exclude<ContinuationChoice, 'free-premise'> }
+  | { choiceId: 'free-premise'; premise: string }
+)
 
 export type JobStatus = 'queued' | 'running' | 'ready' | 'failed'
 

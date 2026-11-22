@@ -32,6 +32,8 @@ export interface UiStrings {
   hintError: string
   noMoreHints: string
   hintN: (n: number) => string
+  hintRule: string
+  hintSteps: string
   mockBadge: string
   tagline: string
   castTitle: string
@@ -64,7 +66,7 @@ export interface UiStrings {
   resumeGenerationError: string
   jobReady: string
   jobFailedTitle: string
-  jobErrors: { generation_failed: string; image_generation_failed: string; api: string; lost: string; unknown: string }
+  jobErrors: { generation_failed: string; image_generation_failed: string; student_text_rejected: string; api: string; lost: string; unknown: string }
   errorDetails: string
   tryAgain: string
   changeParams: string
@@ -96,6 +98,8 @@ export interface UiStrings {
   fairRoute: {
     title: string
     suggested: string
+    continueSeason: string
+    lastComic: string
     guardianUnlocked: string
     locations: Record<SchoolFairLocation, string>
   }
@@ -146,6 +150,16 @@ export interface UiStrings {
     savedOn: (date: string) => string
     unavailable: string
     remove: string
+    removed: string
+    undo: string
+    rename: string
+    customTitle: string
+    saveTitle: string
+    cancel: string
+    search: string
+    filter: string
+    all: string
+    noMatches: string
   }
   imageError: string
 }
@@ -180,6 +194,8 @@ export const STRINGS: Record<Lang, UiStrings> = {
     hintError: 'Пифик не смог ответить. Попробуй ещё раз.',
     noMoreHints: 'Подсказки закончились — у тебя получится!',
     hintN: (n) => `Подсказка ${n}`,
+    hintRule: 'Вспомни правило',
+    hintSteps: 'Решай по шагам',
     mockBadge: 'демо-данные',
     tagline: 'Математика в комиксах с AI',
     castTitle: 'Герои',
@@ -218,6 +234,7 @@ export const STRINGS: Record<Lang, UiStrings> = {
     jobErrors: {
       generation_failed: 'Генерация не удалась. Попробуй ещё раз.',
       image_generation_failed: 'Не удалось создать иллюстрации для комикса. Попробуй ещё раз.',
+      student_text_rejected: 'Описание или завязка не прошли проверку. Измени текст и попробуй снова.',
       api: 'Сервер не ответил как ожидалось. Проверь подключение и попробуй снова.',
       lost: 'Задание не найдено на сервере.',
       unknown: 'Что-то пошло не так при создании комикса.',
@@ -265,6 +282,8 @@ export const STRINGS: Record<Lang, UiStrings> = {
     fairRoute: {
       title: 'Маршрут ярмарки',
       suggested: 'Следующая остановка',
+      continueSeason: 'Продолжить сезон',
+      lastComic: 'Последний открытый комикс',
       guardianUnlocked: 'Испытание открыто',
       locations: {
         cafeteria: 'Столовая',
@@ -331,6 +350,16 @@ export const STRINGS: Record<Lang, UiStrings> = {
       savedOn: (date) => `Создан ${date}`,
       unavailable: 'Не удалось загрузить этот комикс.',
       remove: 'Убрать из списка',
+      removed: 'Комикс убран из списка.',
+      undo: 'Отменить удаление',
+      rename: 'Переименовать',
+      customTitle: 'Своё название (оставь пустым для исходного)',
+      saveTitle: 'Сохранить название',
+      cancel: 'Отмена',
+      search: 'Название комикса',
+      filter: 'Тип комикса',
+      all: 'Все типы',
+      noMatches: 'Комиксы не найдены.',
     },
     imageError: 'Картинка не загрузилась',
   },
@@ -363,6 +392,8 @@ export const STRINGS: Record<Lang, UiStrings> = {
     hintError: 'Пифик жауап бере алмады. Қайтадан байқап көр.',
     noMoreHints: 'Кеңестер бітті — сенің қолыңнан келеді!',
     hintN: (n) => `${n}-кеңес`,
+    hintRule: 'Ережені еске түсір',
+    hintSteps: 'Қадамдап шеш',
     mockBadge: 'демо деректер',
     tagline: 'AI көмегімен комикстегі математика',
     castTitle: 'Кейіпкерлер',
@@ -401,6 +432,7 @@ export const STRINGS: Record<Lang, UiStrings> = {
     jobErrors: {
       generation_failed: 'Генерация сәтсіз аяқталды. Қайтадан байқап көр.',
       image_generation_failed: 'Комикстің суреттерін жасау сәтсіз аяқталды. Қайтадан байқап көр.',
+      student_text_rejected: 'Сипаттама немесе оқиға басы тексеруден өтпеді. Мәтінді өзгертіп, қайта байқап көр.',
       api: 'Сервер күткендей жауап бермеді. Байланысты тексеріп, қайтадан байқап көр.',
       lost: 'Тапсырма серверде табылмады.',
       unknown: 'Комикс жасау кезінде бірдеңе дұрыс болмады.',
@@ -448,6 +480,8 @@ export const STRINGS: Record<Lang, UiStrings> = {
     fairRoute: {
       title: 'Жәрмеңке бағыты',
       suggested: 'Келесі аялдама',
+      continueSeason: 'Маусымды жалғастыру',
+      lastComic: 'Соңғы ашылған комикс',
       guardianUnlocked: 'Сынақ ашық',
       locations: {
         cafeteria: 'Асхана',
@@ -510,6 +544,16 @@ export const STRINGS: Record<Lang, UiStrings> = {
       savedOn: (date) => `Жасалды: ${date}`,
       unavailable: 'Бұл комиксті жүктеу мүмкін болмады.',
       remove: 'Тізімнен алып тастау',
+      removed: 'Комикс тізімнен алынды.',
+      undo: 'Алып тастауды болдырмау',
+      rename: 'Атауын өзгерту',
+      customTitle: 'Өз атауың (бастапқы атау үшін бос қалдыр)',
+      saveTitle: 'Атауды сақтау',
+      cancel: 'Бас тарту',
+      search: 'Комикс атауы',
+      filter: 'Комикс түрі',
+      all: 'Барлық түрі',
+      noMatches: 'Комикстер табылмады.',
     },
     imageError: 'Сурет жүктелмеді',
   },

@@ -57,6 +57,7 @@ function failureMessage(t: UiStrings, f: JobFailure): string {
   switch (f.kind) {
     case 'job':
       if (f.code === 'image_generation_failed') return t.jobErrors.image_generation_failed
+      if (f.code === 'student_text_rejected') return t.jobErrors.student_text_rejected
       return f.code === 'generation_failed' ? t.jobErrors.generation_failed : t.jobErrors.unknown
     case 'api':
       return t.jobErrors.api

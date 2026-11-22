@@ -83,8 +83,12 @@ def story_for(prompt: str) -> dict:
 class StoryText:
     def __init__(self):
         self.calls = []
+        self.moderation_calls = []
 
     async def generate(self, prompt, schema):
+        if "allowed" in schema["properties"]:
+            self.moderation_calls.append(json.loads(prompt)["student_data"])
+            return {"allowed": True}
         self.calls.append((prompt, schema))
         return story_for(prompt)
 
@@ -250,26 +254,34 @@ def test_prepared_story_uses_cast_portraits_and_placeholders(tmp_path):
         )
         assert checked.json()["status"] == "correct"
     assert len(text.calls) == 1
+    assert text.moderation_calls[0]["heroes"] == STORY["customHeroes"]
 
 
-def test_live_story_draws_only_the_cast_in_the_chosen_style(tmp_path):
+def test_live_story_builds_and_shares_custom_cast_reference(tmp_path):
     images = DeterministicImages()
     api, _, status = run_job(tmp_path, "live", images)
     assert status["status"] == "ready", status
     comic = api.get(f"/api/comics/{status['comicId']}?lang=ru").json()
     assert all(p["imageUrl"].endswith(f"/{p['id']}.png") for p in comic["panels"])
     assert all("placeholder" not in p for p in comic["panels"])
-    assert len(images.calls) == 6
-    for (prompt, reference), scene in zip(images.calls, LIVE_SCENES, strict=True):
+    assert len(images.calls) == 7
+    reference_prompt, reference_input = images.calls[0]
+    assert (
+        reference_input is not None and "Тришка" in reference_prompt and "Luna" in reference_prompt
+    )
+    assert "шестерёнки" in reference_prompt and "сокровищ" not in reference_prompt
+    saved_reference = (tmp_path / "images" / status["comicId"] / "_cast.png").read_bytes()
+    assert api.get(f"/api/comic-images/{status['comicId']}/_cast.png").status_code == 422
+    for (prompt, reference), scene in zip(images.calls[1:], LIVE_SCENES, strict=True):
         assert prompt == my_story_image_prompt(scene, options())
-        assert reference is not None
+        assert reference == saved_reference
 
 
 def test_live_story_resume_reuses_the_story_and_draws_missing_panels(tmp_path):
     settings = Settings(data_dir=tmp_path, art_mode="live")
     api = TestClient(create_app(settings))
     job_id = api.post("/api/comic-jobs", json=REQUEST).json()["jobId"]
-    first = DeterministicImages(fail_at=5)
+    first = DeterministicImages(fail_at=6)
     assert asyncio.run(Worker(Store(tmp_path), StoryText(), first, settings).run_once())
     failed = api.get(f"/api/comic-jobs/{job_id}").json()
     assert failed["status"] == "failed" and failed["progress"]["completedPanels"] == 4
@@ -290,3 +302,21 @@ def test_live_story_resume_reuses_the_story_and_draws_missing_panels(tmp_path):
     assert [prompt for prompt, _ in second.calls] == [
         my_story_image_prompt(scene, options()) for scene in LIVE_SCENES[4:]
     ]
+    assert second.calls[0][1] == first.calls[1][1]
+
+
+def test_rejected_hero_is_never_drawn(tmp_path):
+    settings = Settings(data_dir=tmp_path, art_mode="live")
+    api = TestClient(create_app(settings))
+    job = api.post("/api/comic-jobs", json=REQUEST).json()
+    images = DeterministicImages()
+
+    class Reject:
+        async def generate(self, _prompt, schema):
+            assert "allowed" in schema["properties"]
+            return {"allowed": False}
+
+    assert asyncio.run(Worker(Store(tmp_path), Reject(), images, settings).run_once())
+    status = api.get(f"/api/comic-jobs/{job['jobId']}").json()
+    assert status["errorCode"] == "student_text_rejected"
+    assert not images.calls

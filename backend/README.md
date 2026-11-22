@@ -143,8 +143,9 @@ The worker makes one bilingual text request with the configured story provider (
 when `COMIC_PROVIDER=gemini`). It always reuses the four bundled library panels,
 even if the regular Create Comic flow uses live image generation. The server keeps
 the six pictured loose books and three boxes fixed, chooses the total, and owns the
-equation and answer. Gemini writes dialogue and Pifik's clues. The server adds the
-two mathematical steps to the clues and validates the model's text before publication.
+equation, Pifik's question on panel 3, and the answer. The model writes the other
+dialogue and Pifik's clues. The server adds the two mathematical steps to the clues
+and validates the model's text before publication.
 The comic response identifies the continuation and its prepared panel keys. Its
 exercise uses the existing check and hint endpoints with a whole-number answer.
 

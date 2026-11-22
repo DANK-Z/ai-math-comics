@@ -48,6 +48,10 @@ HINT_STEPS = {
         "Қалған кітаптарды қораптарға тең бөліп есепте.",
     ),
 }
+CONCLUSION = {
+    "ru": "Теперь мы знаем, сколько книг в каждой коробке, и можем разложить их по полкам.",
+    "kk": "Енді әр қорапта неше кітап барын білеміз және оларды сөрелерге қоя аламыз.",
+}
 FEEDBACK = {
     "ru": {
         "correct": "Верно! Ты нашёл число книг в каждой коробке.",
@@ -193,7 +197,7 @@ def episode_payload(comic_id: str, story: LibraryStory, problem: LibraryProblem)
             f"{opening} {text.arrival}",
             f"{discovery} {text.discovery}",
             question,
-            text.ending,
+            f"{text.ending} {CONCLUSION[lang]}",
         )
         comic = Comic(
             id=comic_id,

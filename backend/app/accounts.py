@@ -25,6 +25,7 @@ from .auth import (
     current_student,
     current_teacher,
     current_user,
+    enforce_sign_in_limit,
     hash_password,
     verify_password,
 )
@@ -600,6 +601,7 @@ async def sign_up_teacher(body: TeacherSignup, request: Request, session: Sessio
 @router.post("/auth/login", response_model=AuthResponse)
 async def sign_in(body: LoginRequest, request: Request, session: Session):
     name = body.login.strip().lower()
+    await enforce_sign_in_limit(request, session, name)
     column = User.email if "@" in name else User.login
     user = await session.scalar(select(User).where(column == name))
     if user is None:

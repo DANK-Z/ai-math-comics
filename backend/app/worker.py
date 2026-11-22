@@ -17,7 +17,6 @@ from pydantic import TypeAdapter, ValidationError
 from .config import Settings
 from .gemini import gemini_providers
 from .library_episode import (
-    EXERCISE_PREFIX,
     LibraryProblem,
     LibraryStory,
     LibraryText,
@@ -25,8 +24,10 @@ from .library_episode import (
     library_prompt,
     validate_library_story,
 )
+from .moderation import moderate_student_text
 from .my_story import (
     MyStory,
+    custom_cast_prompt,
     my_story_image_prompt,
     my_story_prompt,
     prepared_portrait,
@@ -55,8 +56,10 @@ from .schemas import (
     PanelPlaceholder,
     StoryOptions,
 )
+from .side_episode import SideProblem, side_payload, side_prompt
 from .storage import Store
 from .story import (
+    TOPIC_ENDING,
     PreparedStory,
     ScenePanel,
     Story,
@@ -144,6 +147,9 @@ class Worker:
                     if not keep_saved_panels:
                         (directory / f"{index}.png").unlink(missing_ok=True)
                     (directory / f"{index}.{claim['owner']}.tmp").unlink(missing_ok=True)
+                if not keep_saved_panels:
+                    (directory / "_cast.png").unlink(missing_ok=True)
+                (directory / f"_cast.{claim['owner']}.tmp").unlink(missing_ok=True)
                 if not any(directory.iterdir()):
                     directory.rmdir()
         status = self.store.job(claim["id"])
@@ -154,20 +160,32 @@ class Worker:
         request = QUEUED_REQUEST.validate_json(claim["request"])
         inputs = json.loads(claim["problem"])
         if isinstance(request, ContinuationRequest):
-            problem = LibraryProblem(**inputs)
+            if request.premise:
+                await moderate_student_text(self.text, {"premise": request.premise})
+            if request.choiceId == "library-cabinet-key":
+                library_problem = LibraryProblem(**inputs)
+                prompt = library_prompt(request, library_problem)
+            else:
+                side_problem = SideProblem(**inputs)
+                prompt = side_prompt(request, side_problem)
             story = await self.generate_story(
-                library_prompt(request, problem),
+                prompt,
                 LibraryStory.model_json_schema(),
                 validate_library_story,
             )
-            payload, hints = episode_payload(comic_id, story, problem)
+            if request.choiceId == "library-cabinet-key":
+                payload, hints = episode_payload(comic_id, story, library_problem)
+                expected = library_problem.expected
+            else:
+                payload, hints = side_payload(comic_id, request, story, side_problem)
+                expected = side_problem.answer(request.choiceId)
             self.store.begin_panels(claim, len(payload["ru"]["panels"]))
             self.store.publish(
                 claim,
                 comic_id,
                 payload,
-                f"{EXERCISE_PREFIX}{comic_id}",
-                str(problem.expected),
+                payload["ru"]["exercise"]["id"],
+                str(expected),
                 hints,
             )
             return
@@ -185,9 +203,19 @@ class Worker:
         checkpoint = claim["storyboard"]
         prepared = self.settings.art_mode == "prepared" and checkpoint is None
         options = request.story  # «Моя история» options, or None for a classic comic
+        if options is not None and checkpoint is None:
+            student_data = {
+                "heroes": [hero.model_dump() for hero in options.customHeroes],
+                "setting": options.customSetting,
+                "premise": options.premise,
+            }
+            if any(student_data.values()):
+                await moderate_student_text(self.text, student_data)
         if prepared and not all((ART_DIR / file).is_file() for _, file, _ in PREPARED_PANELS):
             raise ProviderError("generation_failed", stage="prepared_art_missing")
-        cached = await self.cached_story(request, problem, prepared) if checkpoint is None else None
+        custom_art = bool(options and options.customHeroes and not prepared)
+        cache_allowed = checkpoint is None
+        cached = await self.cached_story(request, problem, prepared) if cache_allowed else None
         if cached is not None:
             story, hit = cached
             # Nothing to write or draw: the story and pictures are reused, the math is new.
@@ -215,11 +243,23 @@ class Worker:
         else:
             story = validate_story(json.loads(checkpoint), problem)
         topic = problem.topic
+        directory = self.store.images_dir / comic_id
+        # Jobs drawn by an older worker have no private cast reference file. Their already
+        # saved panels still determine the visual style of the remainder.
+        legacy_art = (
+            custom_art
+            and checkpoint is not None
+            and not (directory / "_cast.png").exists()
+            and any((directory / f"{i}.png").exists() for i in range(1, 7))
+        )
+        cast_prompt = (
+            custom_cast_prompt(options) if options and custom_art and not legacy_art else None
+        )
 
         def scene_prompt(scene: str) -> str:
             if options is None:
                 return image_prompt(scene, topic)
-            return my_story_image_prompt(scene, options, topic)
+            return my_story_image_prompt(scene, options, topic, custom_reference=not legacy_art)
 
         if cached is not None:
             aspects = hit.aspects
@@ -228,7 +268,9 @@ class Worker:
             aspects = (
                 {}
                 if prepared
-                else await self.render_live_images(claim, comic_id, story.ru.panels, scene_prompt)
+                else await self.render_live_images(
+                    claim, comic_id, story.ru.panels, scene_prompt, cast_prompt=cast_prompt
+                )
             )
             image_owner = comic_id
 
@@ -264,6 +306,11 @@ class Worker:
                 panels = my_story_panels(
                     comic_id, localized.panels, options, prepared, aspects, image_owner
                 )
+            # Close the story with the consequence of solving its problem. The last panel
+            # is gated by the reader and the ending never reaches the image provider.
+            conclusion = TOPIC_ENDING[topic][lang]
+            if conclusion.casefold() not in panels[-1].text.casefold():
+                panels[-1].text = f"{panels[-1].text} {conclusion}"
             comic = Comic(
                 id=comic_id,
                 lang=lang,
@@ -305,7 +352,7 @@ class Worker:
             skill=problem.skill,
             round_skills=[p.skill for p in extra],
         )
-        if self.cache is not None and cached is None and checkpoint is None:
+        if self.cache is not None and cached is None and cache_allowed:
             await self.cache.remember(
                 request,
                 self.settings.art_mode,
@@ -408,6 +455,8 @@ class Worker:
         comic_id: str,
         panels: Sequence[ScenePanel],
         scene_prompt: Callable[[str], str] = image_prompt,
+        *,
+        cast_prompt: str | None = None,
     ) -> dict[int, float]:
         if self.image is None:
             raise ProviderError("image_generation_failed", stage="image:provider_missing")
@@ -419,6 +468,21 @@ class Worker:
             ) from None
         directory = self.store.images_dir / comic_id
         directory.mkdir(exist_ok=True)
+        if cast_prompt is not None:
+            saved_cast = directory / "_cast.png"
+            temporary_cast = directory / f"_cast.{claim['owner']}.tmp"
+            try:
+                if saved_cast.is_file():
+                    reference = normalize_png(saved_cast.read_bytes())
+                else:
+                    reference = normalize_png(await self.image.generate(cast_prompt, reference))
+                    temporary_cast.write_bytes(reference)
+                    temporary_cast.replace(saved_cast)
+            except (ProviderError, OSError) as exc:
+                stage = (exc.stage or exc.code) if isinstance(exc, ProviderError) else "save_failed"
+                raise ProviderError(
+                    "image_generation_failed", stage=f"image:cast_reference:{stage}"
+                ) from None
         aspects = {}
         for panel in panels:
             saved = directory / f"{panel.id}.png"

@@ -4,8 +4,8 @@ SQLAlchemy async. PostgreSQL in development/production (``DATABASE_URL``, see
 docker-compose.yml); without it the API falls back to ``data/accounts.sqlite3`` so tests and a
 quick demo need no server. The comic job queue stays in ``storage.Store`` (SQLite).
 
-Tables are created with ``create_all`` on first use. There are no migrations yet: before the
-first real pilot, add Alembic instead of changing tables in place.
+Development can create tables on first use. With migration enforcement enabled, the API
+requires the account database to be at the current Alembic revision.
 """
 
 import asyncio
@@ -14,6 +14,9 @@ from collections.abc import AsyncIterator
 from datetime import UTC, datetime
 from pathlib import Path
 
+from alembic.config import Config
+from alembic.runtime.migration import MigrationContext
+from alembic.script import ScriptDirectory
 from sqlalchemy import (
     JSON,
     Boolean,
@@ -131,20 +134,42 @@ class BossResult(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
+class SignInWindow(Base):
+    """Shared sign-in counters. Keys contain a digest, with no stored login or IP."""
+
+    __tablename__ = "sign_in_windows"
+
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    expires_at: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    attempts: Mapped[int] = mapped_column(Integer)
+
+
 class Database:
-    def __init__(self, url: str):
+    def __init__(self, url: str, *, require_migrations: bool = False):
         sqlite = url.startswith("sqlite")
         # SQLite: no pool, so each event loop (tests, TestClient) gets fresh connections.
         options = {"poolclass": NullPool} if sqlite else {"pool_pre_ping": True}
         self.engine = create_async_engine(url, **options)
         self.sessions = async_sessionmaker(self.engine, expire_on_commit=False)
+        self.require_migrations = require_migrations
         self._ready = False
 
     async def ensure_schema(self):
         if self._ready:
             return
         async with self.engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
+            if self.require_migrations:
+                config = Config(Path(__file__).resolve().parents[1] / "alembic.ini")
+                expected = set(ScriptDirectory.from_config(config).get_heads())
+                current = await conn.run_sync(
+                    lambda db: set(MigrationContext.configure(db).get_current_heads())
+                )
+                if current != expected:
+                    raise RuntimeError(
+                        "Account database migrations required: run alembic upgrade head"
+                    )
+            else:
+                await conn.run_sync(Base.metadata.create_all)
         self._ready = True
 
     async def session(self) -> AsyncIterator[AsyncSession]:

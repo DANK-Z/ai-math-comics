@@ -210,7 +210,7 @@ Signed-in users send `Authorization: Bearer <token>` (HS256 JWT, 12 h by default
 | --- | --- | --- |
 | `POST /api/auth/students` | anyone | `{"login","password","displayName","classCode"?}` → 201 `{token,user}`. Login: 3–24 of `a-z 0-9 _ . -` (stored lowercase), password 8–72, name without digits. 409 `login_taken`, 404 `class_not_found`. |
 | `POST /api/auth/teachers` | anyone | `{"email","password","displayName"}` → 201 `{token,user}`. 409 `email_taken`. |
-| `POST /api/auth/login` | anyone | `{"login","password"}` (a student login or a teacher e-mail) → `{token,user}`. 401 `wrong_login_or_password`. |
+| `POST /api/auth/login` | anyone | `{"login","password"}` (a student login or a teacher e-mail) → `{token,user}`. 401 `wrong_login_or_password`. 429 `sign_in_rate_limited` includes a `Retry-After` header in seconds. |
 | `GET /api/me` | signed in | `{id, role, displayName, login?, email?, schoolClass?, profile?}`; students get `profile {coins, stars, completedChapters, stickers, items}`. |
 | `POST /api/me/class` | student | `{"code":"KOKSH-5A-2026"}` → `Me` (joins the class). |
 | `PUT /api/me/progress` | student | `{"completedChapters":[…],"stickers":[…]}` → `Me`. Merged as a union: progress never shrinks. |
@@ -250,20 +250,31 @@ Panel illustrations are pictures and do not change.
 {"sourceChapterId":"school-quest-map","choiceId":"library-cabinet-key","locale":"kk"}
 ```
 
-Only this chapter and choice pair is supported. `locale` is `ru` or `kk`; each
-episode is available in both. Extra fields are rejected. The server resolves the
-story context and chooses the equation operands. The endpoint returns the regular
-HTTP 202 job response and uses the same job status URL.
+The source chapter is always `school-quest-map`. Supported `choiceId` values are
+`library-cabinet-key`, `new-route-note`, `fair-attraction-ticket`, and `free-premise`.
+The last choice requires a student-authored `premise` of up to 280 characters;
+other choices reject this field. `locale` is `ru` or `kk` and the episode is available
+in both. The server chooses the exercise operands and never exposes the expected
+answer. The endpoint returns the regular HTTP 202 response and uses the same job
+status URL. For a free premise the worker checks the student text before requesting
+story generation. A rejected premise fails with `student_text_rejected`.
 
-Ready episodes use the same comic endpoint. They have four panels with bundled
-artwork (`imageKey` values `library-boxes-1` through `library-boxes-4`), no
-`imageUrl`, and `"artwork":"prepared"`. The response includes
+Ready episodes use the same comic endpoint. They have four panels and
+`"artwork":"prepared"`. The library and map choices use the corresponding bundled
+chapter panels in the reader. The ticket and free choices reuse prepared cast
+portraits through `imageUrl`. No image provider is called for continuations.
+The response includes
 `continuation: { sourceChapterId, choiceId, nextChapterId }`, with
 `nextChapterId` set to `library-boxes`.
 
 The exercise is on panel 3 with `"answerFormat":"whole-number"`. It uses the
 existing check and hint endpoints; the answer is still sent as a string, and
 the expected answer stays on the server.
+
+For `POST /api/comic-jobs` with My Story inputs, the worker checks the student text
+before story or artwork generation. Live artwork uses one private reference sheet
+for the custom and selected characters and applies it to all six panels. An image
+resume reuses that sheet. Prepared artwork still uses placeholders for custom heroes.
 
 See [backend setup and provider configuration](../backend/README.md).
 

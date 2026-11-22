@@ -59,9 +59,14 @@ class Boss(BaseModel):
     rounds: list[BossRound]
 
 
+ContinuationChoice = Literal[
+    "library-cabinet-key", "new-route-note", "fair-attraction-ticket", "free-premise"
+]
+
+
 class ContinuationContext(BaseModel):
     sourceChapterId: Literal["school-quest-map"]
-    choiceId: Literal["library-cabinet-key"]
+    choiceId: ContinuationChoice
     nextChapterId: Literal["library-boxes"]
 
 
@@ -132,8 +137,8 @@ class CustomHero(BaseModel):
     @field_validator("name")
     @classmethod
     def _non_empty(cls, value: str) -> str:
-        if not value:
-            raise ValueError("name is required")
+        if not any(ch.isalpha() for ch in value):
+            raise ValueError("name must contain a letter")
         return value
 
 
@@ -189,8 +194,19 @@ class ContinuationRequest(BaseModel):
     model_config = {"extra": "forbid"}
 
     sourceChapterId: Literal["school-quest-map"]
-    choiceId: Literal["library-cabinet-key"]
+    choiceId: ContinuationChoice
     locale: Language
+    premise: str | None = Field(default=None, max_length=280)
+
+    @model_validator(mode="after")
+    def check_premise(self):
+        if self.choiceId == "free-premise":
+            self.premise = clean_student_text(self.premise or "")
+            if not any(ch.isalpha() for ch in self.premise):
+                raise ValueError("a story premise is required")
+        elif self.premise is not None:
+            raise ValueError("a premise is only allowed for the free choice")
+        return self
 
 
 ErrorCode = Literal[
@@ -201,6 +217,7 @@ ErrorCode = Literal[
     "provider_unavailable",
     "invalid_provider_output",
     "image_generation_failed",
+    "student_text_rejected",
     "job_timeout",
     "worker_interrupted",
     "generation_failed",

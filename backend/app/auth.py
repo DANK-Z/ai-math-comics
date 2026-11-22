@@ -5,17 +5,22 @@ e-mail and password. Tokens are short HS256 JWTs signed with ``JWT_SECRET``; the
 only the user id and role. Passwords are hashed with Argon2 (pwdlib).
 """
 
+import hmac
 import secrets
 from datetime import UTC, datetime, timedelta
+from time import time
 from typing import Annotated
 
 import jwt
 from fastapi import Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pwdlib import PasswordHash
+from sqlalchemy import delete
+from sqlalchemy.dialects.postgresql import insert as postgres_insert
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .db import Database, Role, User
+from .db import Database, Role, SignInWindow, User
 
 ALGORITHM = "HS256"
 password_hash = PasswordHash.recommended()
@@ -35,6 +40,34 @@ def verify_password(password: str, hashed: str) -> bool:
 
 # Spent on unknown logins too, so response time does not reveal which logins exist.
 DUMMY_HASH = hash_password(secrets.token_urlsafe(16))
+
+
+async def enforce_sign_in_limit(request: Request, session: AsyncSession, login: str) -> None:
+    """Reserve an attempt before verifying any password, including for unknown logins."""
+    ip = request.client.host if request.client else "unknown"
+    insert = sqlite_insert if session.get_bind().dialect.name == "sqlite" else postgres_insert
+    secret = request.app.state.jwt_secret.encode()
+    now = int(time())
+    retry_after = None
+
+    async with session.begin():
+        await session.execute(delete(SignInWindow).where(SignInWindow.expires_at <= now))
+        # Students at a school may share an IP. Give the network more room than each login.
+        for label, duration, limit in ((f"ip\0{ip}", 60, 60), (f"login\0{ip}\0{login}", 300, 8)):
+            key = hmac.digest(secret, label.encode(), "sha256").hex()
+            expires = (now // duration + 1) * duration
+            stmt = insert(SignInWindow).values(key=key, expires_at=expires, attempts=1)
+            stmt = stmt.on_conflict_do_update(
+                index_elements=[SignInWindow.key, SignInWindow.expires_at],
+                set_={"attempts": SignInWindow.attempts + 1},
+                where=SignInWindow.attempts < limit,
+            ).returning(SignInWindow.attempts)
+            if (await session.execute(stmt)).scalar_one_or_none() is None:
+                retry_after = expires - now
+                break
+
+    if retry_after is not None:
+        raise HTTPException(429, "sign_in_rate_limited", headers={"Retry-After": str(retry_after)})
 
 
 def create_token(user: User, secret: str, lifetime: timedelta) -> str:

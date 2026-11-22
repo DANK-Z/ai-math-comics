@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { parseGuardianAssignment, type GuardianAssignment } from './guardianAssignment'
 
 export const SECTION_HREFS = {
   map: '#/',
@@ -7,6 +8,7 @@ export const SECTION_HREFS = {
   backpack: '#/backpack',
   guardian: '#/guardian',
   roadGuardian: '#/road-guardian',
+  motionLeague: '#/motion-league',
   create: '#/create',
   login: '#/login',
   profile: '#/profile',
@@ -19,6 +21,7 @@ export type Route =
   | { name: Section }
   | { name: 'comic'; comicId: string; ending: boolean; replay: string | null }
   | { name: 'teacherClass'; classId: number }
+  | { name: 'guardianAssignment'; assignment: GuardianAssignment }
 export const GUARDIAN_HREF = SECTION_HREFS.guardian
 
 export const DEMO_COMIC_ID = 'pizza-fractions'
@@ -29,6 +32,8 @@ export const LEMONADE_COMIC_ID = 'fair-lemonade'
 export const GARLAND_COMIC_ID = 'fair-garland'
 
 export function parseRoute(hash: string): Route {
+  const assignment = parseGuardianAssignment(hash)
+  if (assignment) return { name: 'guardianAssignment', assignment }
   for (const section of Object.keys(SECTION_HREFS) as Section[]) {
     if (hash === SECTION_HREFS[section]) return { name: section }
   }

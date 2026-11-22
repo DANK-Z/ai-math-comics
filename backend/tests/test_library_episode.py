@@ -138,7 +138,7 @@ def test_provider_failure_and_output_validation_are_terminal(tmp_path, caplog):
     assert (
         client.post(
             "/api/continuation-jobs",
-            json=REQUEST | {"choiceId": "new-route-note"},
+            json=REQUEST | {"choiceId": "unknown"},
         ).status_code
         == 422
     )
@@ -173,3 +173,80 @@ def test_provider_failure_and_output_validation_are_terminal(tmp_path, caplog):
             assert bool(status["comicId"]) == (error is None)
     assert "kk.secondHint:no_numeric_characters_or_math_symbols" in caplog.text
     assert "Жауабы" not in caplog.text
+
+
+@pytest.mark.parametrize("choice", ["new-route-note", "fair-attraction-ticket", "free-premise"])
+def test_side_episode_math_and_moderation(tmp_path, choice):
+    settings = Settings(data_dir=tmp_path, art_mode="live")
+    app = create_app(settings)
+    client = TestClient(app)
+    data = REQUEST | {"choiceId": choice}
+    if choice == "free-premise":
+        data["premise"] = "Друзья услышали музыку у флажков."
+    calls = []
+
+    class Provider:
+        async def generate(self, prompt, schema):
+            content = json.loads(prompt)
+            calls.append(content)
+            if "allowed" in schema["properties"]:
+                assert content["student_data"] == {"premise": data["premise"]}
+                return {"allowed": True}
+            assert content["branch"] == choice
+            assert content["student_input"] == data.get("premise")
+            return STORY
+
+    accepted = client.post("/api/continuation-jobs", json=data)
+    assert accepted.status_code == 202
+    worker = Worker(app.state.store, Provider(), NoImages(), settings)
+    assert asyncio.run(worker.run_once())
+    status = client.get(f"/api/comic-jobs/{accepted.json()['jobId']}").json()
+    assert status["status"] == "ready"
+    assert len(calls) == (2 if "premise" in data else 1)
+    a, b = (calls[-1]["fixed_problem_inputs"][name] for name in ("a", "b"))
+    expected = a * (100 - b) // 100 if choice == "fair-attraction-ticket" else a * b
+    for lang in ("ru", "kk"):
+        comic = client.get(f"/api/comics/{status['comicId']}?lang={lang}").json()
+        assert comic["continuation"]["choiceId"] == choice
+        assert len(comic["panels"]) == 4
+        exercise = comic["exercise"]
+        assert str(a) in exercise["prompt"] and str(b) in exercise["prompt"]
+        for step in (1, 2):
+            hint = client.get(f"/api/exercises/{exercise['id']}/hints?step={step}&lang={lang}")
+            assert hint.status_code == 200
+        for answer, outcome in ((expected - 1, "incorrect"), (expected, "correct")):
+            checked = client.post(
+                f"/api/exercises/{exercise['id']}/check", json={"answer": str(answer), "lang": lang}
+            )
+            assert checked.json()["status"] == outcome
+
+
+def test_free_episode_rejection_never_starts_story(tmp_path):
+    app = create_app(Settings(data_dir=tmp_path, art_mode="prepared"))
+    client = TestClient(app)
+    calls = []
+
+    class Provider:
+        async def generate(self, prompt, schema):
+            assert "allowed" in schema["properties"]
+            calls.append(prompt)
+            return {"allowed": False}
+
+    data = REQUEST | {"choiceId": "free-premise"}
+    assert client.post("/api/continuation-jobs", json=data).status_code == 422
+    assert (
+        client.post(
+            "/api/continuation-jobs", json=data | {"premise": "https://example.test"}
+        ).status_code
+        == 422
+    )
+    job = client.post(
+        "/api/continuation-jobs", json=data | {"premise": "Завязка для проверки."}
+    ).json()
+    assert asyncio.run(
+        Worker(app.state.store, Provider(), NoImages(), app.state.settings).run_once()
+    )
+    assert len(calls) == 1
+    status = client.get(f"/api/comic-jobs/{job['jobId']}").json()
+    assert status["status"] == "failed" and status["errorCode"] == "student_text_rejected"
+    assert status["comicId"] is None

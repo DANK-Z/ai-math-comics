@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { Lang } from '../api'
 import { SCHOOL_MAP } from '../api/fairChapters'
+import type { BonusSticker } from '../bonusPuzzles'
 import { CONTINUATION_COPY, type ContinuationJob } from '../continuation'
 import { useComic } from '../hooks'
 import { STRINGS } from '../i18n'
+import { readReadingProgress, startReadingReplay, updateReadingProgress } from '../readingProgress'
 import { comicHref, DEMO_COMIC_ID, SECTION_HREFS } from '../route'
 import type { SchoolFairCollectible } from '../schoolFair'
 import { ComicReader } from './ComicReader'
@@ -11,22 +13,49 @@ import { ComicReader } from './ComicReader'
 const BRANCH_LINK = 'inline-flex min-h-11 items-center rounded-2xl border-2 border-ink bg-white px-3 font-black text-ink focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun'
 
 /** One comic (demo or generated). Mounted per comicId, so reader state resets between comics. */
-export function ReaderScreen({ comicId, lang, onChapterComplete, onEarnPriceTagSticker, continuationJob, chapterThreeSolved, openEnding, backTo = 'comics', replay = false }: {
+export function ReaderScreen({ comicId, lang, onChapterComplete, onEarnBonusSticker, continuationJob, chapterThreeSolved, openEnding, backTo = 'comics', replay, rememberReading, onOpen }: {
   comicId: string
   lang: Lang
   onChapterComplete: (comicId: string) => SchoolFairCollectible | null
-  onEarnPriceTagSticker: () => boolean
+  onEarnBonusSticker: (id: BonusSticker) => boolean
   continuationJob: ContinuationJob
   chapterThreeSolved: boolean
   openEnding: boolean
   /** Section the back link returns to: the catalog, or My Comics for saved generated comics. */
   backTo?: 'comics' | 'myComics'
   /** Opened with a Replay link. */
-  replay?: boolean
+  replay: string | null
+  rememberReading: boolean
+  onOpen: (comicId: string) => void
 }) {
   const t = STRINGS[lang]
-  const [index, setIndex] = useState(() => openEnding && chapterThreeSolved ? SCHOOL_MAP.panels.length - 1 : 0)
+  const [initial] = useState(() => {
+    const saved = rememberReading ? readReadingProgress(comicId) : null
+    const fresh = replay !== null && replay !== saved?.replay
+    return { fresh, saved: fresh ? null : saved }
+  })
+  const [index, setIndex] = useState(() => openEnding && chapterThreeSolved ? SCHOOL_MAP.panels.length - 1 : initial.saved?.index ?? 0)
+  const [savedSolved, setSavedSolved] = useState(initial.saved?.solved ?? false)
   const { data: comic, loading, error, errorDetail, retry } = useComic(comicId, lang)
+  const loadedId = comic?.id
+  useEffect(() => {
+    if (loadedId === comicId) onOpen(comicId)
+  }, [comicId, loadedId, onOpen])
+  useEffect(() => {
+    if (rememberReading && replay && initial.fresh) startReadingReplay(comicId, replay)
+  }, [comicId, rememberReading, replay, initial.fresh])
+
+  const finishChapter = useCallback((id: string) => {
+    if (rememberReading) {
+      setSavedSolved(true)
+      updateReadingProgress(id, { solved: true })
+    }
+    return onChapterComplete(id)
+  }, [onChapterComplete, rememberReading])
+  const changePanel = useCallback((next: number) => {
+    setIndex(next)
+    if (rememberReading) updateReadingProgress(comicId, { index: next })
+  }, [comicId, rememberReading])
 
   return (
     <div className="flex flex-col gap-4" aria-busy={loading}>
@@ -68,9 +97,11 @@ export function ReaderScreen({ comicId, lang, onChapterComplete, onEarnPriceTagS
 
       {comic && (
         <div className={loading ? 'opacity-60 transition-opacity' : 'transition-opacity'}>
-          <ComicReader comic={comic} lang={lang} index={index} onIndexChange={setIndex}
-            onChapterComplete={onChapterComplete} onEarnPriceTagSticker={onEarnPriceTagSticker}
-            continuationJob={continuationJob} chapterThreeSolved={chapterThreeSolved} replay={replay} />
+          <ComicReader comic={comic} lang={lang} index={index} onIndexChange={changePanel}
+            onChapterComplete={finishChapter} onEarnBonusSticker={onEarnBonusSticker}
+            continuationJob={continuationJob} chapterThreeSolved={chapterThreeSolved}
+            replay={initial.fresh} syncBossProgress={replay === null && !initial.saved?.replay}
+            rememberReading={rememberReading} savedSolved={savedSolved} />
         </div>
       )}
     </div>

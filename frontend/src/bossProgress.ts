@@ -33,11 +33,15 @@ function write(comicId: string, progress: Progress) {
 }
 
 /** `fresh` (a Replay link) starts from round one and ignores saved progress. */
-export function useBossProgress(comicId: string, enabled: boolean, fresh: boolean) {
+export function useBossProgress(comicId: string, enabled: boolean, fresh: boolean, syncRemote: boolean) {
   const [progress, setProgress] = useState<Progress>(() => (enabled && !fresh ? read(comicId) : { cleared: 0, misses: 0 }))
   const latest = useRef(progress)
   const { user } = useAccount()
   const studentId = user?.role === 'student' ? user.id : null
+
+  useEffect(() => {
+    if (enabled && fresh) write(comicId, { cleared: 0, misses: 0 })
+  }, [comicId, enabled, fresh])
 
   const update = useCallback(
     (next: Progress) => {
@@ -49,7 +53,7 @@ export function useBossProgress(comicId: string, enabled: boolean, fresh: boolea
   )
 
   useEffect(() => {
-    if (!enabled || fresh || studentId === null || API_MODE !== 'live') return
+    if (!enabled || fresh || !syncRemote || studentId === null || API_MODE !== 'live') return
     const ctrl = new AbortController()
     accounts.bossState(comicId, ctrl.signal).then(
       (server) => {
@@ -67,7 +71,7 @@ export function useBossProgress(comicId: string, enabled: boolean, fresh: boolea
       },
     )
     return () => ctrl.abort()
-  }, [comicId, enabled, fresh, studentId, update])
+  }, [comicId, enabled, fresh, syncRemote, studentId, update])
 
   const roundCleared = useCallback(() => {
     const next = { ...latest.current, cleared: latest.current.cleared + 1 }

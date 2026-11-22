@@ -3,11 +3,12 @@ import { BOSS_COPY } from '../boss'
 import { useBossProgress } from '../bossProgress'
 import type { Comic, Lang } from '../api'
 import { PANEL_ASPECT } from '../art/sheet'
+import { chapterBonus, type BonusSticker } from '../bonusPuzzles'
 import { CHARACTERS } from '../characters'
 import type { ContinuationJob } from '../continuation'
 import { useAnswerCheck } from '../hooks'
 import { STRINGS } from '../i18n'
-import { comicHref, DEMO_COMIC_ID, GARLAND_COMIC_ID, GUARDIAN_HREF, SCHOOL_MAP_COMIC_ID, SCHOOL_STORE_COMIC_ID, SECTION_HREFS } from '../route'
+import { comicHref, DEMO_COMIC_ID, GARLAND_COMIC_ID, GUARDIAN_HREF, SCHOOL_MAP_COMIC_ID, SECTION_HREFS } from '../route'
 import { schoolFairChapter, type SchoolFairCollectible } from '../schoolFair'
 import { BossFight } from './BossFight'
 import { CastCard } from './CastCard'
@@ -15,7 +16,7 @@ import { Continuation } from './Continuation'
 import { ExerciseCard } from './ExerciseCard'
 import { PanelArt } from './PanelArt'
 import { PifikHints } from './PifikHints'
-import { PriceTagBonus } from './PriceTagBonus'
+import { BonusPuzzle } from './BonusPuzzle'
 
 // Panels after the exercise panel stay locked until the answer is correct,
 // so later panels don't spoil the solution.
@@ -27,17 +28,20 @@ interface Props {
   index: number
   onIndexChange: (i: number) => void
   onChapterComplete: (comicId: string) => SchoolFairCollectible | null
-  onEarnPriceTagSticker: () => boolean
+  onEarnBonusSticker: (id: BonusSticker) => boolean
   continuationJob: ContinuationJob
   chapterThreeSolved: boolean
   /** Opened with a Replay link: the boss fight starts from round one. */
   replay?: boolean
+  syncBossProgress: boolean
+  rememberReading: boolean
+  savedSolved: boolean
 }
 
 const BTN =
   'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-2xl border-[3px] border-ink px-4 py-2 font-black shadow-[0_4px_0_var(--color-ink)] transition active:translate-y-[3px] active:shadow-[0_1px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none'
 
-export function ComicReader({ comic, lang, index, onIndexChange, onChapterComplete, onEarnPriceTagSticker, continuationJob, chapterThreeSolved, replay = false }: Props) {
+export function ComicReader({ comic, lang, index, onIndexChange, onChapterComplete, onEarnBonusSticker, continuationJob, chapterThreeSolved, replay = false, syncBossProgress, rememberReading, savedSolved }: Props) {
   const t = STRINGS[lang]
   const comicId = comic.id
   const [reward, setReward] = useState<SchoolFairCollectible | null>(null)
@@ -48,7 +52,7 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
   const check = useAnswerCheck(comic.exercise.id, lang, onCorrect)
   // Generated comics fight a boss on the exercise panel: every round must be won.
   const boss = comic.boss
-  const bossProgress = useBossProgress(comicId, !!boss, replay)
+  const bossProgress = useBossProgress(comicId, !!boss, replay, syncBossProgress)
   const bossCleared = boss ? Math.min(bossProgress.cleared, boss.rounds.length) : 0
   const bossDefeated = !!boss && bossCleared >= boss.rounds.length
   const { roundCleared } = bossProgress
@@ -56,7 +60,7 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
     const next = roundCleared()
     if (boss && next >= boss.rounds.length) onCorrect()
   }, [boss, roundCleared, onCorrect])
-  const exerciseSolved = boss ? bossDefeated : check.solved
+  const exerciseSolved = boss ? bossDefeated : check.solved || savedSolved
   const hintExerciseId = boss ? boss.rounds[Math.min(bossCleared, boss.rounds.length - 1)].exerciseId : comic.exercise.id
   const solved = exerciseSolved || chapterThreeSolved
   const total = comic.panels.length
@@ -72,6 +76,7 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
   const locked = current === maxIndex && maxIndex < total - 1
   const justUnlocked = exerciseSolved && isExercisePanel && current < total - 1
   const ending = solved && current === total - 1 ? schoolFairChapter(comic.id) : undefined
+  const bonusSticker = ending ? chapterBonus(comicId) : undefined
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -134,7 +139,7 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
               {comicId === GARLAND_COMIC_ID && (
                 <a href={GUARDIAN_HREF} className={`${BTN} w-full bg-white sm:w-auto`}>{t.guardian.title}</a>
               )}
-              {comicId === SCHOOL_STORE_COMIC_ID && <PriceTagBonus lang={lang} onEarnSticker={onEarnPriceTagSticker} />}
+              {bonusSticker && <BonusPuzzle sticker={bonusSticker} lang={lang} onEarnSticker={onEarnBonusSticker} />}
               {comicId === SCHOOL_MAP_COMIC_ID && ending.nextComicId && (
                 <Continuation
                   sourceChapterId={SCHOOL_MAP_COMIC_ID}
@@ -237,13 +242,14 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
             misses={bossProgress.misses} onMiss={bossProgress.miss}
             onReadOn={exerciseIndex + 1 < total ? () => onIndexChange(exerciseIndex + 1) : undefined} />
         ) : (
-          <ExerciseCard exercise={comic.exercise} lang={lang} check={check} reward={reward} />
+          <ExerciseCard exercise={comic.exercise} lang={lang} check={{ ...check, solved: exerciseSolved }} reward={reward} />
         )}
       </div>
       <div hidden={!showSidebar} className="min-w-0 xl:sticky xl:top-5 xl:col-start-2 xl:row-span-2 xl:row-start-1">
         <aside hidden={!showHints} aria-label={t.navigation.hints} className="rounded-2xl border-2 border-ink bg-cream p-3 shadow-[0_3px_0_var(--color-ink)] sm:p-4">
           <h2 className="mb-3 text-base font-black">{t.navigation.hints}</h2>
-          <PifikHints key={hintExerciseId} exerciseId={hintExerciseId} lang={lang} />
+          <PifikHints key={hintExerciseId} exerciseId={hintExerciseId} lang={lang} mapHints={comicId === SCHOOL_MAP_COMIC_ID}
+            structured={!!schoolFairChapter(comicId)} savedComicId={rememberReading ? comicId : undefined} />
         </aside>
         <div hidden={!showCast} className={showHints ? 'mt-5' : undefined}>
           {showCast && <CastCard lang={lang} activeSpeaker={panel.speaker} compact={isExercisePanel} />}

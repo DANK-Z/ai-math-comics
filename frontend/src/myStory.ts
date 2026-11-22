@@ -50,7 +50,7 @@ export function cleanText(value: string) {
   return value.normalize('NFKC').replace(/\s+/g, ' ').trim()
 }
 
-function textError(value: string): StoryError | undefined {
+export function textError(value: string): StoryError | undefined {
   if (/\p{N}/u.test(value) || !ALLOWED.test(value) || LINK.test(value)) return 'chars'
   return undefined
 }
@@ -62,7 +62,7 @@ export function validateStory(draft: StoryDraft): { errors: StoryErrors; options
   const customHeroes = draft.customHeroes.map((hero, i) => {
     const name = cleanText(hero.name)
     const description = cleanText(hero.description)
-    if (!name) errors[`hero-${i}-name`] = 'required'
+    if (!/\p{L}/u.test(name)) errors[`hero-${i}-name`] = 'required'
     else if (textError(name)) errors[`hero-${i}-name`] = 'chars'
     else if (names.has(name.toLocaleLowerCase()) || RESERVED.has(name.toLocaleLowerCase())) errors[`hero-${i}-name`] = 'duplicate'
     names.add(name.toLocaleLowerCase())
@@ -107,6 +107,7 @@ export const STORY_COPY: Record<
     removeHero: string
     heroLimit: string
     customHeroNote: string
+    liveHeroNote: string
     styleTitle: string
     styles: Record<StoryStyle, string>
     preparedStyleNote: string
@@ -132,11 +133,12 @@ export const STORY_COPY: Record<
     heroN: (n) => `Свой герой ${n}`,
     heroName: 'Имя',
     heroNamePlaceholder: 'например, Робот Шестерёнка',
-    heroDescription: 'Какой он?',
-    heroDescriptionPlaceholder: 'например, любит собирать шестерёнки',
+    heroDescription: 'Как герой выглядит?',
+    heroDescriptionPlaceholder: 'например, медный робот с зелёными глазами',
     removeHero: 'Убрать героя',
     heroLimit: 'Можно добавить до двух своих героев.',
     customHeroNote: 'Свои герои говорят в репликах, а на картинках их пока заменяет заставка.',
+    liveHeroNote: 'После проверки текста Пифик создаст образ героя и использует его во всех кадрах.',
     styleTitle: 'Стиль комикса',
     styles: { comic: 'Яркий комикс', cartoon: 'Мультфильм', pixel: 'Пиксель-арт' },
     preparedStyleNote: 'Сейчас включены готовые иллюстрации: стиль применится, когда включат живую графику.',
@@ -165,11 +167,12 @@ export const STORY_COPY: Record<
     heroN: (n) => `Өз кейіпкерім ${n}`,
     heroName: 'Аты',
     heroNamePlaceholder: 'мысалы, Тетік атты робот',
-    heroDescription: 'Ол қандай?',
-    heroDescriptionPlaceholder: 'мысалы, тісті доңғалақ жинағанды жақсы көреді',
+    heroDescription: 'Кейіпкер қалай көрінеді?',
+    heroDescriptionPlaceholder: 'мысалы, жасыл көзді мыс робот',
     removeHero: 'Кейіпкерді алып тастау',
     heroLimit: 'Екі кейіпкерге дейін қосуға болады.',
     customHeroNote: 'Өз кейіпкерлерің сөйлейді, ал суреттерде әзірге олардың орнына заставка тұрады.',
+    liveHeroNote: 'Мәтінді тексергеннен кейін Пифик кейіпкердің бейнесін жасап, оны барлық кадрда қолданады.',
     styleTitle: 'Комикс стилі',
     styles: { comic: 'Жарқын комикс', cartoon: 'Мультфильм', pixel: 'Пиксель-арт' },
     preparedStyleNote: 'Қазір дайын иллюстрациялар қосулы: стиль тірі графика қосылғанда қолданылады.',

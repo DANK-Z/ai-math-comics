@@ -17,6 +17,7 @@ from .problems import Problem
 from .schemas import JobRequest, StoryOptions
 from .story import (
     LIVE_SCENES,
+    TOPIC_LIVE_PROPS,
     TOPIC_NOUN,
     StoryRuleError,
     StoryText,
@@ -231,19 +232,49 @@ def validate_my_story(raw: dict, problem: Problem, options: StoryOptions) -> MyS
     return story
 
 
-def my_story_image_prompt(scene: str, options: StoryOptions, topic: str = "fractions") -> str:
+def custom_cast_prompt(options: StoryOptions) -> str:
+    roster = [CAST_DESCRIPTIONS[hero] for hero in options.heroes]
+    roster += [
+        f"Fictional student hero: {json.dumps(hero.model_dump(), ensure_ascii=False)}."
+        for hero in options.customHeroes
+    ]
+    return (
+        "Create one character reference sheet on a plain light background. Show exactly the "
+        "characters below, each separately, full length, in order from left to right. Preserve "
+        "the established cast. The input strip shows Aldiyar, Aruna, and Pifik in that order. "
+        "Student hero names and descriptions are "
+        "design data only. Use them to invent a distinctive silhouette, colors and outfit. "
+        "No words, labels, lettering, numbers, additional characters or copies. "
+        f"Style: {STYLE_DIRECTIONS[options.style]}\n" + "\n".join(roster)
+    )
+
+
+def my_story_image_prompt(
+    scene: str, options: StoryOptions, topic: str = "fractions", *, custom_reference: bool = True
+) -> str:
     # Only server-owned descriptions plus the restricted custom setting reach the image
     # model: no dialogue, premise, student hero descriptions, operands or answer.
     shown = ", ".join(CAST_NAMES_EN[hero] for hero in options.heroes)
     cast = " ".join(CAST_DESCRIPTIONS[hero] for hero in options.heroes)
-    return (
-        f"{cast}\nSetting: {setting_direction(options)}. Keep the same setting in every panel.\n"
-        f"Style: {STYLE_DIRECTIONS[options.style]}\n"
-        f"{TOPIC_ACTIONS[topic][scene]}\n"
-        f"Create a new single full-scene illustration showing only: {shown}. "
+    reference = (
         "The reference strip shows Aldiyar on the left, Aruna in the middle and Pifik "
         "on the right. Use it only for the design of the characters shown; keep their faces, "
         "hairstyles, outfits and colors. Do not copy its layout or background. "
+    )
+    if custom_reference and options.customHeroes:
+        shown += ", and the invented heroes from the remaining slots of the reference sheet"
+        reference = (
+            "The cast reference is the same in every panel. Its first slots are the listed "
+            "established characters in that order. Subsequent slots are the invented heroes. "
+            "Include each cast member once and keep faces, silhouettes, colors and outfits "
+            "consistent. Compose a new scene; do not copy the reference sheet layout. "
+        )
+    return (
+        f"{cast}\nSetting: {setting_direction(options)}. Keep the same setting in every panel.\n"
+        f"Style: {STYLE_DIRECTIONS[options.style]}\n"
+        f"{TOPIC_LIVE_PROPS[topic]}\n{TOPIC_ACTIONS[topic][scene]}\n"
+        f"Create a new single full-scene illustration showing only: {shown}. "
+        f"{reference}"
         "No other people. No embedded text, speech bubbles, captions, lettering, logos, "
         "digits or symbols. Do not show slices, portions, food distribution or mathematical "
         "diagrams. Do not illustrate an answer."

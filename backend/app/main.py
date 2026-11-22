@@ -33,6 +33,8 @@ from .schemas import (
     ResumeJobRequest,
 )
 from .shop import router as shop_router
+from .side_episode import EXERCISE_PREFIX as SIDE_EXERCISE_PREFIX
+from .side_episode import check_side_answer
 from .storage import Store
 
 # Restrict input to an integer numerator and denominator, allowing spaces and signs.
@@ -89,13 +91,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        yield
-        await app.state.database.dispose()
+        try:
+            if settings.require_account_migrations:
+                await app.state.database.ensure_schema()
+            yield
+        finally:
+            await app.state.database.dispose()
 
     app = FastAPI(title="AI Math Comics", version="2.0.0", lifespan=lifespan)
     app.state.settings = settings
     app.state.store = Store(settings.data_dir)
-    app.state.database = Database(settings.database_url or default_database_url(settings.data_dir))
+    app.state.database = Database(
+        settings.database_url or default_database_url(settings.data_dir),
+        require_migrations=settings.require_account_migrations,
+    )
     app.state.jwt_secret = settings.jwt_secret
     if not app.state.jwt_secret:
         # Tokens then stop working after a restart; set JWT_SECRET in backend/.env.
@@ -197,6 +206,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 raise HTTPException(404, "exercise_not_found")
             if exercise_id.startswith(EXERCISE_PREFIX):
                 return check_library_answer(body, int(exercise["expected"]))
+            if exercise_id.startswith(SIDE_EXERCISE_PREFIX):
+                return check_side_answer(body, int(exercise["expected"]))
             expected = Fraction(exercise["expected"])
         value = parse_answer(body.answer, topic)
         status = "invalid" if value is None else "correct" if value == expected else "incorrect"

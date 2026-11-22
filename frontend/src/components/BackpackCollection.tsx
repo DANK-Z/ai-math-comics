@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { Lang } from '../api'
+import { bonusPuzzle, BONUS_STICKER_IDS, type BonusSticker } from '../bonusPuzzles'
 import type { UiStrings } from '../i18n'
 import { FairShop } from './FairShop'
 import { SCHOOL_FAIR_CHAPTER_COUNT, SCHOOL_FAIR_STOPS, type SchoolFairCollectible } from '../schoolFair'
@@ -30,11 +31,11 @@ const TABS = { ru: { collection: 'Коллекция', shop: 'Магазин я�
 const TAB =
   'min-h-11 rounded-xl border-[3px] border-ink px-4 font-black text-ink shadow-[0_3px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand aria-selected:translate-y-[2px] aria-selected:bg-sun aria-selected:shadow-[0_1px_0_var(--color-ink)]'
 
-export function BackpackCollection({ t, lang, completedChapters, hasPriceTagSticker }: {
+export function BackpackCollection({ t, lang, completedChapters, bonusStickers }: {
   t: UiStrings
   lang: Lang
   completedChapters: ReadonlySet<string>
-  hasPriceTagSticker: boolean
+  bonusStickers: ReadonlySet<BonusSticker>
 }) {
   const earned = SCHOOL_FAIR_STOPS.filter(({ comicId }) => completedChapters.has(comicId))
   const [tab, setTab] = useState<'collection' | 'shop'>('collection')
@@ -87,11 +88,15 @@ export function BackpackCollection({ t, lang, completedChapters, hasPriceTagStic
       )}
       <section aria-labelledby="backpack-bonus-title" className="mt-3 border-t-2 border-ink/20 pt-2">
         <h2 id="backpack-bonus-title" className="font-black">{t.priceTagBonus.stickerSection}</h2>
-        {hasPriceTagSticker ? (
-          <p className="mt-1 inline-flex items-center gap-2 rounded-xl border-2 border-ink/70 bg-sun/25 px-2 py-1 text-sm font-bold">
-            <span aria-hidden="true">🏷️</span>
-            <span>{t.priceTagBonus.sticker}</span>
-          </p>
+        {bonusStickers.size ? (
+          <ul role="list" className="mt-1 flex flex-wrap gap-2">
+            {BONUS_STICKER_IDS.filter((id) => bonusStickers.has(id)).map((id) => {
+              const { icon, copy } = bonusPuzzle(id, lang, t)
+              return <li key={id} className="inline-flex items-center gap-2 rounded-xl border-2 border-ink/70 bg-sun/25 px-2 py-1 text-sm font-bold">
+                <span aria-hidden="true">{icon}</span><span>{copy.sticker}</span>
+              </li>
+            })}
+          </ul>
         ) : (
           <p className="mt-1 text-sm font-semibold">{t.priceTagBonus.empty}</p>
         )}
