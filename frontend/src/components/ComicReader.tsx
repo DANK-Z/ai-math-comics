@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { BOSS_COPY } from '../boss'
+import { useBossProgress } from '../bossProgress'
 import type { Comic, Lang } from '../api'
 import { PANEL_ASPECT } from '../art/sheet'
 import { CHARACTERS } from '../characters'
@@ -29,12 +30,14 @@ interface Props {
   onEarnPriceTagSticker: () => boolean
   continuationJob: ContinuationJob
   chapterThreeSolved: boolean
+  /** Opened with a Replay link: the boss fight starts from round one. */
+  replay?: boolean
 }
 
 const BTN =
   'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-2xl border-[3px] border-ink px-4 py-2 font-black shadow-[0_4px_0_var(--color-ink)] transition active:translate-y-[3px] active:shadow-[0_1px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none'
 
-export function ComicReader({ comic, lang, index, onIndexChange, onChapterComplete, onEarnPriceTagSticker, continuationJob, chapterThreeSolved }: Props) {
+export function ComicReader({ comic, lang, index, onIndexChange, onChapterComplete, onEarnPriceTagSticker, continuationJob, chapterThreeSolved, replay = false }: Props) {
   const t = STRINGS[lang]
   const comicId = comic.id
   const [reward, setReward] = useState<SchoolFairCollectible | null>(null)
@@ -45,14 +48,14 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
   const check = useAnswerCheck(comic.exercise.id, lang, onCorrect)
   // Generated comics fight a boss on the exercise panel: every round must be won.
   const boss = comic.boss
-  const [bossRun, setBossRun] = useState({ comicId, cleared: 0 })
-  const bossCleared = bossRun.comicId === comicId ? bossRun.cleared : 0
+  const bossProgress = useBossProgress(comicId, !!boss, replay)
+  const bossCleared = boss ? Math.min(bossProgress.cleared, boss.rounds.length) : 0
   const bossDefeated = !!boss && bossCleared >= boss.rounds.length
+  const { roundCleared } = bossProgress
   const onRoundCleared = useCallback(() => {
-    const next = bossCleared + 1
-    setBossRun({ comicId, cleared: next })
+    const next = roundCleared()
     if (boss && next >= boss.rounds.length) onCorrect()
-  }, [boss, bossCleared, comicId, onCorrect])
+  }, [boss, roundCleared, onCorrect])
   const exerciseSolved = boss ? bossDefeated : check.solved
   const hintExerciseId = boss ? boss.rounds[Math.min(bossCleared, boss.rounds.length - 1)].exerciseId : comic.exercise.id
   const solved = exerciseSolved || chapterThreeSolved
@@ -231,6 +234,7 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
       <div hidden={!isExercisePanel} className="min-w-0 xl:col-start-1 xl:row-start-2">
         {boss ? (
           <BossFight boss={boss} lang={lang} cleared={bossCleared} onRoundCleared={onRoundCleared}
+            misses={bossProgress.misses} onMiss={bossProgress.miss}
             onReadOn={exerciseIndex + 1 < total ? () => onIndexChange(exerciseIndex + 1) : undefined} />
         ) : (
           <ExerciseCard exercise={comic.exercise} lang={lang} check={check} reward={reward} />

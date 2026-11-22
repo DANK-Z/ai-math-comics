@@ -11,7 +11,7 @@ import { ComicReader } from './ComicReader'
 const BRANCH_LINK = 'inline-flex min-h-11 items-center rounded-2xl border-2 border-ink bg-white px-3 font-black text-ink focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun'
 
 /** One comic (demo or generated). Mounted per comicId, so reader state resets between comics. */
-export function ReaderScreen({ comicId, lang, onChapterComplete, onEarnPriceTagSticker, continuationJob, chapterThreeSolved, openEnding, backTo = 'comics' }: {
+export function ReaderScreen({ comicId, lang, onChapterComplete, onEarnPriceTagSticker, continuationJob, chapterThreeSolved, openEnding, backTo = 'comics', replay = false }: {
   comicId: string
   lang: Lang
   onChapterComplete: (comicId: string) => SchoolFairCollectible | null
@@ -21,6 +21,8 @@ export function ReaderScreen({ comicId, lang, onChapterComplete, onEarnPriceTagS
   openEnding: boolean
   /** Section the back link returns to: the catalog, or My Comics for saved generated comics. */
   backTo?: 'comics' | 'myComics'
+  /** Opened with a Replay link. */
+  replay?: boolean
 }) {
   const t = STRINGS[lang]
   const [index, setIndex] = useState(() => openEnding && chapterThreeSolved ? SCHOOL_MAP.panels.length - 1 : 0)
@@ -68,7 +70,7 @@ export function ReaderScreen({ comicId, lang, onChapterComplete, onEarnPriceTagS
         <div className={loading ? 'opacity-60 transition-opacity' : 'transition-opacity'}>
           <ComicReader comic={comic} lang={lang} index={index} onIndexChange={setIndex}
             onChapterComplete={onChapterComplete} onEarnPriceTagSticker={onEarnPriceTagSticker}
-            continuationJob={continuationJob} chapterThreeSolved={chapterThreeSolved} />
+            continuationJob={continuationJob} chapterThreeSolved={chapterThreeSolved} replay={replay} />
         </div>
       )}
     </div>

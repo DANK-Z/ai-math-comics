@@ -8,11 +8,17 @@ export const SECTION_HREFS = {
   guardian: '#/guardian',
   roadGuardian: '#/road-guardian',
   create: '#/create',
+  login: '#/login',
+  profile: '#/profile',
+  teacher: '#/teacher',
 } as const
 
 export type Section = keyof typeof SECTION_HREFS
 /** `replay` is set by a Replay link: a fresh token each time, so the reader remounts with clean state. */
-export type Route = { name: Section } | { name: 'comic'; comicId: string; ending: boolean; replay: string | null }
+export type Route =
+  | { name: Section }
+  | { name: 'comic'; comicId: string; ending: boolean; replay: string | null }
+  | { name: 'teacherClass'; classId: number }
 export const GUARDIAN_HREF = SECTION_HREFS.guardian
 
 export const DEMO_COMIC_ID = 'pizza-fractions'
@@ -22,10 +28,12 @@ export const LIBRARY_BOXES_COMIC_ID = 'library-boxes'
 export const LEMONADE_COMIC_ID = 'fair-lemonade'
 export const GARLAND_COMIC_ID = 'fair-garland'
 
-function parse(hash: string): Route {
+export function parseRoute(hash: string): Route {
   for (const section of Object.keys(SECTION_HREFS) as Section[]) {
     if (hash === SECTION_HREFS[section]) return { name: section }
   }
+  const teacherClass = /^#\/teacher\/class\/([0-9]{1,9})$/.exec(hash)
+  if (teacherClass) return { name: 'teacherClass', classId: Number(teacherClass[1]) }
   const m = /^#\/comic\/([^/?#]+)/.exec(hash)
   if (m) {
     try {
@@ -39,6 +47,10 @@ function parse(hash: string): Route {
   return { name: 'map' }
 }
 
+export function teacherClassHref(classId: number) {
+  return `#/teacher/class/${classId}`
+}
+
 export function comicHref(comicId: string, ending = false) {
   return `#/comic/${encodeURIComponent(comicId)}${ending ? '?ending' : ''}`
 }
@@ -50,11 +62,11 @@ export function replayHref(comicId: string) {
 
 /** Hash routes preserve section and comic navigation in browser history. */
 export function useRoute(): [Route, (href: string) => void] {
-  const [route, setRoute] = useState<Route>(() => parse(window.location.hash))
+  const [route, setRoute] = useState<Route>(() => parseRoute(window.location.hash))
 
   useEffect(() => {
     const onHash = () => {
-      setRoute(parse(window.location.hash))
+      setRoute(parseRoute(window.location.hash))
       window.scrollTo({ top: 0 })
     }
     window.addEventListener('hashchange', onHash)

@@ -62,6 +62,8 @@ export interface CheckRequest {
 export interface CheckResponse {
   status: CheckStatus
   message: string
+  /** Signed-in students: coins and stars when this answer finished the boss. */
+  reward?: Reward
 }
 
 export type HintStep = 1 | 2
@@ -137,4 +139,104 @@ export interface Api {
   getComic(comicId: string, lang: Lang, signal?: AbortSignal): Promise<Comic>
   checkAnswer(exerciseId: string, req: CheckRequest, signal?: AbortSignal): Promise<CheckResponse>
   getHint(exerciseId: string, lang: Lang, step: HintStep, signal?: AbortSignal): Promise<HintResponse>
+}
+
+// ---- Accounts (docs/api-contract.md, "Accounts") ----
+export type Role = 'student' | 'teacher'
+
+/** Coins and stars a signed-in student earns once per beaten boss (from POST …/check). */
+export interface Reward {
+  coins: number
+  stars: number
+  misses: number
+  totalCoins: number
+}
+
+export interface ClassInfo {
+  id: number
+  name: string
+  grade: number
+  code: string
+  teacherName?: string | null
+  students?: number | null
+}
+
+export interface BackpackItem {
+  id: number
+  type: string
+  key: string
+  equipped: boolean
+}
+
+export interface StudentProfile {
+  coins: number
+  stars: number
+  completedChapters: string[]
+  stickers: string[]
+  items: BackpackItem[]
+}
+
+export interface Me {
+  id: number
+  role: Role
+  displayName: string
+  login?: string
+  email?: string
+  schoolClass?: ClassInfo
+  profile?: StudentProfile
+}
+
+export interface AuthResponse {
+  token: string
+  user: Me
+}
+
+export interface BossState {
+  comicId: string
+  cleared: number
+  misses: number
+  result?: { stars: number; misses: number; coins: number }
+}
+
+export interface StudentRow {
+  id: number
+  displayName: string
+  login: string
+  stars: number
+  coins: number
+  bossesBeaten: number
+  misses: number
+  bestCombo: number
+  topics: Record<string, { beaten: number; bestStars: number; stars: number }>
+}
+
+export interface HeatCell {
+  topic: Topic
+  round: number
+  skill: string | null
+  students: number
+  studentsWithMistakes: number
+  mistakeRate: number
+  invalidAnswers: number
+  commonWrong: string[]
+}
+
+export interface Dashboard {
+  schoolClass: ClassInfo
+  students: StudentRow[]
+  heatmap: HeatCell[]
+  recommendation: { topic: Topic; round: number; skill: string | null; mistakeRate: number } | null
+}
+
+export interface AccountApi {
+  signUpStudent(body: { login: string; password: string; displayName: string; classCode?: string }): Promise<AuthResponse>
+  signUpTeacher(body: { email: string; password: string; displayName: string }): Promise<AuthResponse>
+  logIn(body: { login: string; password: string }): Promise<AuthResponse>
+  me(): Promise<Me>
+  joinClass(code: string): Promise<Me>
+  saveProgress(body: { completedChapters: string[]; stickers: string[] }): Promise<Me>
+  bossState(comicId: string, signal?: AbortSignal): Promise<BossState | null>
+  createClass(body: { grade: Grade; letter: string; school: string }): Promise<ClassInfo>
+  listClasses(): Promise<ClassInfo[]>
+  dashboard(classId: number, signal?: AbortSignal): Promise<Dashboard>
 }

@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import type { BossKind, Lang } from '../api'
+import type { BossKind, Lang, Reward } from '../api'
 import { BOSS_COPY } from '../boss'
 
 // Victory screen after the panel-four boss: a chest bursts open with coins, a trophy card
@@ -36,18 +36,20 @@ interface Props {
   lang: Lang
   rounds: number
   misses: number
+  /** Coins and stars the server awarded to a signed-in student. */
+  reward?: Reward | null
   onClose: () => void
   onReadOn?: () => void
 }
 
-export function TriumphModal({ open, kind, lang, rounds, misses, onClose, onReadOn }: Props) {
+export function TriumphModal({ open, kind, lang, rounds, misses, reward, onClose, onReadOn }: Props) {
   const copy = BOSS_COPY[lang]
   const t = copy.triumph
   const dialog = useRef<HTMLDialogElement>(null)
   const primary = useRef<HTMLButtonElement>(null)
   const titleId = useId()
   const [shareState, setShareState] = useState<'idle' | 'copied' | 'shared' | 'failed'>('idle')
-  const stars = starsFor(misses)
+  const stars = reward?.stars ?? starsFor(misses)
   const name = copy.names[kind]
 
   useEffect(() => {
@@ -132,6 +134,11 @@ export function TriumphModal({ open, kind, lang, rounds, misses, onClose, onRead
               {misses === 0 ? t.perfect : t.misses(misses)}
             </li>
           </ul>
+          {reward && (
+            <p className="mt-2 rounded-lg border-2 border-amber-700 bg-sun px-2 py-1 text-sm font-black text-ink">
+              <span aria-hidden>🪙 </span>{t.coins(reward.coins, reward.totalCoins)}
+            </p>
+          )}
         </section>
 
         <div className="mt-4 flex flex-col gap-2 min-[380px]:flex-row">

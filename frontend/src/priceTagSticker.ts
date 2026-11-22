@@ -28,5 +28,17 @@ export function usePriceTagSticker() {
     return true
   }, [])
 
-  return { earned, award }
+  /** The sticker was earned on another device (saved on the server). */
+  const restore = useCallback(() => {
+    if (awarded.current) return
+    awarded.current = true
+    setEarned(true)
+    try {
+      localStorage.setItem(STORAGE_KEY, '1')
+    } catch {
+      // In memory only.
+    }
+  }, [])
+
+  return { earned, award, restore }
 }

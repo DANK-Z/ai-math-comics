@@ -1,5 +1,6 @@
+import { authToken } from './authToken'
 import { ApiError } from './errors'
-import type { Api, CheckResponse, Comic, ComicJob, ComicJobCreated, ContinuationJobRequest, HintResponse } from './types'
+import type { AccountApi, Api, AuthResponse, BossState, CheckResponse, ClassInfo, Comic, ComicJob, ComicJobCreated, ContinuationJobRequest, Dashboard, HintResponse, Me } from './types'
 
 /** Pulls `detail` / `message` / `errorCode` out of an error body (FastAPI uses `detail`). */
 async function readError(res: Response): Promise<ApiError> {
@@ -20,7 +21,7 @@ async function readError(res: Response): Promise<ApiError> {
   return new ApiError(res.status, `${res.status} ${res.statusText}`.trim(), { code, detail })
 }
 
-export function createHttpApi(baseUrl: string): Api & {
+export function createHttpApi(baseUrl: string): Api & AccountApi & {
   createContinuationJob(body: ContinuationJobRequest): Promise<ComicJobCreated>
   resumeComicJob(jobId: string, resumeToken: string): Promise<ComicJob>
 } {
@@ -29,6 +30,9 @@ export function createHttpApi(baseUrl: string): Api & {
   async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     const headers: Record<string, string> = { Accept: 'application/json' }
     if (init.body) headers['Content-Type'] = 'application/json'
+    // Signed-in users send their JWT; the server treats a stale token on checks as a guest.
+    const token = authToken.get()
+    if (token) headers.Authorization = `Bearer ${token}`
     let res: Response
     try {
       res = await fetch(`${base}${path}`, { ...init, headers })
@@ -71,6 +75,36 @@ export function createHttpApi(baseUrl: string): Api & {
       return request<ComicJob>(`/api/comic-jobs/${encodeURIComponent(jobId)}/resume`, {
         method: 'POST', body: JSON.stringify({ resumeToken }),
       })
+    },
+    signUpStudent(body) {
+      return request<AuthResponse>('/api/auth/students', { method: 'POST', body: JSON.stringify(body) })
+    },
+    signUpTeacher(body) {
+      return request<AuthResponse>('/api/auth/teachers', { method: 'POST', body: JSON.stringify(body) })
+    },
+    logIn(body) {
+      return request<AuthResponse>('/api/auth/login', { method: 'POST', body: JSON.stringify(body) })
+    },
+    me() {
+      return request<Me>('/api/me')
+    },
+    joinClass(code) {
+      return request<Me>('/api/me/class', { method: 'POST', body: JSON.stringify({ code }) })
+    },
+    saveProgress(body) {
+      return request<Me>('/api/me/progress', { method: 'PUT', body: JSON.stringify(body) })
+    },
+    bossState(comicId, signal) {
+      return request<BossState>(`/api/me/boss/${encodeURIComponent(comicId)}`, { signal })
+    },
+    createClass(body) {
+      return request<ClassInfo>('/api/teacher/classes', { method: 'POST', body: JSON.stringify(body) })
+    },
+    listClasses() {
+      return request<ClassInfo[]>('/api/teacher/classes')
+    },
+    dashboard(classId, signal) {
+      return request<Dashboard>(`/api/teacher/classes/${classId}`, { signal })
     },
   }
 }

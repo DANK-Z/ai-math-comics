@@ -1,9 +1,10 @@
 import { createHttpApi } from './httpApi'
+import { mockAccounts } from './mockAccounts'
 import { mockApi } from './mockApi'
 import { FAIR_CHAPTERS, LIBRARY_BOXES } from './fairChapters'
 import { buildLocalComic, checkLocalAnswer, localHint, type LocalComicDef } from './localComics'
 import { SCHOOL_STORE } from './schoolStore'
-import type { Api } from './types'
+import type { AccountApi, Api } from './types'
 import { withPizzaArtwork } from '../art/pizza'
 import { DEMO_COMIC_ID } from '../route'
 
@@ -18,6 +19,8 @@ const BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000').
 
 const httpApi = createHttpApi(BASE_URL)
 const configuredApi = API_MODE === 'live' ? httpApi : mockApi
+/** Sign-up/sign-in, class codes, saved progress and the teacher dashboard. */
+export const accounts: AccountApi = API_MODE === 'live' ? httpApi : mockAccounts
 export const createContinuationJob = httpApi.createContinuationJob
 export const resumeComicJob = API_MODE === 'live' ? httpApi.resumeComicJob : undefined
 

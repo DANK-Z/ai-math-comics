@@ -21,6 +21,30 @@ For a runtime-only installation, install `requirements.txt`.
 The static pizza comic works without credentials or a worker and still uses frontend assets
 `pizza-01` through `pizza-06`. Its existing response fields, answer check, and hints are preserved.
 
+### Accounts database (PostgreSQL)
+
+Accounts, classes, progress, coins and answer analytics live in PostgreSQL (SQLAlchemy async).
+From the repository root:
+
+```powershell
+docker compose up -d db
+```
+
+and in `backend/.env`:
+
+```
+DATABASE_URL=postgresql+asyncpg://amc:amc-dev-password@127.0.0.1:5433/amc
+JWT_SECRET=<a long random string>
+```
+
+Without `DATABASE_URL` the API falls back to `data/accounts.sqlite3`, so tests and a quick demo
+need no server. Without `JWT_SECRET` it uses a random secret per process (sign-ins stop working
+after a restart). Tables are created on first use; add Alembic migrations before a real pilot.
+Run the account tests on PostgreSQL too with
+`$env:TEST_DATABASE_URL="postgresql+asyncpg://amc:amc-dev-password@127.0.0.1:5433/amc_test"`.
+They drop and recreate that database's tables, so never point it at `amc`. Create it once with
+`docker compose exec db psql -U amc -d amc -c "CREATE DATABASE amc_test"`.
+
 ## Start API and worker
 
 Start the API in one terminal:
@@ -126,6 +150,9 @@ See [`.env.example`](.env.example) for all settings:
 | `JOB_TIMEOUT_SECONDS` | `1500` | Wall-clock limit for the complete job |
 | `WORKER_POLL_SECONDS` | `1` | Idle queue polling interval |
 | `TEXT_ATTEMPTS` | `3` | Storyboard attempts (1-5) before a job fails |
+| `DATABASE_URL` | `data/accounts.sqlite3` | Accounts DB (`postgresql+asyncpg://…`) |
+| `JWT_SECRET` | random per process | Signs sign-in tokens; set a long random value |
+| `JWT_HOURS` | `12` | Token lifetime |
 | `COMIC_DATA_DIR` | `data` | Shared SQLite and image directory; relative to `backend/` |
 | `PUBLIC_BASE_URL` | `http://127.0.0.1:8000` | Externally reachable API base, including any reverse-proxy prefix |
 

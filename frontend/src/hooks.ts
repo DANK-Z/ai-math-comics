@@ -29,7 +29,7 @@ export function useComic(comicId: string, lang: Lang) {
  * Answer checking. Feedback messages are localized by the server, so when the
  * language changes the last submitted answer is re-checked to refresh the message.
  */
-export function useAnswerCheck(exerciseId: string, lang: Lang, onCorrect: () => void) {
+export function useAnswerCheck(exerciseId: string, lang: Lang, onCorrect: (response: CheckResponse) => void) {
   const [submitted, setSubmitted] = useState<{ answer: string; nonce: number } | null>(null)
   const [result, setResult] = useState<CheckResponse | null>(null)
   const [checking, setChecking] = useState(false)
@@ -44,7 +44,7 @@ export function useAnswerCheck(exerciseId: string, lang: Lang, onCorrect: () => 
       .checkAnswer(exerciseId, { answer: submitted.answer, lang }, ctrl.signal)
       .then((r) => {
         if (ctrl.signal.aborted) return
-        if (r.status === 'correct') onCorrect()
+        if (r.status === 'correct') onCorrect(r)
         setResult(r)
         setChecking(false)
       })

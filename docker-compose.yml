@@ -1,0 +1,25 @@
+# Local PostgreSQL for accounts, progress, coins and teacher analytics.
+# Start: docker compose up -d db   (data persists in the "amc-postgres" volume)
+# The backend connects with DATABASE_URL from backend/.env, e.g.
+#   DATABASE_URL=postgresql+asyncpg://amc:amc-dev-password@127.0.0.1:5433/amc
+# These credentials are for local development only.
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: amc
+      POSTGRES_PASSWORD: amc-dev-password
+      POSTGRES_DB: amc
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - amc-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U amc -d amc"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  amc-postgres:

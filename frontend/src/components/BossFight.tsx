@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react'
-import type { Boss, BossKind, BossRound, Lang } from '../api'
+import type { Boss, BossKind, BossRound, CheckResponse, Lang, Reward } from '../api'
+import { useAccount } from '../account'
 import { BOSS_COPY } from '../boss'
 import { useAnswerCheck } from '../hooks'
 import { STRINGS } from '../i18n'
@@ -47,7 +48,7 @@ function BossAvatar({ kind, shielded, hitKey }: { kind: BossKind; shielded: bool
   )
 }
 
-function RoundForm({ round, lang, onHit, onMiss }: { round: BossRound; lang: Lang; onHit: () => void; onMiss: () => void }) {
+function RoundForm({ round, lang, onHit, onMiss }: { round: BossRound; lang: Lang; onHit: (response: CheckResponse) => void; onMiss: () => void }) {
   const t = STRINGS[lang]
   const copy = BOSS_COPY[lang]
   const [answer, setAnswer] = useState('')
@@ -148,18 +149,21 @@ interface Props {
   lang: Lang
   cleared: number
   onRoundCleared: () => void
+  /** Wrong or unreadable answers so far (saved with the fight progress). */
+  misses: number
+  onMiss: () => void
   /** Go to the panel after the boss (shown on the victory screen). */
   onReadOn?: () => void
 }
 
-export function BossFight({ boss, lang, cleared, onRoundCleared, onReadOn }: Props) {
+export function BossFight({ boss, lang, cleared, onRoundCleared, misses, onMiss, onReadOn }: Props) {
   const copy = BOSS_COPY[lang]
   const total = boss.rounds.length
   const damage = Math.round(boss.maxHp / total)
   const [hit, setHit] = useState<{ round: number; at: number } | null>(null)
-  const [misses, setMisses] = useState(0)
   const [triumph, setTriumph] = useState(false)
-  const onMiss = useCallback(() => setMisses((m) => m + 1), [])
+  const [reward, setReward] = useState<Reward | null>(null)
+  const { setCoins } = useAccount()
   const hpId = useId()
   const heading = useRef<HTMLHeadingElement>(null)
   // While a hit plays, the bar already shows the new HP but the next round waits.
@@ -168,7 +172,17 @@ export function BossFight({ boss, lang, cleared, onRoundCleared, onReadOn }: Pro
   const defeated = cleared >= total
   const round = boss.rounds[Math.min(cleared, total - 1)]
 
-  const onHit = useCallback(() => setHit({ round: cleared, at: Date.now() }), [cleared])
+  const onHit = useCallback(
+    (response: CheckResponse) => {
+      setHit({ round: cleared, at: Date.now() })
+      // The server pays a signed-in student once, on the answer that beats the boss.
+      if (response.reward) {
+        setReward(response.reward)
+        setCoins(response.reward.totalCoins)
+      }
+    },
+    [cleared, setCoins],
+  )
 
   useEffect(() => {
     if (!hit) return
@@ -269,7 +283,8 @@ export function BossFight({ boss, lang, cleared, onRoundCleared, onReadOn }: Pro
         kind={boss.kind}
         lang={lang}
         rounds={total}
-        misses={misses}
+        misses={reward?.misses ?? misses}
+        reward={reward}
         onClose={() => setTriumph(false)}
         onReadOn={
           onReadOn &&

@@ -276,7 +276,15 @@ class Worker:
             payload[lang] = comic.model_dump()
             hints[lang] = localized.hints
         self.store.publish(
-            claim, comic_id, payload, exercise_id, str(problem.expected), hints, rounds=rounds
+            claim,
+            comic_id,
+            payload,
+            exercise_id,
+            str(problem.expected),
+            hints,
+            rounds=rounds,
+            skill=problem.skill,
+            round_skills=[p.skill for p in extra],
         )
 
     async def generate_story(

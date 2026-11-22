@@ -81,9 +81,19 @@ class CheckRequest(BaseModel):
     lang: Language = "ru"
 
 
+class Reward(BaseModel):
+    """Coins and stars a signed-in student earns once per beaten boss."""
+
+    coins: int
+    stars: int
+    misses: int
+    totalCoins: int
+
+
 class CheckResponse(BaseModel):
     status: Literal["correct", "incorrect", "invalid"]
     message: str
+    reward: Reward | None = None
 
 
 class HintResponse(BaseModel):

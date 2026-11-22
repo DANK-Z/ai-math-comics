@@ -1,0 +1,276 @@
+import { useCallback, useEffect, useId, useState, type FormEvent } from 'react'
+import { accounts, API_MODE, isAbortError, type ClassInfo, type Dashboard, type Grade, type HeatCell, type Lang, type Topic } from '../api'
+import { useAccount } from '../account'
+import { ACCOUNT_COPY, skillCopy } from '../accountCopy'
+import { teacherClassHref, SECTION_HREFS } from '../route'
+import { CARD, errorKey, FieldError, INPUT, PRIMARY, SECONDARY } from './AuthScreen'
+
+// Teacher area: classes with join codes, and a class dashboard (ranking + error heatmap).
+
+const CHOICE =
+  'group relative flex min-h-12 cursor-pointer items-center justify-center rounded-xl border-[3px] border-ink bg-white px-3 font-black text-ink shadow-[0_3px_0_var(--color-ink)] select-none hover:bg-sky has-checked:translate-y-[2px] has-checked:bg-sun has-checked:shadow-[0_1px_0_var(--color-ink)] has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-brand'
+
+function CopyCode({ code, lang }: { code: string; lang: Lang }) {
+  const c = ACCOUNT_COPY[lang].teacherArea
+  const [copied, setCopied] = useState(false)
+  return (
+    <span className="inline-flex flex-wrap items-center gap-2">
+      <code className="rounded-lg border-2 border-ink bg-cream px-2 py-1 font-mono text-base font-black tracking-wide break-all text-ink">{code}</code>
+      <button
+        type="button"
+        onClick={() => navigator.clipboard?.writeText(code).then(() => setCopied(true), () => setCopied(false))}
+        className="min-h-9 rounded-lg border-2 border-ink bg-white px-2.5 text-sm font-black text-ink hover:bg-sky focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand"
+      >
+        {copied ? c.copied : c.copy}
+      </button>
+    </span>
+  )
+}
+
+function NewClassForm({ lang, onCreated }: { lang: Lang; onCreated: (c: ClassInfo) => void }) {
+  const c = ACCOUNT_COPY[lang]
+  const id = useId()
+  const [grade, setGrade] = useState<Grade>(5)
+  const [letter, setLetter] = useState('А')
+  const [school, setSchool] = useState('KOKSH')
+  const [error, setError] = useState<{ field: 'letter' | 'school' | null; message: string } | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  async function onSubmit(e: FormEvent) {
+    e.preventDefault()
+    const l = letter.trim().toUpperCase()
+    const s = school.trim().toUpperCase()
+    if (!/^[A-ZА-ЯЁӘҒҚҢӨҰҮІ]$/.test(l)) {
+      setError({ field: 'letter', message: c.teacherArea.letterHint })
+      document.getElementById(`${id}-letter`)?.focus()
+      return
+    }
+    if (!/^[A-Z]{2,8}$/.test(s)) {
+      setError({ field: 'school', message: c.teacherArea.schoolHint })
+      document.getElementById(`${id}-school`)?.focus()
+      return
+    }
+    setBusy(true)
+    setError(null)
+    try {
+      onCreated(await accounts.createClass({ grade, letter: l, school: s }))
+    } catch (err) {
+      setError({ field: null, message: c.errors[errorKey(err)] ?? c.errors.network })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <form onSubmit={onSubmit} noValidate className="flex flex-col gap-3">
+      <fieldset>
+        <legend className="mb-1 text-sm font-black text-ink/80">{c.teacherArea.grade}</legend>
+        <div className="grid grid-cols-2 gap-2">
+          {([5, 6] as const).map((g) => (
+            <label key={g} className={CHOICE}>
+              <input type="radio" name={`${id}-grade`} className="sr-only" checked={grade === g} onChange={() => setGrade(g)} />
+              {g}
+              <span aria-hidden className="absolute -top-2 -right-2 hidden size-6 place-items-center rounded-full border-2 border-ink bg-white text-xs group-has-checked:grid">✓</span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+      <div className="grid gap-3 min-[420px]:grid-cols-[6rem_minmax(0,1fr)]">
+        <div>
+          <label htmlFor={`${id}-letter`} className="mb-1 block text-sm font-black text-ink/80">{c.teacherArea.letter}</label>
+          <input id={`${id}-letter`} value={letter} maxLength={1} onChange={(e) => setLetter(e.target.value)} aria-invalid={error?.field === 'letter' || undefined} aria-describedby={error?.field === 'letter' ? `${id}-error` : undefined} className={`${INPUT} text-center text-xl uppercase`} />
+        </div>
+        <div className="min-w-0">
+          <label htmlFor={`${id}-school`} className="mb-1 block text-sm font-black text-ink/80">{c.teacherArea.school}</label>
+          <input id={`${id}-school`} value={school} maxLength={8} onChange={(e) => setSchool(e.target.value)} aria-invalid={error?.field === 'school' || undefined} aria-describedby={`${id}-school-hint${error?.field === 'school' ? ` ${id}-error` : ''}`} className={`${INPUT} font-mono uppercase`} />
+          <p id={`${id}-school-hint`} className="mt-1 text-sm font-semibold text-ink/70">{c.teacherArea.schoolHint}</p>
+        </div>
+      </div>
+      <FieldError id={`${id}-error`} message={error?.message} />
+      <button type="submit" disabled={busy} className={PRIMARY}>{busy ? c.working : c.teacherArea.create}</button>
+    </form>
+  )
+}
+
+export function TeacherHome({ lang }: { lang: Lang }) {
+  const c = ACCOUNT_COPY[lang]
+  const { user, logOut } = useAccount()
+  const id = useId()
+  const [classes, setClasses] = useState<ClassInfo[] | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  const load = useCallback(() => {
+    accounts.listClasses().then(setClasses, (err) => setError(c.errors[errorKey(err)] ?? c.errors.network))
+  }, [c])
+  useEffect(load, [load])
+
+  return (
+    <div className="flex flex-col gap-4">
+      <section className={CARD} aria-labelledby={`${id}-title`}>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 id={`${id}-title`} className="text-2xl font-black text-ink sm:text-3xl">{c.teacherArea.title}</h1>
+            <p className="mt-1 font-semibold text-ink/80">{user?.displayName} · {user?.email}</p>
+          </div>
+          <button type="button" onClick={logOut} className={SECONDARY}>{c.signOut}</button>
+        </div>
+        <p className="mt-3 font-semibold text-ink/85">{c.teacherArea.lead}</p>
+        {API_MODE === 'mock' && <p className="mt-2 rounded-lg bg-sun/40 px-2 py-1 text-sm font-bold text-ink">{c.teacherArea.demo}</p>}
+      </section>
+
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <section className={CARD} aria-labelledby={`${id}-classes`}>
+          <h2 id={`${id}-classes`} className="text-xl font-black text-ink">{c.teacherArea.classes}</h2>
+          {error && <p role="alert" className="mt-2 font-bold text-rose-700">{error}</p>}
+          {classes?.length === 0 && <p className="mt-2 font-semibold text-ink/80">{c.teacherArea.noClasses}</p>}
+          <ul className="mt-3 grid gap-3 sm:grid-cols-2">
+            {classes?.map((cl) => (
+              <li key={cl.id} className="flex flex-col gap-2 rounded-2xl border-[3px] border-ink bg-sky/60 p-3">
+                <p className="text-2xl font-black text-ink">{cl.name}</p>
+                <p className="text-sm font-bold text-ink/80">{c.teacherArea.students(cl.students ?? 0)}</p>
+                <CopyCode code={cl.code} lang={lang} />
+                <a href={teacherClassHref(cl.id)} className={`${PRIMARY} mt-1`}>{c.teacherArea.open} <span aria-hidden>→</span></a>
+              </li>
+            ))}
+          </ul>
+        </section>
+        <section className={CARD} aria-labelledby={`${id}-new`}>
+          <h2 id={`${id}-new`} className="mb-3 text-xl font-black text-ink">{c.teacherArea.newClass}</h2>
+          <NewClassForm lang={lang} onCreated={(cl) => setClasses((list) => [...(list ?? []), cl])} />
+        </section>
+      </div>
+    </div>
+  )
+}
+
+const HEAT = (rate: number) => (rate >= 0.6 ? 'bg-rose-200 border-rose-700' : rate >= 0.3 ? 'bg-amber-100 border-amber-600' : 'bg-emerald-100 border-emerald-700')
+
+function HeatmapCell({ cell, lang }: { cell?: HeatCell; lang: Lang }) {
+  const d = ACCOUNT_COPY[lang].dashboard
+  if (!cell) return <div className="grid min-h-28 place-items-center rounded-xl border-2 border-dashed border-ink/30 p-2 text-center text-sm font-semibold text-ink/60">{d.noData}</div>
+  const skill = skillCopy(lang, cell.skill)
+  return (
+    <div className={`flex min-h-28 flex-col gap-1 rounded-xl border-2 p-2 ${HEAT(cell.mistakeRate)}`}>
+      <p className="text-2xl font-black text-ink">{Math.round(cell.mistakeRate * 100)}%</p>
+      {skill && <p className="text-xs leading-tight font-black text-ink/80">{skill.name}</p>}
+      <p className="text-xs font-semibold text-ink/80">{d.mistakes(cell.studentsWithMistakes, cell.students)}</p>
+      {cell.invalidAnswers > 0 && <p className="text-xs font-semibold text-ink/80">{d.invalid(cell.invalidAnswers)}</p>}
+      {cell.commonWrong.length > 0 && (
+        <p className="text-xs font-semibold text-ink/80">
+          {d.wrong} {cell.commonWrong.map((w) => <code key={w} className="mr-1 rounded bg-white/70 px-1 font-mono break-all">{w}</code>)}
+        </p>
+      )}
+    </div>
+  )
+}
+
+export function ClassDashboard({ lang, classId }: { lang: Lang; classId: number }) {
+  const c = ACCOUNT_COPY[lang]
+  const d = c.dashboard
+  const id = useId()
+  const [data, setData] = useState<Dashboard | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const ctrl = new AbortController()
+    accounts.dashboard(classId, ctrl.signal).then(setData, (err) => {
+      if (!isAbortError(err)) setError(c.errors[errorKey(err)] ?? c.errors.network)
+    })
+    return () => ctrl.abort()
+  }, [classId, c])
+
+  const back = <a href={SECTION_HREFS.teacher} className={SECONDARY}>{c.teacherArea.back}</a>
+  if (error) return <div className="flex flex-col items-start gap-3"><p role="alert" className="font-bold text-rose-700">{error}</p>{back}</div>
+  if (!data) return <p className="py-10 text-center font-bold">{c.working}</p>
+
+  const topics = [...new Set(data.heatmap.map((h) => h.topic))].sort() as Topic[]
+  const rec = data.recommendation
+  const recSkill = rec && skillCopy(lang, rec.skill)
+  // Mistakes exist but too few students answered for a class-wide recommendation.
+  const fewAnswers = !rec && data.heatmap.some((h) => h.mistakeRate >= 0.5 && h.students < 2)
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div>{back}</div>
+      <section className={CARD} aria-labelledby={`${id}-title`}>
+        <h1 id={`${id}-title`} className="text-3xl font-black text-ink">{data.schoolClass.name}</h1>
+        <p className="mt-1 text-sm font-bold text-ink/80">{c.teacherArea.students(data.schoolClass.students ?? data.students.length)}</p>
+        <div className="mt-3 flex flex-col gap-1">
+          <p className="text-sm font-black text-ink/80">{c.teacherArea.code}</p>
+          <CopyCode code={data.schoolClass.code} lang={lang} />
+          <p className="text-sm font-semibold text-ink/75">{d.shareCode(data.schoolClass.code)}</p>
+        </div>
+        {API_MODE === 'mock' && <p className="mt-3 rounded-lg bg-sun/40 px-2 py-1 text-sm font-bold text-ink">{c.teacherArea.demo}</p>}
+      </section>
+
+      <section className={`${CARD} ${rec ? 'border-rose-700 bg-rose-50' : fewAnswers ? 'bg-cream' : 'bg-emerald-50'}`} aria-live="polite">
+        <p className="flex items-start gap-3 text-lg leading-snug font-black text-ink">
+          <span aria-hidden className="text-2xl">{rec ? '⚠️' : fewAnswers ? '⏳' : '✅'}</span>
+          {rec && recSkill
+            ? d.recommendation(Math.round(rec.mistakeRate * 100), rec.round, recSkill.name, recSkill.review)
+            : fewAnswers
+              ? d.fewAnswers
+              : d.noRecommendation}
+        </p>
+      </section>
+
+      <section className={CARD} aria-labelledby={`${id}-heat`}>
+        <h2 id={`${id}-heat`} className="text-xl font-black text-ink">{d.heatmap}</h2>
+        <p className="mt-1 text-sm font-semibold text-ink/75">{d.heatmapLead}</p>
+        <ul className="mt-2 flex flex-wrap gap-2 text-xs font-bold" aria-hidden>
+          <li className="rounded-lg border-2 border-emerald-700 bg-emerald-100 px-2 py-0.5">{d.legend.low}</li>
+          <li className="rounded-lg border-2 border-amber-600 bg-amber-100 px-2 py-0.5">{d.legend.mid}</li>
+          <li className="rounded-lg border-2 border-rose-700 bg-rose-200 px-2 py-0.5">{d.legend.high}</li>
+        </ul>
+        {topics.length === 0 && <p className="mt-3 font-semibold text-ink/80">{d.noData}</p>}
+        <div className="mt-3 flex flex-col gap-4">
+          {topics.map((topic) => (
+            <div key={topic}>
+              <h3 className="mb-2 font-black text-ink">{c.topics[topic]}</h3>
+              <div className="grid grid-cols-1 gap-2 min-[480px]:grid-cols-3">
+                {[1, 2, 3].map((round) => (
+                  <div key={round} className="min-w-0">
+                    <p className="mb-1 text-xs font-black tracking-wide text-brand-dark uppercase">{d.round(round)}</p>
+                    <HeatmapCell lang={lang} cell={data.heatmap.find((h) => h.topic === topic && h.round === round)} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className={CARD} aria-labelledby={`${id}-rank`}>
+        <h2 id={`${id}-rank`} className="text-xl font-black text-ink">{d.ranking}</h2>
+        {data.students.length === 0 ? (
+          <p className="mt-2 font-semibold text-ink/80">{d.empty}</p>
+        ) : (
+          <ol className="mt-3 flex flex-col gap-2">
+            {data.students.map((s, i) => (
+              <li key={s.id} className="grid grid-cols-[2.25rem_minmax(0,1fr)] items-center gap-x-3 gap-y-2 rounded-xl border-2 border-ink/70 bg-white p-2 sm:grid-cols-[2.25rem_minmax(0,1fr)_auto]">
+                <span className={`grid size-9 place-items-center rounded-lg border-2 border-ink font-black ${i === 0 ? 'bg-sun' : 'bg-sky'}`}>{i + 1}</span>
+                <div className="min-w-0">
+                  <p className="truncate font-black text-ink">{s.displayName}</p>
+                  <p className="truncate font-mono text-xs text-ink/70">{s.login}</p>
+                </div>
+                <dl className="col-span-2 flex flex-wrap gap-1.5 text-xs font-bold sm:col-span-1 sm:justify-end">
+                  <div className="rounded-lg border-2 border-ink/60 bg-sun/50 px-2 py-0.5"><dt className="sr-only">{d.columns.stars}</dt><dd><span aria-hidden>★ </span>{s.stars}</dd></div>
+                  <div className="rounded-lg border-2 border-ink/60 bg-white px-2 py-0.5"><dt className="inline">{d.columns.coins}: </dt><dd className="inline">{s.coins}</dd></div>
+                  <div className="rounded-lg border-2 border-ink/60 bg-white px-2 py-0.5"><dt className="inline">{d.columns.bosses}: </dt><dd className="inline">{s.bossesBeaten}</dd></div>
+                  <div className={`rounded-lg border-2 border-ink/60 px-2 py-0.5 ${s.misses > 3 ? 'bg-rose-100' : 'bg-white'}`}><dt className="inline">{d.columns.misses}: </dt><dd className="inline">{s.misses}</dd></div>
+                  <div className="rounded-lg border-2 border-ink/60 bg-white px-2 py-0.5"><dt className="inline">{d.columns.combo}: </dt><dd className="inline">{s.bestCombo}</dd></div>
+                  {Object.entries(s.topics).map(([topic, t]) => (
+                    <div key={topic} className="rounded-lg border-2 border-ink/60 bg-emerald-50 px-2 py-0.5">
+                      <dt className="inline">{c.topics[topic as Topic] ?? topic}: </dt>
+                      <dd className="inline"><span className="text-amber-600">{'★'.repeat(t.bestStars)}</span><span className="text-ink/25">{'★'.repeat(3 - t.bestStars)}</span></dd>
+                    </div>
+                  ))}
+                </dl>
+              </li>
+            ))}
+          </ol>
+        )}
+      </section>
+    </div>
+  )
+}

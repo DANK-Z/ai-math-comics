@@ -17,6 +17,13 @@ class Problem:
     def expected(self) -> Fraction:
         return sum((Fraction(p) for p in self.portions), Fraction()) / self.friends
 
+    @property
+    def skill(self) -> str:
+        """Analytics label: share whole pizzas, a fractional amount, or a sum of fractions."""
+        if len(self.portions) > 1:
+            return "sum"
+        return "part" if "/" in self.portions[0] else "whole"
+
     def to_dict(self) -> dict:
         # Only operands, never the computed answer, are sent to the text provider.
         return {"portions": list(self.portions), "friends": self.friends}
@@ -102,6 +109,10 @@ class EquationProblem:
             "mul_add": f"{a} · x + {b} = {c}",
             "mul_sub": f"{a} · x − {b} = {c}",
         }[self.kind]
+
+    @property
+    def skill(self) -> str:
+        return self.kind
 
     def to_dict(self) -> dict:
         return {"kind": self.kind, "a": self.a, "b": self.b, "c": self.c}

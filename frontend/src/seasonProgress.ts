@@ -36,5 +36,19 @@ export function useSeasonProgress() {
     return saved.has(comicId) ? null : chapter.collectible
   }, [])
 
-  return { completedChapters, completeChapter }
+  /** Add chapters saved on the server (a signed-in student on a new device). */
+  const mergeChapters = useCallback((ids: readonly string[]) => {
+    const known = ids.filter((id) => schoolFairChapter(id) && !current.current.has(id))
+    if (known.length === 0) return
+    const next = new Set([...current.current, ...readCompleted(), ...known])
+    current.current = next
+    setCompletedChapters(next)
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify([...next]))
+    } catch {
+      // In memory only.
+    }
+  }, [])
+
+  return { completedChapters, completeChapter, mergeChapters }
 }

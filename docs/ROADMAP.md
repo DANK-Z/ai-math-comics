@@ -118,15 +118,21 @@ The Guardian final challenge exists (`9dc0af2`): three fixed rounds (fractions, 
 | Practice mode | Planned |
 | Challenge mode with optional hearts, a timer, and crystals | Planned |
 
-### 10. Teacher features — Planned
+### 10. Teacher features — In progress
 
 | Part | Status |
 | --- | --- |
+| Student and teacher accounts (login without e-mail for students, JWT roles) | Done |
+| Class codes (`KOKSH-5A-2026`) and joining a class | Done |
+| Class dashboard: ranking by stars, combo, misses; error heatmap by round and skill; review recommendation | Done |
+| Server-side coins and stars from boss fights; boss and season progress restored after reload / on another device | Done |
+| Backpack shop, Pifik skins, power-ups | Planned (the `backpack_items` table exists) |
 | Shareable chapter assignments | Planned |
-| Class progress summary | Planned |
 | Configurable Guardian rounds for review or assessment | Planned |
+| Password reset, teacher-managed student accounts, rate limiting of sign-in | Planned |
+| Database migrations (Alembic) before a pilot | Planned |
 
-Progress and history are saved only in the student's browser. There are no accounts or a shared server-side record yet.
+Accounts are optional: guests still play with progress saved only in the browser.
 
 ### 11. New comics and exercise templates — Planned
 

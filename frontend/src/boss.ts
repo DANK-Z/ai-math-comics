@@ -29,6 +29,7 @@ interface BossCopy {
     copied: string
     shared: string
     shareManual: string
+    coins: (earned: number, total: number) => string
     close: string
     reopen: string
     shareText: (boss: string, total: number, misses: number) => string
@@ -72,6 +73,7 @@ export const BOSS_COPY: Record<Lang, BossCopy> = {
       copied: 'Текст скопирован — вставь его в сообщение.',
       shared: 'Готово, успех отправлен!',
       shareManual: 'Скопируй этот текст и отправь его друзьям:',
+      coins: (earned, total) => `+${earned} монет · всего ${total}`,
       close: 'Закрыть',
       reopen: 'Показать трофей',
       shareText: (boss, total, misses) =>
@@ -114,6 +116,7 @@ export const BOSS_COPY: Record<Lang, BossCopy> = {
       copied: 'Мәтін көшірілді — оны хабарламаға қой.',
       shared: 'Дайын, жетістігің жіберілді!',
       shareManual: 'Осы мәтінді көшіріп, достарыңа жібер:',
+      coins: (earned, total) => `+${earned} тиын · барлығы ${total}`,
       close: 'Жабу',
       reopen: 'Олжаны көрсету',
       shareText: (boss, total, misses) =>

@@ -63,6 +63,11 @@ class Store:
                     hints TEXT NOT NULL
                 );
             """)
+            # Added after the first release: the skill label for teacher analytics.
+            for table in ("comics", "boss_rounds"):
+                columns = {row["name"] for row in db.execute(f"PRAGMA table_info({table})")}
+                if "skill" not in columns:
+                    db.execute(f"ALTER TABLE {table} ADD COLUMN skill TEXT")
 
     @contextmanager
     def connection(self):
@@ -231,6 +236,8 @@ class Store:
         expected: str,
         hints: dict,
         rounds: Sequence[tuple[str, str, dict]] = (),
+        skill: str | None = None,
+        round_skills: Sequence[str | None] = (),
     ):
         with self.connection() as db:
             db.execute("BEGIN IMMEDIATE")
@@ -242,20 +249,31 @@ class Store:
             if updated.rowcount != 1:
                 raise RuntimeError("Worker no longer owns this job")
             db.execute(
-                "INSERT INTO comics(id,payload,exercise_id,expected,hints) VALUES(?,?,?,?,?)",
+                "INSERT INTO comics(id,payload,exercise_id,expected,hints,skill) "
+                "VALUES(?,?,?,?,?,?)",
                 (
                     comic_id,
                     json.dumps(payload, ensure_ascii=False),
                     exercise_id,
                     expected,
                     json.dumps(hints, ensure_ascii=False),
+                    skill,
                 ),
             )
             db.executemany(
-                "INSERT INTO boss_rounds(exercise_id,comic_id,expected,hints) VALUES(?,?,?,?)",
+                "INSERT INTO boss_rounds(exercise_id,comic_id,expected,hints,skill) "
+                "VALUES(?,?,?,?,?)",
                 [
-                    (round_id, comic_id, value, json.dumps(round_hints, ensure_ascii=False))
-                    for round_id, value, round_hints in rounds
+                    (
+                        round_id,
+                        comic_id,
+                        value,
+                        json.dumps(round_hints, ensure_ascii=False),
+                        round_skill,
+                    )
+                    for (round_id, value, round_hints), round_skill in zip(
+                        rounds, list(round_skills) or [None] * len(rounds), strict=True
+                    )
                 ],
             )
             progress = db.execute(
@@ -276,8 +294,26 @@ class Store:
     def exercise(self, exercise_id: str) -> dict | None:
         with self.connection() as db:
             row = db.execute(
-                "SELECT expected,hints FROM comics WHERE exercise_id=? UNION ALL "
-                "SELECT expected,hints FROM boss_rounds WHERE exercise_id=?",
+                "SELECT expected,hints,skill FROM comics WHERE exercise_id=? UNION ALL "
+                "SELECT expected,hints,skill FROM boss_rounds WHERE exercise_id=?",
                 (exercise_id, exercise_id),
             ).fetchone()
-        return {"expected": row["expected"], "hints": json.loads(row["hints"])} if row else None
+        if row is None:
+            return None
+        return {
+            "expected": row["expected"],
+            "hints": json.loads(row["hints"]),
+            "skill": row["skill"],
+        }
+
+    def comic_exercises(self, comic_id: str) -> list[str]:
+        """The comic's exercise followed by its boss rounds, in fight order."""
+        with self.connection() as db:
+            main = db.execute("SELECT exercise_id FROM comics WHERE id=?", (comic_id,)).fetchone()
+            rounds = db.execute(
+                "SELECT exercise_id FROM boss_rounds WHERE comic_id=? ORDER BY exercise_id",
+                (comic_id,),
+            ).fetchall()
+        if main is None:
+            return []
+        return [main["exercise_id"], *(row["exercise_id"] for row in rounds)]

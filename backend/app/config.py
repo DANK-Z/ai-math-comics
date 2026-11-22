@@ -28,6 +28,10 @@ class Settings:
     job_timeout: float = 1500
     poll_interval: float = 1
     text_attempts: int = 3
+    # Accounts DB; empty = data/accounts.sqlite3. PostgreSQL: see docker-compose.yml.
+    database_url: str = field(default="", repr=False)
+    jwt_secret: str = field(default="", repr=False)
+    jwt_hours: float = 12
 
     def __post_init__(self):
         if self.provider not in ("openai", "gemini"):
@@ -68,4 +72,7 @@ class Settings:
             job_timeout=float(os.getenv("JOB_TIMEOUT_SECONDS", "1500")),
             poll_interval=float(os.getenv("WORKER_POLL_SECONDS", "1")),
             text_attempts=int(os.getenv("TEXT_ATTEMPTS", "3")),
+            database_url=os.getenv("DATABASE_URL", "").strip(),
+            jwt_secret=os.getenv("JWT_SECRET", "").strip(),
+            jwt_hours=float(os.getenv("JWT_HOURS", "12")),
         )
