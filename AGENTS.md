@@ -122,19 +122,25 @@ For UI changes also open the app (mock mode is enough) and check desktop 1440 px
 | Story cache (Redis exact, pgvector semantic; fresh math) | `app/story_cache.py`, `Worker.cached_story` | — |
 | Classes, codes, progress, coins, analytics, dashboard | `app/accounts.py` | `components/TeacherScreen.tsx`, `components/ProfileScreen.tsx`, `bossProgress.ts`, `accountCopy.ts`, mock `api/mockAccounts.ts` |
 
-## Current state (2026-11-22, `main` at `a964b80`)
+## Current state (2026-11-22, `main` at `86b6800`, pushed to GitHub)
 
-Done recently: «Моя история» (custom heroes as text + placeholder art, style, setting, premise);
-topic «Уравнения»; storyboard retries with rule feedback (verified live: a Gemini 503 was retried
-and the comic was published); panel-4 boss fight (Дробный Слайм / Магистр Иксов);
-Road Guardian; 16/12/8 design pass.
+Done: «Моя история»; topics «Дроби» and «Уравнения» (SymPy answer parsing: `x=3`, `3`, `3.0`,
+`3,0`); storyboard retries (verified live with Gemini); panel-4 boss fight with victory screen and
+draft pad; Road Guardian; accounts (students by login, teachers by e-mail, JWT roles), class codes,
+server-side coins/stars, teacher dashboard with error heatmap; fair shop with Pifik skins;
+story cache (Redis for Express, pgvector + local multilingual embeddings for «Моя история»; the
+math is always new). 314 backend tests pass with the real services, the frontend builds.
+
+Before working: start Docker Desktop, then `docker compose up -d` (PostgreSQL with pgvector on
+5433, Redis on 6380). Tests against the real services:
+`$env:TEST_REDIS_URL="redis://127.0.0.1:6380/15"; $env:TEST_DATABASE_URL="postgresql+asyncpg://amc:amc-dev-password@127.0.0.1:5433/amc_test"`.
 
 Known gaps / good next steps (see `docs/ROADMAP.md` for the full list):
-- Accounts (sprint 4) are on branch `feature/accounts-dashboard` until merged: students sign in
-  with a login, teachers with e-mail; coins/stars are awarded by the server from logged answers.
-  Next: Alembic migrations, sign-in rate limiting, password reset, power-ups (potions) for boss fights.
-- Shop and story cache: branch `feature/shop-cache` until merged. Tests for Redis/pgvector run with
-  `TEST_REDIS_URL=redis://127.0.0.1:6380/15` and `TEST_DATABASE_URL=…/amc_test`.
+- Power-ups (potions) for boss fights: the boss uses typed answers, so «remove a wrong answer»
+  needs a new design first.
+- Alembic migrations before a pilot (tables are created with `create_all`), sign-in rate limiting,
+  password reset.
+- Sprint 5: Docker images for API/worker/frontend, HTTPS, deployment, backups.
 - In mock mode the teacher dashboard shows fixed demo statistics.
 - With prepared art, style/setting choices do not change pictures; custom heroes are never drawn.
 - Live image generation with the real provider has not been re-checked since the equations/boss work.
