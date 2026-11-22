@@ -7,9 +7,11 @@ import { GuardianScreen } from './components/GuardianScreen'
 import { LanguageSwitcher } from './components/LanguageSwitcher'
 import { MyComicsScreen } from './components/MyComicsScreen'
 import { ReaderScreen } from './components/ReaderScreen'
+import { RoadGuardianScreen } from './components/RoadGuardianScreen'
 import { DesktopNavigation, MobileNavigation } from './components/SectionNavigation'
 import { useContinuationJob } from './continuation'
 import { useGuardianChallenge } from './guardian'
+import { ROAD_DAMAGE, ROAD_MAX_HP, useRoadGuardian } from './roadGuardian'
 import { useLang } from './hooks'
 import { useMyComics } from './myComics'
 import { STRINGS } from './i18n'
@@ -46,13 +48,14 @@ export default function App() {
   const { completedChapters, completeChapter } = useSeasonProgress()
   const priceTagSticker = usePriceTagSticker()
   const guardian = useGuardianChallenge()
+  const roadGuardian = useRoadGuardian()
   const continuationJob = useContinuationJob()
   const remaining = SCHOOL_FAIR_CHAPTER_COUNT - completedChapters.size
   const t = STRINGS[lang]
   const myComics = useMyComics()
   // A saved generated comic belongs to My Comics; everything else to the catalog.
   const readerSection = route.name === 'comic' && myComics.some((c) => c.comicId === route.comicId) ? 'myComics' as const : 'comics' as const
-  const navigation = { t, active: route.name === 'comic' ? readerSection : route.name, completed: completedChapters.size, remaining, myComics: myComics.length }
+  const navigation = { t, active: route.name === 'comic' ? readerSection : route.name, completed: completedChapters.size, remaining, myComics: myComics.length, roadHp: ROAD_MAX_HP - roadGuardian.run.cleared * ROAD_DAMAGE, roadWon: roadGuardian.run.won, lang }
 
   const openGenerated = useCallback(
     (comicId: string, request: ComicJobRequest) => {
@@ -93,6 +96,7 @@ export default function App() {
             <BackpackCollection t={t} completedChapters={completedChapters} hasPriceTagSticker={priceTagSticker.earned} />
           )}
           {route.name === 'guardian' && <GuardianScreen lang={lang} remaining={remaining} challenge={guardian} />}
+          {route.name === 'roadGuardian' && <RoadGuardianScreen lang={lang} challenge={roadGuardian} />}
           {route.name === 'comic' && (
             <ReaderScreen
               key={`${comicHref(route.comicId, route.ending)}|${route.replay ?? ''}`}

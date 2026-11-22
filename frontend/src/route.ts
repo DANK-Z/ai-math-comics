@@ -6,6 +6,7 @@ export const SECTION_HREFS = {
   myComics: '#/my-comics',
   backpack: '#/backpack',
   guardian: '#/guardian',
+  roadGuardian: '#/road-guardian',
   create: '#/create',
 } as const
 
