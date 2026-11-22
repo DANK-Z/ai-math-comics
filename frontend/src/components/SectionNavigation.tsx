@@ -1,5 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
+import type { Lang } from '../api/types'
 import type { UiStrings } from '../i18n'
+import { ROAD_COPY, ROAD_MAX_HP } from '../roadGuardian'
 import { SECTION_HREFS, type Section } from '../route'
 import { SCHOOL_FAIR_CHAPTER_COUNT } from '../schoolFair'
 
@@ -10,9 +12,13 @@ interface Props {
   remaining: number
   /** Saved generated comics in this browser. */
   myComics: number
+  /** Road Guardian (motion problems) state for the navigation detail. */
+  roadHp: number
+  roadWon: boolean
+  lang: Lang
 }
 
-function SectionLinks({ t, active, completed, remaining, myComics, onSelect }: Props & { onSelect?: () => void }) {
+function SectionLinks({ t, active, completed, remaining, myComics, roadHp, roadWon, lang, onSelect }: Props & { onSelect?: () => void }) {
   const id = useId()
   const links = [
     { section: 'map', icon: '🗺️', label: t.fairRoute.title, detail: t.seasonProgress(completed, SCHOOL_FAIR_CHAPTER_COUNT) },
@@ -20,6 +26,7 @@ function SectionLinks({ t, active, completed, remaining, myComics, onSelect }: P
     { section: 'myComics', icon: '🖍️', label: t.myComics.title, detail: myComics > 0 ? t.myComics.count(myComics) : undefined },
     { section: 'backpack', icon: '🎒', label: t.backpack.title, detail: t.backpack.progress(completed, SCHOOL_FAIR_CHAPTER_COUNT) },
     { section: 'guardian', icon: remaining > 0 ? '🔒' : '★', label: t.guardian.title, detail: remaining > 0 ? t.guardian.remaining(remaining) : t.fairRoute.guardianUnlocked },
+    { section: 'roadGuardian', icon: '🛣️', label: ROAD_COPY[lang].title, detail: ROAD_COPY[lang].navDetail(roadHp, ROAD_MAX_HP, roadWon) },
     { section: 'create', icon: '✨', label: t.createOwn },
   ] satisfies { section: Section; icon: string; label: string; detail?: string }[]
 
