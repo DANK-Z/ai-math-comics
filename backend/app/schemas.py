@@ -14,6 +14,7 @@ class Panel(BaseModel):
     text: str
     imageKey: str
     imageUrl: str | None = None
+    imageAspect: float | None = None
 
 
 class Exercise(BaseModel):
@@ -79,6 +80,7 @@ ErrorCode = Literal[
     "provider_timeout",
     "provider_unavailable",
     "invalid_provider_output",
+    "image_generation_failed",
     "job_timeout",
     "worker_interrupted",
     "generation_failed",

@@ -15,6 +15,7 @@ from test_generation import REQUEST, png, story_for
 
 from app.config import BACKEND_DIR, Settings
 from app.main import create_app
+from app.prepared_art import live_cast_reference
 from app.providers import OpenAIHTTP, OpenAIImageProvider, OpenAITextProvider, ProviderError
 from app.storage import Store
 from app.worker import Worker
@@ -47,17 +48,13 @@ def test_full_flow_through_real_adapters_with_mock_http(tmp_path):
                     ]
                 },
             )
-        if request.url.path == "/v1/images/generations":
-            body = json.loads(request.content)
-            assert body["n"] == 1 and body["output_format"] == "png"
-            assert body["model"] == settings.image_model
-        else:
-            assert request.url.path == "/v1/images/edits"
-            assert "multipart/form-data" in request.headers["content-type"]
-            assert b'filename="reference.png"' in request.content
-            assert b'name="image"' in request.content
-            assert png() in request.content
-            assert b"No embedded text" in request.content
+        assert request.url.path == "/v1/images/edits"
+        assert "multipart/form-data" in request.headers["content-type"]
+        assert b'filename="reference.png"' in request.content
+        assert b'name="image"' in request.content
+        assert settings.image_model.encode() in request.content
+        assert live_cast_reference() in request.content
+        assert b"No embedded text" in request.content
         return httpx.Response(200, json={"data": [{"b64_json": base64.b64encode(png()).decode()}]})
 
     with TestClient(create_app(settings)) as api:
@@ -82,8 +79,7 @@ def test_full_flow_through_real_adapters_with_mock_http(tmp_path):
             Image.open(io.BytesIO(image.content)).verify()
     assert [r.url.path for r in requests] == [
         "/v1/chat/completions",
-        "/v1/images/generations",
-        *["/v1/images/edits"] * 5,
+        *["/v1/images/edits"] * 6,
     ]
 
 

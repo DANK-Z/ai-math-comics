@@ -1,4 +1,9 @@
-"""The six dialogue-free character portraits already bundled with the frontend."""
+"""Bundled portraits for prepared panels and live character references."""
+
+import io
+from functools import lru_cache
+
+from PIL import Image, ImageOps
 
 from .config import BACKEND_DIR
 
@@ -16,3 +21,16 @@ PREPARED_PANELS = (
     ("aldiyar", "aldiyar-close.jpg", "Close-up of Aldiyar smiling. Encourage the reader."),
 )
 PREPARED_SPEAKERS = {"pifik": "Пифик", "aruna": "Аруна", "aldiyar": "Алдияр"}
+
+
+@lru_cache(maxsize=1)
+def live_cast_reference() -> bytes:
+    """An unlabeled reference strip ordered Aldiyar, Aruna, Pifik."""
+    tile = (320, 240)
+    strip = Image.new("RGB", (tile[0] * 3, tile[1]))
+    for index, name in enumerate(("aldiyar", "aruna", "pifik")):
+        with Image.open(ART_DIR / f"{name}.jpg") as portrait:
+            strip.paste(ImageOps.fit(portrait.convert("RGB"), tile), (index * tile[0], 0))
+    output = io.BytesIO()
+    strip.save(output, "PNG")
+    return output.getvalue()

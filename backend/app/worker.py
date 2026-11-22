@@ -2,6 +2,7 @@
 
 import argparse
 import asyncio
+import io
 import json
 import logging
 from collections.abc import AsyncIterator, Callable, Sequence
@@ -10,6 +11,7 @@ from typing import TypeVar
 from uuid import uuid4
 
 import httpx
+from PIL import Image
 from pydantic import TypeAdapter, ValidationError
 
 from .config import Settings
@@ -23,7 +25,7 @@ from .library_episode import (
     library_prompt,
     validate_library_story,
 )
-from .prepared_art import ART_DIR, PREPARED_PANELS, PREPARED_SPEAKERS
+from .prepared_art import ART_DIR, PREPARED_PANELS, PREPARED_SPEAKERS, live_cast_reference
 from .problems import Problem
 from .providers import (
     ImageProvider,
@@ -47,7 +49,6 @@ from .story import (
 )
 
 logger = logging.getLogger(__name__)
-SPEAKERS = {"mira": "Мира", "daniyar": "Данияр"}
 QUEUED_REQUEST = TypeAdapter(JobRequest | ContinuationRequest)
 StoryType = TypeVar("StoryType")
 
@@ -130,11 +131,9 @@ class Worker:
             (PreparedStory if prepared else Story).model_json_schema(),
             lambda raw: validate_story(raw, problem, prepared=prepared),
         )
-        if not prepared:
-            await self.render_live_images(comic_id, story.ru.panels)
+        aspects = {} if prepared else await self.render_live_images(comic_id, story.ru.panels)
 
         exercise_id = f"fractions-{comic_id}"
-        speaker_names = PREPARED_SPEAKERS if prepared else SPEAKERS
         payload = {}
         hints = {}
         for lang in ("ru", "kk"):
@@ -147,9 +146,10 @@ class Worker:
                 panels=[
                     Panel(
                         id=p.id,
-                        speaker=speaker_names[p.speaker],
+                        speaker=PREPARED_SPEAKERS[p.speaker],
                         text=p.text,
                         imageKey=f"{comic_id}-{p.id:02d}",
+                        imageAspect=aspects.get(p.id),
                         imageUrl=(
                             f"/api/prepared-art/{p.id}.jpg"
                             if prepared
@@ -203,25 +203,34 @@ class Worker:
                 "invalid_provider_output", stage=f"story_schema_validation:{path}:{error['type']}"
             ) from None
 
-    async def render_live_images(self, comic_id: str, panels: Sequence[ScenePanel]):
+    async def render_live_images(
+        self, comic_id: str, panels: Sequence[ScenePanel]
+    ) -> dict[int, float]:
         if self.image is None:
-            raise RuntimeError("Live artwork requires an image provider")
+            raise ProviderError("image_generation_failed", stage="image:provider_missing")
+        try:
+            reference = live_cast_reference()
+        except OSError:
+            raise ProviderError(
+                "image_generation_failed", stage="image:reference_unavailable"
+            ) from None
         directory = self.store.images_dir / comic_id
         directory.mkdir()
-        reference = None
+        aspects = {}
         for panel in panels:
             try:
                 image = normalize_png(
                     await self.image.generate(image_prompt(panel.scene), reference)
                 )
             except ProviderError as exc:
-                stage = f"image:panel_{panel.id}:{exc.stage or 'provider_output'}"
-                raise ProviderError(exc.code, stage=stage) from None
-            if reference is None:
-                reference = image  # All later panels use the SAME first-panel visual anchor.
+                stage = f"image:panel_{panel.id}:{exc.stage or exc.code}"
+                raise ProviderError("image_generation_failed", stage=stage) from None
+            with Image.open(io.BytesIO(image)) as panel_art:
+                aspects[panel.id] = panel_art.width / panel_art.height
             temporary = directory / f"{panel.id}.tmp"
             temporary.write_bytes(image)
             temporary.replace(directory / f"{panel.id}.png")
+        return aspects
 
 
 @asynccontextmanager

@@ -115,16 +115,20 @@ See [`.env.example`](.env.example) for all settings:
 The Gemini adapters use the official [Google Gen AI SDK](https://googleapis.github.io/python-genai/)
 with [structured output](https://ai.google.dev/gemini-api/docs/structured-output) for stories
 and [native image generation](https://ai.google.dev/gemini-api/docs/image-generation) for panels.
-The first image becomes the reference for the remaining five panels, as it does with OpenAI.
+Each live panel uses the same bundled character reference for Aldiyar, Aruna, and Pifik.
 
 The OpenAI adapters use [structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs)
 and the [Image API](https://developers.openai.com/api/docs/guides/image-generation).
 Defaults use [GPT-6 Luna](https://developers.openai.com/api/docs/models/gpt-6-luna) and
 [GPT-Image-2.5 Flare](https://developers.openai.com/api/docs/models/gpt-image-2.5-flare).
 Alternative OpenAI endpoints must implement the same REST contracts. OpenAI requests
-low-quality 1024×1024 images. Each job makes one bilingual text request and six image
-requests in live art mode. No automatic retries
-are made, so failures do not silently repeat paid calls. Re-submit a new job to retry.
+low-quality 1024×1024 images. Each standalone live-art job validates its bilingual
+storyboard before making six reference-image edits. Panels 5 and 6 show the resolution
+and the reader unlocks them after a correct answer. Dialogue and math are rendered by the UI.
+Set `COMIC_PROVIDER=openai`, `OPENAI_TEXT_MODEL=gpt-6-luna`, and `COMIC_ART_MODE=live`
+for both the API and worker. Set `VITE_COMIC_ART_MODE=live` for the live frontend.
+Use `prepared` for both art settings to switch back to bundled artwork.
+Failed jobs require an explicit retry.
 
 ### Prepared artwork demo
 
@@ -157,8 +161,8 @@ fails the job instead of publishing it. Exercise and hints are server-authored t
 math instructions reliable without disclosing the final answer.
 
 Image prompts come from server-owned scene directions and a shared character description.
-They contain no dialogue, problem operands, or solution. They ask for text-free illustrations
-with a closed pizza box, without slices or distributions that could reveal the answer.
+They contain no dialogue, problem operands, or solution. The box stays closed through
+panel 4. The last two scenes show the picnic without revealing quantities or servings.
 Reference-image editing encourages consistent faces and clothes. Visual consistency and absence
 of accidental lettering still depend on the image model; deterministic checks cannot assess
 real artwork. Returned files are decoded, validated, normalized to PNG, and stripped of metadata.
@@ -178,7 +182,9 @@ demo queue using local storage, without user authentication or per-user quotas.
 
 Safe failure codes are `provider_not_configured`, `provider_authentication`,
 `provider_rate_limited`, `provider_timeout`, `provider_unavailable`, `invalid_provider_output`,
-`job_timeout`, `worker_interrupted`, and `generation_failed`. Upstream error bodies, keys,
+`job_timeout`, `worker_interrupted`, `image_generation_failed`, and `generation_failed`.
+Image failures report the panel and provider stage in worker logs and leave the job unpublished.
+Upstream error bodies, keys,
 model output, and private answers are excluded from public error responses and worker logs.
 Worker logs can identify the Gemini response stage, HTTP status, or story validation
 field and rule. Unknown field names from a model are redacted.

@@ -17,14 +17,15 @@ from app.problems import Problem
 from app.providers import ProviderError
 from app.schemas import JobRequest
 from app.storage import Store
-from app.story import SCENES, PreparedStory, validate_story
+from app.story import LIVE_SCENES, SCENES, PreparedStory, validate_story
 from app.worker import Worker, configured_providers
 
 REQUEST = {"grade": 5, "topic": "fractions", "lang": "ru", "difficulty": "basic"}
 
 
 def story_for(prompt):
-    content = json.loads(prompt)["trusted_content"]
+    request = json.loads(prompt)
+    content = request["trusted_content"]
     dialogue = {
         "ru": [
             "Как интересно!",
@@ -51,11 +52,11 @@ def story_for(prompt):
             "panels": [
                 {
                     "id": i,
-                    "speaker": "mira" if i % 2 else "daniyar",
+                    "speaker": ("aldiyar", "aruna", "aldiyar", "pifik", "aruna", "aldiyar")[i - 1],
                     "text": content[lang]["exercise"] if i == 4 else dialogue[lang][i - 1],
                     "scene": scene,
                 }
-                for i, scene in enumerate(SCENES, 1)
+                for i, scene in enumerate(request["scenes"], 1)
             ],
         }
         for lang in ("ru", "kk")
@@ -146,7 +147,15 @@ def test_generation_round_trip_and_restart(setup, grade, lang, difficulty):
             assert [p["id"] for p in comic["panels"]] == list(range(1, 7))
             assert comic["panels"][3]["text"] == comic["exercise"]["prompt"]
             for panel in comic["panels"]:
-                assert set(panel) == {"id", "speaker", "text", "imageKey", "imageUrl"}
+                assert set(panel) == {
+                    "id",
+                    "speaker",
+                    "text",
+                    "imageKey",
+                    "imageUrl",
+                    "imageAspect",
+                }
+                assert panel["imageAspect"] == 1.0
                 assert panel["imageUrl"].startswith("http://testserver/api/comic-images/")
                 image_response = restarted.get(
                     panel["imageUrl"], headers={"Origin": "http://localhost:5173"}
@@ -184,13 +193,18 @@ def test_generation_round_trip_and_restart(setup, grade, lang, difficulty):
         assert responses["ru"]["exercise"]["id"] == responses["kk"]["exercise"]["id"]
 
     assert len(text.calls) == 1 and len(images.calls) == 6
-    assert images.calls[0][1] is None
-    assert all(call[1] == images.calls[1][1] for call in images.calls[1:])
-    assert images.calls[1][1] == png((20, 100, 140))
+    reference = images.calls[0][1]
+    assert reference is not None
+    with Image.open(io.BytesIO(reference)) as cast:
+        assert cast.size == (960, 240)
+    assert all(call[1] == reference for call in images.calls)
     for prompt, _ in images.calls:
         assert "No embedded text" in prompt
-        assert "Mira:" in prompt and "Daniyar:" in prompt
+        assert all(name in prompt for name in ("Aldiyar:", "Aruna:", "Pifik:"))
         assert "fixed_problem_inputs" not in prompt
+    assert all("closed" in prompt for prompt, _ in images.calls[:4])
+    assert "lifts the pizza-box lid" in images.calls[4][0]
+    assert "enjoy their fair picnic" in images.calls[5][0]
     assert not asyncio.run(Worker(store, text, images, settings).run_once())
 
 
@@ -330,7 +344,7 @@ def test_image_failure_cleans_files_and_next_job_runs(setup, caplog):
         "jobId": first,
         "status": "failed",
         "comicId": None,
-        "errorCode": "provider_unavailable",
+        "errorCode": "image_generation_failed",
     }
     assert list(store.images_dir.iterdir()) == []
     assert store.comic(first) is None
@@ -373,7 +387,7 @@ def test_safe_failures(setup, failure):
             "timeout": "job_timeout",
             "provider": "provider_authentication",
             "unexpected": "generation_failed",
-            "image": "invalid_provider_output",
+            "image": "image_generation_failed",
         }[failure]
     )
     assert "secret" not in response.text
@@ -473,7 +487,7 @@ def test_reject_untrusted_structure(mutation):
     elif mutation == "scene":
         story["ru"]["panels"][0]["scene"] = "show answer"
     elif mutation == "speaker":
-        story["kk"]["panels"][0]["speaker"] = "daniyar"
+        story["kk"]["panels"][0]["speaker"] = "aruna"
     else:
         story["solution"] = "3/4"
     with pytest.raises(ValueError):
@@ -517,7 +531,7 @@ def test_fixed_problem_math_and_no_solution_in_prompts():
     prompt = text_prompt(JobRequest(**(REQUEST | {"difficulty": "advanced"})), problem)
     assert json.loads(prompt)["fixed_problem_inputs"] == {"portions": ["5/6", "3/8"], "friends": 4}
     assert "29/96" not in prompt
-    for scene in SCENES:
+    for scene in LIVE_SCENES:
         image = image_prompt(scene)
         assert "29/96" not in image and "5/6" not in image and "3/8" not in image
 

@@ -60,7 +60,7 @@ export interface UiStrings {
   resumeChecking: string
   jobReady: string
   jobFailedTitle: string
-  jobErrors: { generation_failed: string; api: string; lost: string; unknown: string }
+  jobErrors: { generation_failed: string; image_generation_failed: string; api: string; lost: string; unknown: string }
   errorDetails: string
   tryAgain: string
   changeParams: string
@@ -193,6 +193,7 @@ export const STRINGS: Record<Lang, UiStrings> = {
     jobFailedTitle: 'Не удалось создать комикс',
     jobErrors: {
       generation_failed: 'Генерация не удалась. Попробуй ещё раз.',
+      image_generation_failed: 'Не удалось создать иллюстрации для комикса. Попробуй ещё раз.',
       api: 'Сервер не ответил как ожидалось. Проверь подключение и попробуй снова.',
       lost: 'Задание не найдено на сервере.',
       unknown: 'Что-то пошло не так при создании комикса.',
@@ -354,6 +355,7 @@ export const STRINGS: Record<Lang, UiStrings> = {
     jobFailedTitle: 'Комикс жасау мүмкін болмады',
     jobErrors: {
       generation_failed: 'Генерация сәтсіз аяқталды. Қайтадан байқап көр.',
+      image_generation_failed: 'Комикстің суреттерін жасау сәтсіз аяқталды. Қайтадан байқап көр.',
       api: 'Сервер күткендей жауап бермеді. Байланысты тексеріп, қайтадан байқап көр.',
       lost: 'Тапсырма серверде табылмады.',
       unknown: 'Комикс жасау кезінде бірдеңе дұрыс болмады.',

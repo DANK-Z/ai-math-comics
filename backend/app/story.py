@@ -18,21 +18,33 @@ SCENES = (
     "think",
     "encourage",
 )
-SCENE_DESCRIPTIONS = {
-    "welcome": "Wide view: Mira and Daniyar arrive at the cozy classroom table.",
-    "discuss": "Medium view: Mira gestures toward an unmarked closed pizza box, Daniyar listens.",
-    "consider": "Close view: Daniyar thoughtfully touches his chin, Mira looks curious.",
-    "question": "Front view: Mira invites the reader to think with an open-hand gesture.",
-    "think": "Side view: the children pause thoughtfully, looking at the closed box.",
-    "encourage": "Medium view: the children smile encouragingly toward the reader.",
+LIVE_SCENE_DESCRIPTIONS = {
+    "welcome": "Wide establishing view. Aldiyar and Aruna walk up to the school fair picnic table "
+    "with Pifik hovering beside them. An unmarked pizza box is closed on the table.",
+    "discuss": "Aruna points to the closed pizza box to suggest sharing. Aldiyar and Pifik "
+    "turn toward her. Show the whole group and the table in a medium-wide view.",
+    "consider": "Aldiyar thinks with a hand on his chin while Aruna and Pifik listen. "
+    "Keep the closed box, table and fair courtyard in view.",
+    "question": "Pifik hovers beside the closed pizza box and gestures toward the reader, "
+    "inviting help. Aruna and Aldiyar look expectantly at Pifik.",
+    "serve": "The puzzle has been solved. Aldiyar lifts the pizza-box lid and Aruna "
+    "passes a plate across the table as Pifik cheers. Show the lid from the side so it "
+    "hides the contents. Keep any serving out of view.",
+    "celebrate": "The friends enjoy their fair picnic together. Show Aruna and Aldiyar "
+    "laughing at the table while Pifik hovers happily beside them. Keep any servings "
+    "out of view. Use a wide closing view of the same courtyard.",
 }
+LIVE_SCENES = tuple(LIVE_SCENE_DESCRIPTIONS)
 CHARACTERS = (
-    "Mira: a schoolgirl with warm brown skin, brown eyes, a dark chin-length bob, "
-    "a yellow sweatshirt and teal overalls. Daniyar: a schoolboy with warm brown skin, "
-    "brown eyes, short dark curly hair, a blue hoodie and gray trousers. "
-    "Keep exactly these faces, hairstyles, ages, outfits and colors in every panel. "
-    "Warm hand-drawn children's comic, clean outlines, soft pastel colors. "
-    "Same cozy classroom with a wooden table and an unmarked closed pizza box."
+    "Aldiyar: a schoolboy with tousled black hair, brown eyes, a blue hoodie with a pale "
+    "hood, and silver and navy headphones around his neck. "
+    "Aruna: a schoolgirl with long dark braids, brown eyes, a yellow star hair clip, "
+    "and a lavender hoodie. "
+    "Pifik: a small hovering white and lavender robot with a dark screen face, "
+    "cyan eyes and smile, and a navy graduation cap with a gold tassel. "
+    "Same school fair courtyard in every panel: red and yellow bunting, a leafy tree, "
+    "a blue school facade in the background and a wooden picnic table. Bright comic "
+    "art with clear outlines and expressive faces."
 )
 
 
@@ -43,14 +55,12 @@ class StrictModel(BaseModel):
 class ScenePanel(StrictModel):
     id: int = Field(ge=1, le=6)
     text: str = Field(min_length=1, max_length=600)
-    scene: Literal["welcome", "discuss", "consider", "question", "think", "encourage"]
+    scene: Literal[
+        "welcome", "discuss", "consider", "question", "think", "encourage", "serve", "celebrate"
+    ]
 
 
 class StoryPanel(ScenePanel):
-    speaker: Literal["mira", "daniyar"]
-
-
-class PreparedPanel(ScenePanel):
     speaker: Literal["pifik", "aruna", "aldiyar"]
 
 
@@ -65,7 +75,7 @@ class LocalizedStory(StoryText):
 
 
 class LocalizedPreparedStory(StoryText):
-    panels: list[PreparedPanel] = Field(min_length=6, max_length=6)
+    panels: list[StoryPanel] = Field(min_length=6, max_length=6)
 
 
 class Story(StrictModel):
@@ -113,6 +123,7 @@ def validate_narrative(text: str, path: str):
 
 def validate_story(raw: dict, problem: Problem, *, prepared: bool = False) -> Story | PreparedStory:
     story = (PreparedStory if prepared else Story).model_validate(raw)
+    scenes = SCENES if prepared else LIVE_SCENES
     for lang in ("ru", "kk"):
         localized = getattr(story, lang)
         if localized.exercise != problem.prompt(lang):
@@ -123,7 +134,7 @@ def validate_story(raw: dict, problem: Problem, *, prepared: bool = False) -> St
         for index, panel in enumerate(localized.panels):
             if panel.id != index + 1:
                 raise StoryRuleError(f"{lang}.panels[{index}].id", "sequential_panel_id")
-            if panel.scene != SCENES[index]:
+            if panel.scene != scenes[index]:
                 raise StoryRuleError(f"{lang}.panels[{index}].scene", "ordered_scene")
             if prepared and panel.speaker != PREPARED_PANELS[index][0]:
                 raise StoryRuleError(f"{lang}.panels[{index}].speaker", "prepared_scene_speaker")
@@ -147,13 +158,19 @@ def validate_story(raw: dict, problem: Problem, *, prepared: bool = False) -> St
 
 
 def text_prompt(request: JobRequest, problem: Problem, *, prepared: bool = False) -> str:
-    art_direction = ""
+    art_direction = (
+        " Use only the named cast and align the dialogue with the listed actions. "
+        "Before and during the exercise, the friends are still planning. In the last "
+        "two scenes they share the picnic and enjoy the fair. The resolution may "
+        "celebrate the learner's success without stating the answer or any quantity."
+    )
     if prepared:
         art_direction = (
             " Use the exact scene and speaker IDs in prepared_panels, in order. "
             "These fixed pictures show the cast outside school, without food or math props. "
             "Discuss the given pizza problem as an imagined situation. Never describe an action, "
-            "setting, or object as visible unless the fixed picture description shows it."
+            "setting, or object as visible unless the fixed picture description shows it. "
+            "Do not claim that the problem is solved."
         )
     return json.dumps(
         {
@@ -161,10 +178,10 @@ def text_prompt(request: JobRequest, problem: Problem, *, prepared: bool = False
                 "Write a six-panel child-friendly fractions comic in BOTH Russian (ru) and "
                 "Kazakh (kk). Use the same speakers and scenes in both languages. "
                 "Dialogue should be natural and brief, suited to the grade and difficulty. "
-                "Never solve the problem or state any answer, even in words. "
+                "Never supply a solution or state any answer, even in words. "
                 "Title and dialogue outside panel four must contain NO numbers, numeric words, "
                 "fractions, equations, calculations or quantities; use only curiosity, "
-                "teamwork, thinking and encouragement. Do not claim the problem is solved. "
+                "teamwork, thinking and encouragement. "
                 "Copy exercise and both hints VERBATIM from trusted_content, and use exercise "
                 "verbatim as panel four text. IDs must be ordered from 1 to 6. "
                 "Use the listed scene sequence exactly. No other fields." + art_direction
@@ -183,9 +200,13 @@ def text_prompt(request: JobRequest, problem: Problem, *, prepared: bool = False
                     ]
                 }
                 if prepared
-                else {"characters": CHARACTERS}
+                else {
+                    "characters": CHARACTERS,
+                    "speaker_ids": ["aldiyar", "aruna", "pifik"],
+                    "scene_actions": LIVE_SCENE_DESCRIPTIONS,
+                }
             ),
-            "scenes": SCENES,
+            "scenes": SCENES if prepared else LIVE_SCENES,
             "trusted_content": {
                 lang: {"exercise": problem.prompt(lang), "hints": problem.hints(lang)}
                 for lang in ("ru", "kk")
@@ -198,11 +219,12 @@ def text_prompt(request: JobRequest, problem: Problem, *, prepared: bool = False
 def image_prompt(scene: str) -> str:
     # No model-authored text, operands, expected answer, or dialogue reaches image generation.
     return (
-        f"{CHARACTERS}\n{SCENE_DESCRIPTIONS[scene]}\n"
-        "Create a new single comic illustration. If a reference image is provided, "
-        "use it to preserve the exact character appearances, palette and setting, "
-        "but change the composition and poses as directed. "
+        f"{CHARACTERS}\n{LIVE_SCENE_DESCRIPTIONS[scene]}\n"
+        "Create a new single full-scene comic illustration showing all three characters. "
+        "The reference strip shows Aldiyar on the left, Aruna in the middle and Pifik "
+        "on the right. Keep their exact faces, hairstyles, outfits and colors. "
+        "Use the strip only for character design. Do not copy its layout or background. "
         "No embedded text, speech bubbles, captions, lettering, logos, digits or symbols. "
         "Do not show slices, portions, food distribution or mathematical diagrams. "
-        "The pizza box stays closed. Do not illustrate a solution."
+        "Do not illustrate an answer."
     )

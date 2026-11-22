@@ -53,6 +53,7 @@ function Segmented<T extends string | number>({
 function failureMessage(t: UiStrings, f: JobFailure): string {
   switch (f.kind) {
     case 'job':
+      if (f.code === 'image_generation_failed') return t.jobErrors.image_generation_failed
       return f.code === 'generation_failed' ? t.jobErrors.generation_failed : t.jobErrors.unknown
     case 'api':
       return t.jobErrors.api

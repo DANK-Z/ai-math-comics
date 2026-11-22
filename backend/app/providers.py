@@ -69,13 +69,14 @@ class OpenAIHTTP:
             raise ProviderError("provider_timeout") from exc
         except httpx.RequestError as exc:
             raise ProviderError("provider_unavailable") from exc
+        stage = f"openai_http:{response.status_code}"
         if response.status_code in (401, 403):
-            raise ProviderError("provider_authentication")
+            raise ProviderError("provider_authentication", stage=stage)
         if response.status_code == 429:
-            raise ProviderError("provider_rate_limited")
+            raise ProviderError("provider_rate_limited", stage=stage)
         if not response.is_success:
             # Never expose or log upstream response bodies (they may contain secrets).
-            raise ProviderError("provider_unavailable")
+            raise ProviderError("provider_unavailable", stage=stage)
         try:
             result = response.json()
             if not isinstance(result, dict):

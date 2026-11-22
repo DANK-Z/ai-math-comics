@@ -93,7 +93,8 @@ Statuses: `queued`, `running`, `ready`, `failed`. `comicId` is non-null only whe
 ready. `errorCode` is non-null only when failed. Missing jobs return HTTP 404.
 Safe error codes: `provider_not_configured`, `provider_authentication`,
 `provider_rate_limited`, `provider_timeout`, `provider_unavailable`,
-`invalid_provider_output`, `job_timeout`, `worker_interrupted`, `generation_failed`.
+`invalid_provider_output`, `job_timeout`, `worker_interrupted`, `image_generation_failed`,
+`generation_failed`.
 Provider response bodies and secrets are never returned.
 
 ## GET /api/comics/{comicId}?lang=ru
@@ -118,7 +119,8 @@ Each generated comic is available in both `ru` and `kk`, sharing six illustratio
 and the exercise ID. `lang` defaults to `ru`; unsupported languages return 422.
 Unknown/unpublished comics return 404. Image URLs are absolute backend URLs
 configured by `PUBLIC_BASE_URL` and need no provider credentials. Live images are PNG files
-and belong to published comics only. Prepared-art comics include `"artwork":"prepared"`
+and belong to published comics only. Live panels may include `imageAspect` for their
+width-to-height ratio. Prepared-art comics include `"artwork":"prepared"`
 and use the six shared JPEGs at `/api/prepared-art/{panelId}.jpg`. The original `pizza-fractions` response
 continues to omit `imageUrl` and uses the existing local `imageKey` mapping.
 
