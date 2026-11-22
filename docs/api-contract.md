@@ -97,6 +97,12 @@ New jobs also return `progress.stage`: `queued`, `storyboard`, `drawing`,
 Live counts advance after each image is saved. Prepared panels count when the comic
 is published. Failed jobs retain their last stage and counts. Older records may omit
 `progress`.
+
+An image-generation failure with saved panels includes a `resumeToken`.
+Send it as `{"resumeToken":"…"}` to `POST /api/comic-jobs/{jobId}/resume`.
+HTTP 202 returns the existing job status. The worker reuses the saved storyboard
+and images. One token resumes at most one failed attempt. Read progress with the
+existing GET endpoint. Missing jobs return 404 and jobs that cannot resume return 409.
 Safe error codes: `provider_not_configured`, `provider_authentication`,
 `provider_rate_limited`, `provider_timeout`, `provider_unavailable`,
 `invalid_provider_output`, `job_timeout`, `worker_interrupted`, `image_generation_failed`,

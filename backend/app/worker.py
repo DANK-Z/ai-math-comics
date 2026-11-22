@@ -66,9 +66,10 @@ class Worker:
         claim = self.store.claim(self.settings.job_timeout + 30)
         if claim is None:
             return False
-        comic_id = str(uuid4())
+        comic_id = claim["artwork_id"] or str(uuid4())
         directory = self.store.images_dir / comic_id
         published = False
+        keep_saved_panels = False
         try:
             await asyncio.wait_for(
                 self.generate(claim, comic_id), timeout=self.settings.job_timeout
@@ -80,6 +81,7 @@ class Worker:
         except asyncio.TimeoutError:
             self.store.fail(claim, "job_timeout")
         except ProviderError as exc:
+            keep_saved_panels = exc.code == "image_generation_failed"
             self.store.fail(claim, exc.code)
             if exc.stage:
                 logger.info("Job %s provider stage: %s", claim["id"], exc.stage)
@@ -90,9 +92,11 @@ class Worker:
             if not published and directory.exists():
                 # Only remove this attempt's known files; never recursively delete a data root.
                 for index in range(1, 7):
-                    (directory / f"{index}.png").unlink(missing_ok=True)
-                    (directory / f"{index}.tmp").unlink(missing_ok=True)
-                directory.rmdir()
+                    if not keep_saved_panels:
+                        (directory / f"{index}.png").unlink(missing_ok=True)
+                    (directory / f"{index}.{claim['owner']}.tmp").unlink(missing_ok=True)
+                if not any(directory.iterdir()):
+                    directory.rmdir()
         status = self.store.job(claim["id"])
         logger.info("Job %s: %s (%s)", claim["id"], status.status, status.errorCode)
         return True
@@ -108,7 +112,7 @@ class Worker:
                 validate_library_story,
             )
             payload, hints = episode_payload(comic_id, story, problem)
-            self.store.begin_panels(claim, len(payload["ru"]["panels"]), prepared=True)
+            self.store.begin_panels(claim, len(payload["ru"]["panels"]))
             self.store.publish(
                 claim,
                 comic_id,
@@ -124,15 +128,23 @@ class Worker:
     async def generate_fraction_comic(
         self, claim: dict, comic_id: str, request: JobRequest, problem: Problem
     ):
-        prepared = self.settings.art_mode == "prepared"
+        checkpoint = claim["storyboard"]
+        prepared = self.settings.art_mode == "prepared" and checkpoint is None
         if prepared and not all((ART_DIR / file).is_file() for _, file, _ in PREPARED_PANELS):
             raise ProviderError("generation_failed", stage="prepared_art_missing")
-        story = await self.generate_story(
-            text_prompt(request, problem, prepared=prepared),
-            (PreparedStory if prepared else Story).model_json_schema(),
-            lambda raw: validate_story(raw, problem, prepared=prepared),
-        )
-        self.store.begin_panels(claim, len(story.ru.panels), prepared=prepared)
+        if checkpoint is None:
+            story = await self.generate_story(
+                text_prompt(request, problem, prepared=prepared),
+                (PreparedStory if prepared else Story).model_json_schema(),
+                lambda raw: validate_story(raw, problem, prepared=prepared),
+            )
+            self.store.begin_panels(
+                claim,
+                len(story.ru.panels),
+                live_storyboard=None if prepared else (comic_id, story.model_dump_json()),
+            )
+        else:
+            story = validate_story(json.loads(checkpoint), problem)
         aspects = (
             {} if prepared else await self.render_live_images(claim, comic_id, story.ru.panels)
         )
@@ -219,9 +231,21 @@ class Worker:
                 "image_generation_failed", stage="image:reference_unavailable"
             ) from None
         directory = self.store.images_dir / comic_id
-        directory.mkdir()
+        directory.mkdir(exist_ok=True)
         aspects = {}
         for panel in panels:
+            saved = directory / f"{panel.id}.png"
+            if saved.is_file():
+                try:
+                    with Image.open(saved) as panel_art:
+                        aspect = panel_art.width / panel_art.height
+                        panel_art.verify()
+                except (OSError, SyntaxError, ValueError):
+                    pass  # A missing or damaged file needs a fresh illustration.
+                else:
+                    aspects[panel.id] = aspect
+                    self.store.panel_saved(claim, panel.id)
+                    continue
             try:
                 image = normalize_png(
                     await self.image.generate(image_prompt(panel.scene), reference)
@@ -231,9 +255,14 @@ class Worker:
                 raise ProviderError("image_generation_failed", stage=stage) from None
             with Image.open(io.BytesIO(image)) as panel_art:
                 aspects[panel.id] = panel_art.width / panel_art.height
-            temporary = directory / f"{panel.id}.tmp"
-            temporary.write_bytes(image)
-            temporary.replace(directory / f"{panel.id}.png")
+            temporary = directory / f"{panel.id}.{claim['owner']}.tmp"
+            try:
+                temporary.write_bytes(image)
+                temporary.replace(saved)
+            except OSError:
+                raise ProviderError(
+                    "image_generation_failed", stage=f"image:panel_{panel.id}:save_failed"
+                ) from None
             self.store.panel_saved(claim, panel.id)
         return aspects
 

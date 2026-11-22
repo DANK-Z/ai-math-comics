@@ -60,6 +60,8 @@ export interface UiStrings {
   stopWaiting: string
   pollPaused: string
   resumeChecking: string
+  resumeGeneration: string
+  resumeGenerationError: string
   jobReady: string
   jobFailedTitle: string
   jobErrors: { generation_failed: string; image_generation_failed: string; api: string; lost: string; unknown: string }
@@ -209,6 +211,8 @@ export const STRINGS: Record<Lang, UiStrings> = {
     stopWaiting: 'Приостановить проверку',
     pollPaused: 'Проверка приостановлена. Комикс может ещё создаваться.',
     resumeChecking: 'Проверить статус',
+    resumeGeneration: 'Продолжить генерацию',
+    resumeGenerationError: 'Не удалось продолжить генерацию. Попробуй ещё раз.',
     jobReady: 'Комикс готов!',
     jobFailedTitle: 'Не удалось создать комикс',
     jobErrors: {
@@ -390,6 +394,8 @@ export const STRINGS: Record<Lang, UiStrings> = {
     stopWaiting: 'Тексеруді кідірту',
     pollPaused: 'Тексеру кідіртілді. Комикс әлі жасалып жатуы мүмкін.',
     resumeChecking: 'Күйін тексеру',
+    resumeGeneration: 'Генерацияны жалғастыру',
+    resumeGenerationError: 'Генерацияны жалғастыру мүмкін болмады. Қайтадан байқап көр.',
     jobReady: 'Комикс дайын!',
     jobFailedTitle: 'Комикс жасау мүмкін болмады',
     jobErrors: {

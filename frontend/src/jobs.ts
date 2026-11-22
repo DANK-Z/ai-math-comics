@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, ApiError, describeError, isAbortError } from './api'
-import type { ComicJobCreated, ComicJobRequest, JobProgress } from './api'
+import type { ComicJob, ComicJobCreated, ComicJobRequest, JobProgress } from './api'
 import { requestLang, saveMyComic, type MyComicKind } from './myComics'
 
 const POLL_MS = 1500
@@ -10,6 +10,7 @@ const MAX_POLL_ERRORS = 3
 const STORAGE_KEY = 'amc.activeJob'
 type PollPause = { kind: 'timeout' } | { kind: 'api'; detail: string } | { kind: 'manual' }
 type PendingJob<Request> = { request: Request; jobId: string; status: 'queued' | 'running'; startedAt: number; progress?: JobProgress }
+type ResumeTarget = { jobId: string; startedAt: number; resumeToken: string }
 
 export type JobFailure =
   | { kind: 'job'; code: string | null } // server says status=failed
@@ -22,7 +23,7 @@ export type JobState<Request = ComicJobRequest> =
   | (PendingJob<Request> & { phase: 'waiting'; pollStartedAt: number })
   | (PendingJob<Request> & { phase: 'paused'; reason: PollPause })
   | { phase: 'ready'; request: Request; jobId: string; comicId: string; progress?: JobProgress }
-  | { phase: 'failed'; request: Request; failure: JobFailure; progress?: JobProgress }
+  | { phase: 'failed'; request: Request; failure: JobFailure; progress?: JobProgress; resumeTarget?: ResumeTarget }
 
 interface Stored<Request> {
   jobId: string
@@ -33,6 +34,7 @@ interface Stored<Request> {
   status?: PendingJob<Request>['status']
   progress?: JobProgress
   failure?: JobFailure
+  resumeToken?: string
 }
 
 function loadStored<Request>(storageKey: string): JobState<Request> {
@@ -42,7 +44,10 @@ function loadStored<Request>(storageKey: string): JobState<Request> {
     const s = JSON.parse(raw) as Stored<Request>
     if (typeof s.jobId !== 'string' || !s.request) return { phase: 'idle' }
     if (typeof s.comicId === 'string') return { phase: 'ready', jobId: s.jobId, request: s.request, comicId: s.comicId, progress: s.progress }
-    if (s.failure?.kind === 'job') return { phase: 'failed', request: s.request, failure: s.failure, progress: s.progress }
+    if (s.failure?.kind === 'job') return {
+      phase: 'failed', request: s.request, failure: s.failure, progress: s.progress,
+      resumeTarget: s.resumeToken ? { jobId: s.jobId, startedAt: s.startedAt, resumeToken: s.resumeToken } : undefined,
+    }
     const job: PendingJob<Request> = {
       request: s.request, jobId: s.jobId, status: s.status === 'running' ? 'running' : 'queued',
       startedAt: s.startedAt, progress: s.progress,
@@ -74,11 +79,13 @@ export function useComicJob<Request = ComicJobRequest>(
   onReady: ((comicId: string, request: Request) => void) | undefined,
   {
     createJob,
+    resumeJob,
     storageKey = STORAGE_KEY,
     rememberReady = false,
     historyKind = 'generated',
   }: {
     createJob: (request: Request) => Promise<ComicJobCreated>
+    resumeJob?: (jobId: string, resumeToken: string) => Promise<ComicJob>
     storageKey?: string
     rememberReady?: boolean
     /** How a successful job is listed in My Comics. */
@@ -86,6 +93,8 @@ export function useComicJob<Request = ComicJobRequest>(
   },
 ) {
   const [state, setState] = useState<JobState<Request>>(() => loadStored(storageKey))
+  const [resumingGeneration, setResumingGeneration] = useState(false)
+  const [resumeError, setResumeError] = useState(false)
   const readyComicId = state.phase === 'ready' ? state.comicId : null
   const readyLang = state.phase === 'ready' ? requestLang(state.request) : null
 
@@ -102,6 +111,7 @@ export function useComicJob<Request = ComicJobRequest>(
   const submit = useCallback((request: Request) => {
     if (busy.current) return // synchronous guard against double clicks
     busy.current = true
+    setResumeError(false)
     setState({ phase: 'submitting', request })
     createJob(request)
       .then((created) => {
@@ -118,6 +128,7 @@ export function useComicJob<Request = ComicJobRequest>(
   const reset = useCallback(() => {
     pollController.current?.abort()
     busy.current = false
+    setResumeError(false)
     store(storageKey, null)
     setState({ phase: 'idle' })
   }, [storageKey])
@@ -135,6 +146,41 @@ export function useComicJob<Request = ComicJobRequest>(
     store(storageKey, { jobId, request, startedAt, status, progress })
     setState({ phase: 'waiting', jobId, request, startedAt, status, progress, pollStartedAt: Date.now() })
   }, [state, storageKey])
+
+  async function resumeGeneration() {
+    if (!resumeJob || busy.current || state.phase !== 'failed' || !state.resumeTarget) return
+    const { jobId, startedAt, resumeToken } = state.resumeTarget
+    const { request, progress, failure } = state
+    const snapshot = { jobId, startedAt, request, progress }
+    busy.current = true
+    setResumingGeneration(true)
+    setResumeError(false)
+    // Reload during the POST can check the existing job without repeating the POST.
+    store(storageKey, snapshot)
+    const startPolling = (pending: PendingJob<Request>) => {
+      store(storageKey, pending)
+      setState({ ...pending, phase: 'waiting', pollStartedAt: Date.now() })
+    }
+    try {
+      const job = await resumeJob(jobId, resumeToken)
+      startPolling({
+        ...snapshot,
+        status: job.status === 'queued' ? 'queued' : 'running',
+        progress: job.progress ?? progress,
+      })
+    } catch (error) {
+      setResumeError(true)
+      if (error instanceof ApiError && error.status === 409) {
+        // Another attempt may have changed the failed state. Read its current status.
+        startPolling({ ...snapshot, status: 'running' })
+      } else {
+        busy.current = false
+        store(storageKey, { ...snapshot, failure, resumeToken })
+      }
+    } finally {
+      setResumingGeneration(false)
+    }
+  }
 
   const waitingJob = state.phase === 'waiting' ? state.jobId : null
   const pollStartedAt = state.phase === 'waiting' ? state.pollStartedAt : null
@@ -157,7 +203,7 @@ export function useComicJob<Request = ComicJobRequest>(
       if (rememberReady && next.phase === 'ready') {
         store(storageKey, { ...snapshot, comicId: next.comicId })
       } else if (next.phase === 'failed' && next.failure.kind === 'job') {
-        store(storageKey, { ...snapshot, failure: next.failure })
+        store(storageKey, { ...snapshot, failure: next.failure, resumeToken: next.resumeTarget?.resumeToken })
       } else {
         store(storageKey, null)
       }
@@ -187,7 +233,10 @@ export function useComicJob<Request = ComicJobRequest>(
           else pause(latest, { kind: 'api', detail: 'ready without comicId' })
         } else if (job.status === 'failed') {
           latest = { ...latest, progress }
-          finish({ phase: 'failed', request, failure: { kind: 'job', code: job.errorCode }, progress })
+          finish({
+            phase: 'failed', request, failure: { kind: 'job', code: job.errorCode }, progress,
+            resumeTarget: job.resumeToken ? { jobId, startedAt: waiting.startedAt, resumeToken: job.resumeToken } : undefined,
+          })
         } else {
           if (job.status !== latest.status || progress?.stage !== latest.progress?.stage ||
               progress?.completedPanels !== latest.progress?.completedPanels ||
@@ -229,5 +278,5 @@ export function useComicJob<Request = ComicJobRequest>(
   const pauseWaiting = () => {
     if (state.phase === 'waiting') pause(state, { kind: 'manual' })
   }
-  return { state, active, submit, reset, resume, pauseWaiting }
+  return { state, active, submit, reset, resume, pauseWaiting, resumeGeneration, resumingGeneration, resumeError }
 }

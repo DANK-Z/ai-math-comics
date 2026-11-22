@@ -94,6 +94,7 @@ export interface ComicJob {
   comicId: string | null
   errorCode: string | null
   progress?: JobProgress
+  resumeToken?: string
 }
 
 export interface Api {
