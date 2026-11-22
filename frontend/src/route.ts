@@ -3,13 +3,15 @@ import { useCallback, useEffect, useState } from 'react'
 export const SECTION_HREFS = {
   map: '#/',
   comics: '#/comics',
+  myComics: '#/my-comics',
   backpack: '#/backpack',
   guardian: '#/guardian',
   create: '#/create',
 } as const
 
 export type Section = keyof typeof SECTION_HREFS
-export type Route = { name: Section } | { name: 'comic'; comicId: string; ending: boolean }
+/** `replay` is set by a Replay link: a fresh token each time, so the reader remounts with clean state. */
+export type Route = { name: Section } | { name: 'comic'; comicId: string; ending: boolean; replay: string | null }
 export const GUARDIAN_HREF = SECTION_HREFS.guardian
 
 export const DEMO_COMIC_ID = 'pizza-fractions'
@@ -27,7 +29,8 @@ function parse(hash: string): Route {
   if (m) {
     try {
       const comicId = decodeURIComponent(m[1])
-      return { name: 'comic', comicId, ending: hash === comicHref(SCHOOL_MAP_COMIC_ID, true) }
+      const replay = /[?&]replay=([a-z0-9]+)/i.exec(hash)?.[1] ?? null
+      return { name: 'comic', comicId, ending: hash === comicHref(SCHOOL_MAP_COMIC_ID, true), replay }
     } catch {
       /* malformed id: fall through */
     }
@@ -37,6 +40,11 @@ function parse(hash: string): Route {
 
 export function comicHref(comicId: string, ending = false) {
   return `#/comic/${encodeURIComponent(comicId)}${ending ? '?ending' : ''}`
+}
+
+/** Opens a comic from the start: panel 1, no answer, no hints, ending locked. Never creates a job. */
+export function replayHref(comicId: string) {
+  return `${comicHref(comicId)}?replay=${Date.now().toString(36)}`
 }
 
 /** Hash routes preserve section and comic navigation in browser history. */

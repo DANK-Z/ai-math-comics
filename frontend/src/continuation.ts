@@ -6,6 +6,7 @@ export function useContinuationJob() {
     createJob: createContinuationJob,
     storageKey: 'amc.continuationJob',
     rememberReady: true,
+    historyKind: 'continuation',
   })
 }
 

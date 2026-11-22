@@ -5,11 +5,13 @@ import { GenerateCard } from './components/GenerateCard'
 import { CatalogScreen, HomeScreen } from './components/HomeScreen'
 import { GuardianScreen } from './components/GuardianScreen'
 import { LanguageSwitcher } from './components/LanguageSwitcher'
+import { MyComicsScreen } from './components/MyComicsScreen'
 import { ReaderScreen } from './components/ReaderScreen'
 import { DesktopNavigation, MobileNavigation } from './components/SectionNavigation'
 import { useContinuationJob } from './continuation'
 import { useGuardianChallenge } from './guardian'
 import { useLang } from './hooks'
+import { useMyComics } from './myComics'
 import { STRINGS } from './i18n'
 import { usePriceTagSticker } from './priceTagSticker'
 import { comicHref, SCHOOL_MAP_COMIC_ID, SECTION_HREFS, useRoute } from './route'
@@ -47,7 +49,10 @@ export default function App() {
   const continuationJob = useContinuationJob()
   const remaining = SCHOOL_FAIR_CHAPTER_COUNT - completedChapters.size
   const t = STRINGS[lang]
-  const navigation = { t, active: route.name === 'comic' ? 'comics' as const : route.name, completed: completedChapters.size, remaining }
+  const myComics = useMyComics()
+  // A saved generated comic belongs to My Comics; everything else to the catalog.
+  const readerSection = route.name === 'comic' && myComics.some((c) => c.comicId === route.comicId) ? 'myComics' as const : 'comics' as const
+  const navigation = { t, active: route.name === 'comic' ? readerSection : route.name, completed: completedChapters.size, remaining, myComics: myComics.length }
 
   const openGenerated = useCallback(
     (comicId: string, request: ComicJobRequest) => {
@@ -83,20 +88,22 @@ export default function App() {
             <HomeScreen lang={lang} completedChapters={completedChapters} remaining={remaining} guardianWon={guardian.run.won} />
           )}
           {route.name === 'comics' && <CatalogScreen lang={lang} completedChapters={completedChapters} />}
+          {route.name === 'myComics' && <MyComicsScreen lang={lang} comics={myComics} />}
           {route.name === 'backpack' && (
             <BackpackCollection t={t} completedChapters={completedChapters} hasPriceTagSticker={priceTagSticker.earned} />
           )}
           {route.name === 'guardian' && <GuardianScreen lang={lang} remaining={remaining} challenge={guardian} />}
           {route.name === 'comic' && (
             <ReaderScreen
-              key={comicHref(route.comicId, route.ending)}
+              key={`${comicHref(route.comicId, route.ending)}|${route.replay ?? ''}`}
               comicId={route.comicId}
               lang={lang}
               onChapterComplete={completeChapter}
               onEarnPriceTagSticker={priceTagSticker.award}
               continuationJob={continuationJob}
               chapterThreeSolved={route.comicId === SCHOOL_MAP_COMIC_ID && completedChapters.has(route.comicId)}
-              openEnding={route.ending}
+              openEnding={route.ending && !route.replay}
+              backTo={readerSection}
             />
           )}
           <div hidden={route.name !== 'create'} className="max-w-2xl">

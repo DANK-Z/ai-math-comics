@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, ApiError, describeError, isAbortError } from './api'
 import type { ComicJobCreated, ComicJobRequest } from './api'
+import { requestLang, saveMyComic, type MyComicKind } from './myComics'
 
 const POLL_MS = 1500
 const TIMEOUT_MS = 3 * 60_000
@@ -68,13 +69,24 @@ export function useComicJob<Request = ComicJobRequest>(
     createJob,
     storageKey = STORAGE_KEY,
     rememberReady = false,
+    historyKind = 'generated',
   }: {
     createJob: (request: Request) => Promise<ComicJobCreated>
     storageKey?: string
     rememberReady?: boolean
+    /** How a successful job is listed in My Comics. */
+    historyKind?: MyComicKind
   },
 ) {
   const [state, setState] = useState<JobState<Request>>(() => loadStored(storageKey))
+  const readyComicId = state.phase === 'ready' ? state.comicId : null
+  const readyLang = state.phase === 'ready' ? requestLang(state.request) : null
+
+  // Every successful job ends in 'ready' (freshly polled or restored from this tab's
+  // storage); record it once in My Comics. Saving is idempotent per comic ID.
+  useEffect(() => {
+    if (readyComicId && readyLang) saveMyComic({ comicId: readyComicId, kind: historyKind, lang: readyLang })
+  }, [readyComicId, readyLang, historyKind])
   const busy = useRef(state.phase === 'waiting' || state.phase === 'paused')
   const onReadyRef = useRef(onReady)
   onReadyRef.current = onReady

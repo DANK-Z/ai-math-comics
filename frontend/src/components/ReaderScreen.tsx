@@ -11,7 +11,7 @@ import { ComicReader } from './ComicReader'
 const BRANCH_LINK = 'inline-flex min-h-11 items-center rounded-2xl border-2 border-ink bg-white px-3 font-black text-ink focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun'
 
 /** One comic (demo or generated). Mounted per comicId, so reader state resets between comics. */
-export function ReaderScreen({ comicId, lang, onChapterComplete, onEarnPriceTagSticker, continuationJob, chapterThreeSolved, openEnding }: {
+export function ReaderScreen({ comicId, lang, onChapterComplete, onEarnPriceTagSticker, continuationJob, chapterThreeSolved, openEnding, backTo = 'comics' }: {
   comicId: string
   lang: Lang
   onChapterComplete: (comicId: string) => SchoolFairCollectible | null
@@ -19,6 +19,8 @@ export function ReaderScreen({ comicId, lang, onChapterComplete, onEarnPriceTagS
   continuationJob: ContinuationJob
   chapterThreeSolved: boolean
   openEnding: boolean
+  /** Section the back link returns to: the catalog, or My Comics for saved generated comics. */
+  backTo?: 'comics' | 'myComics'
 }) {
   const t = STRINGS[lang]
   const [index, setIndex] = useState(() => openEnding && chapterThreeSolved ? SCHOOL_MAP.panels.length - 1 : 0)
@@ -28,10 +30,10 @@ export function ReaderScreen({ comicId, lang, onChapterComplete, onEarnPriceTagS
     <div className="flex flex-col gap-4" aria-busy={loading}>
       <div className="flex flex-wrap items-center gap-3">
         <a
-          href={SECTION_HREFS.comics}
+          href={SECTION_HREFS[backTo]}
           className="inline-flex min-h-11 items-center gap-1.5 rounded-2xl border-[3px] border-ink bg-white px-4 font-black text-ink shadow-[0_4px_0_var(--color-ink)] transition active:translate-y-[3px] active:shadow-[0_1px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun"
         >
-          <span aria-hidden>←</span> {t.backHome}
+          <span aria-hidden>←</span> {backTo === 'myComics' ? t.myComics.title : t.backHome}
         </a>
         {comic?.continuation && (
           <>
