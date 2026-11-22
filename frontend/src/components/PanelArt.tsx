@@ -135,8 +135,16 @@ function RemotePanel({
 }) {
   const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>('loading')
 
+  // Thumbnails keep their cover crop. The reader panel is bounded instead: full width,
+  // but never taller than the screen allows (phones: 70% of the height; desktop: the
+  // viewport minus room for the dialogue, thumbnails and Previous/Next), and the art is
+  // letterboxed with object-fit: contain so portrait, square and landscape images stay
+  // whole and undistorted.
   const art = (
-    <div className="relative overflow-hidden bg-sky-100" style={{ aspectRatio: imageAspect }}>
+    <div
+      className={`relative overflow-hidden bg-sky-100 ${thumb ? '' : 'w-full max-h-[70dvh] lg:max-h-[max(16rem,calc(100dvh-22rem))]'}`}
+      style={{ aspectRatio: imageAspect }}
+    >
       {status === 'loading' && <div aria-hidden className="absolute inset-0 animate-pulse bg-[linear-gradient(110deg,#dbe8ff_30%,#eef4ff_50%,#dbe8ff_70%)]" />}
       {status === 'error' ? (
         <div className="absolute inset-0 grid place-items-center p-2 text-center">
@@ -153,7 +161,7 @@ function RemotePanel({
           decoding="async"
           onLoad={() => setStatus('loaded')}
           onError={() => setStatus('error')}
-          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${status === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
+          className={`absolute inset-0 h-full w-full ${thumb ? 'object-cover' : 'object-contain'} transition-opacity duration-300 ${status === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
         />
       )}
     </div>
