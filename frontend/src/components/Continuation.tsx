@@ -9,6 +9,7 @@ import {
   type ContinuationChoiceId,
 } from '../continuation'
 import { comicHref, SCHOOL_MAP_COMIC_ID } from '../route'
+import { GenerationProgress } from './GenerationProgress'
 
 interface Props {
   sourceChapterId: typeof SCHOOL_MAP_COMIC_ID
@@ -129,14 +130,19 @@ function EpisodeAction({ lang, sourceChapterId, buttonClass, job }: Pick<Props, 
 
   const failure = state.phase === 'failed' ? state.failure : null
   let message = copy.generationNote
-  if (state.phase === 'submitting') message = t.submitting
-  if (state.phase === 'waiting') message = state.status === 'queued' ? t.jobQueued : t.prepared.jobRunning
   if (state.phase === 'paused') message = t.pollPaused
   if (state.phase === 'ready') message = t.jobReady
+  const stage = state.phase === 'submitting' ? 'submitting' :
+    state.phase === 'waiting' ? (state.status === 'queued' ? 'queued' : 'storyboard') : undefined
+  const progress = 'progress' in state ? state.progress : undefined
 
   return (
     <div className="mt-4 rounded-xl border-2 border-ink bg-sky p-3">
-      {failure ? <p role="alert" className="font-semibold">{copy.failed}</p> : <p role="status" className="font-semibold">{message}</p>}
+      {failure ? <p role="alert" className="font-semibold">{copy.failed}</p> :
+        !stage && (state.phase !== 'ready' || !progress) && <p role="status" className="font-semibold">{message}</p>}
+      {(stage || progress) && (
+        <div className="mt-2"><GenerationProgress t={t} stage={stage} progress={progress} stopped={!stage} /></div>
+      )}
       <div className="mt-2 flex flex-wrap gap-2">
         {(state.phase === 'idle' || failure) && (
           <button type="button" className={`${buttonClass} bg-white`} onClick={() => submit({

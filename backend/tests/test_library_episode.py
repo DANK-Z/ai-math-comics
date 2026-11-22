@@ -81,6 +81,7 @@ def test_continuation_job_and_bilingual_reader(tmp_path, locale):
     assert asyncio.run(worker.run_once())
     status = client.get(job_path).json()
     assert status["status"] == "ready"
+    assert status["progress"] == {"stage": "ready", "completedPanels": 4, "totalPanels": 4}
     comic_id = status["comicId"]
     expected = (provider.inputs["total_books"] - 6) // 3
     assert 5 <= expected <= 12

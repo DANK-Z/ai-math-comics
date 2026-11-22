@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, ApiError, describeError, isAbortError } from './api'
-import type { ComicJobCreated, ComicJobRequest } from './api'
+import type { ComicJobCreated, ComicJobRequest, JobProgress } from './api'
 import { requestLang, saveMyComic, type MyComicKind } from './myComics'
 
 const POLL_MS = 1500
@@ -9,7 +9,7 @@ const TIMEOUT_MS = 3 * 60_000
 const MAX_POLL_ERRORS = 3
 const STORAGE_KEY = 'amc.activeJob'
 type PollPause = { kind: 'timeout' } | { kind: 'api'; detail: string } | { kind: 'manual' }
-type PendingJob<Request> = { request: Request; jobId: string; status: 'queued' | 'running'; startedAt: number }
+type PendingJob<Request> = { request: Request; jobId: string; status: 'queued' | 'running'; startedAt: number; progress?: JobProgress }
 
 export type JobFailure =
   | { kind: 'job'; code: string | null } // server says status=failed
@@ -21,8 +21,8 @@ export type JobState<Request = ComicJobRequest> =
   | { phase: 'submitting'; request: Request }
   | (PendingJob<Request> & { phase: 'waiting'; pollStartedAt: number })
   | (PendingJob<Request> & { phase: 'paused'; reason: PollPause })
-  | { phase: 'ready'; request: Request; jobId: string; comicId: string }
-  | { phase: 'failed'; request: Request; failure: JobFailure }
+  | { phase: 'ready'; request: Request; jobId: string; comicId: string; progress?: JobProgress }
+  | { phase: 'failed'; request: Request; failure: JobFailure; progress?: JobProgress }
 
 interface Stored<Request> {
   jobId: string
@@ -30,6 +30,9 @@ interface Stored<Request> {
   startedAt: number
   reason?: PollPause
   comicId?: string
+  status?: PendingJob<Request>['status']
+  progress?: JobProgress
+  failure?: JobFailure
 }
 
 function loadStored<Request>(storageKey: string): JobState<Request> {
@@ -38,8 +41,12 @@ function loadStored<Request>(storageKey: string): JobState<Request> {
     if (!raw) return { phase: 'idle' }
     const s = JSON.parse(raw) as Stored<Request>
     if (typeof s.jobId !== 'string' || !s.request) return { phase: 'idle' }
-    if (typeof s.comicId === 'string') return { phase: 'ready', jobId: s.jobId, request: s.request, comicId: s.comicId }
-    const job: PendingJob<Request> = { request: s.request, jobId: s.jobId, status: 'queued', startedAt: s.startedAt }
+    if (typeof s.comicId === 'string') return { phase: 'ready', jobId: s.jobId, request: s.request, comicId: s.comicId, progress: s.progress }
+    if (s.failure?.kind === 'job') return { phase: 'failed', request: s.request, failure: s.failure, progress: s.progress }
+    const job: PendingJob<Request> = {
+      request: s.request, jobId: s.jobId, status: s.status === 'running' ? 'running' : 'queued',
+      startedAt: s.startedAt, progress: s.progress,
+    }
     return s.reason
       ? { ...job, phase: 'paused', reason: s.reason }
       : { ...job, phase: 'waiting', pollStartedAt: Date.now() }
@@ -88,6 +95,7 @@ export function useComicJob<Request = ComicJobRequest>(
     if (readyComicId && readyLang) saveMyComic({ comicId: readyComicId, kind: historyKind, lang: readyLang })
   }, [readyComicId, readyLang, historyKind])
   const busy = useRef(state.phase === 'waiting' || state.phase === 'paused')
+  const pollController = useRef<AbortController | null>(null)
   const onReadyRef = useRef(onReady)
   onReadyRef.current = onReady
 
@@ -108,22 +116,24 @@ export function useComicJob<Request = ComicJobRequest>(
   }, [createJob, storageKey])
 
   const reset = useCallback(() => {
+    pollController.current?.abort()
     busy.current = false
     store(storageKey, null)
     setState({ phase: 'idle' })
   }, [storageKey])
 
   const pause = useCallback((job: PendingJob<Request>, reason: PollPause) => {
-    const { jobId, request, startedAt } = job
-    store(storageKey, { jobId, request, startedAt, reason })
+    pollController.current?.abort()
+    const { jobId, request, startedAt, status, progress } = job
+    store(storageKey, { jobId, request, startedAt, status, progress, reason })
     setState({ ...job, phase: 'paused', reason })
   }, [storageKey])
 
   const resume = useCallback(() => {
     if (state.phase !== 'paused') return
-    const { jobId, request, startedAt, status } = state
-    store(storageKey, { jobId, request, startedAt })
-    setState({ phase: 'waiting', jobId, request, startedAt, status, pollStartedAt: Date.now() })
+    const { jobId, request, startedAt, status, progress } = state
+    store(storageKey, { jobId, request, startedAt, status, progress })
+    setState({ phase: 'waiting', jobId, request, startedAt, status, progress, pollStartedAt: Date.now() })
   }, [state, storageKey])
 
   const waitingJob = state.phase === 'waiting' ? state.jobId : null
@@ -134,6 +144,8 @@ export function useComicJob<Request = ComicJobRequest>(
     const waiting = state
     const { jobId, request } = waiting
     const ctrl = new AbortController()
+    pollController.current = ctrl
+    let latest: PendingJob<Request> = waiting
     let timer: ReturnType<typeof setTimeout> | undefined
     let paused = false
     let errors = 0
@@ -141,15 +153,20 @@ export function useComicJob<Request = ComicJobRequest>(
     const finish = (next: JobState<Request>) => {
       if (ctrl.signal.aborted) return
       busy.current = false
-      store(storageKey, rememberReady && next.phase === 'ready'
-        ? { jobId, request, startedAt: waiting.startedAt, comicId: next.comicId }
-        : null)
+      const snapshot = { jobId, request, startedAt: waiting.startedAt, progress: latest.progress }
+      if (rememberReady && next.phase === 'ready') {
+        store(storageKey, { ...snapshot, comicId: next.comicId })
+      } else if (next.phase === 'failed' && next.failure.kind === 'job') {
+        store(storageKey, { ...snapshot, failure: next.failure })
+      } else {
+        store(storageKey, null)
+      }
       setState(next)
       if (next.phase === 'ready') onReadyRef.current?.(next.comicId, next.request)
     }
 
     const schedule = () => {
-      if (Date.now() - waiting.pollStartedAt >= TIMEOUT_MS) return pause(waiting, { kind: 'timeout' })
+      if (Date.now() - waiting.pollStartedAt >= TIMEOUT_MS) return pause(latest, { kind: 'timeout' })
       timer = setTimeout(tick, POLL_MS)
     }
 
@@ -161,21 +178,30 @@ export function useComicJob<Request = ComicJobRequest>(
       }
       try {
         const job = await api.getComicJob(jobId, ctrl.signal)
+        if (ctrl.signal.aborted) return
         errors = 0
+        const progress = job.progress ?? latest.progress
         if (job.status === 'ready') {
-          if (job.comicId) finish({ phase: 'ready', request, jobId, comicId: job.comicId })
-          else pause(waiting, { kind: 'api', detail: 'ready without comicId' })
+          latest = { ...latest, progress }
+          if (job.comicId) finish({ phase: 'ready', request, jobId, comicId: job.comicId, progress })
+          else pause(latest, { kind: 'api', detail: 'ready without comicId' })
         } else if (job.status === 'failed') {
-          finish({ phase: 'failed', request, failure: { kind: 'job', code: job.errorCode } })
+          latest = { ...latest, progress }
+          finish({ phase: 'failed', request, failure: { kind: 'job', code: job.errorCode }, progress })
         } else {
-          if (ctrl.signal.aborted) return
-          setState((s) => (s.phase === 'waiting' && s.status !== job.status ? { ...s, status: job.status as 'queued' | 'running' } : s))
+          if (job.status !== latest.status || progress?.stage !== latest.progress?.stage ||
+              progress?.completedPanels !== latest.progress?.completedPanels ||
+              progress?.totalPanels !== latest.progress?.totalPanels) {
+            latest = { jobId, request, startedAt: waiting.startedAt, status: job.status, progress }
+            store(storageKey, latest)
+            setState({ ...latest, phase: 'waiting', pollStartedAt: waiting.pollStartedAt })
+          }
           schedule()
         }
       } catch (e) {
         if (ctrl.signal.aborted || isAbortError(e)) return
         if (e instanceof ApiError && e.status === 404) return finish({ phase: 'failed', request, failure: { kind: 'lost' } })
-        if (++errors >= MAX_POLL_ERRORS) return pause(waiting, { kind: 'api', detail: describeError(e) })
+        if (++errors >= MAX_POLL_ERRORS) return pause(latest, { kind: 'api', detail: describeError(e) })
         schedule()
       }
     }
@@ -191,6 +217,7 @@ export function useComicJob<Request = ComicJobRequest>(
     tick()
     return () => {
       ctrl.abort()
+      if (pollController.current === ctrl) pollController.current = null
       clearTimeout(timer)
       document.removeEventListener('visibilitychange', onVisibility)
     }

@@ -234,4 +234,5 @@ def test_standalone_worker_cli_persists_configuration_failure(tmp_path, provider
             "status": "failed",
             "comicId": None,
             "errorCode": "provider_not_configured",
+            "progress": {"stage": "storyboard"},
         }

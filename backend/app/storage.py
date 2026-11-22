@@ -9,7 +9,7 @@ from uuid import uuid4
 
 from .library_episode import LibraryProblem
 from .problems import choose_problem
-from .schemas import ContinuationRequest, ErrorCode, JobRequest, JobStatus
+from .schemas import ContinuationRequest, ErrorCode, JobProgress, JobRequest, JobStatus
 
 
 class Store:
@@ -34,6 +34,14 @@ class Store:
                     created_at REAL NOT NULL
                 );
                 CREATE INDEX IF NOT EXISTS jobs_queue ON jobs(status, created_at);
+                CREATE TABLE IF NOT EXISTS job_progress (
+                    job_id TEXT PRIMARY KEY REFERENCES jobs(id),
+                    stage TEXT NOT NULL CHECK(stage IN (
+                        'queued', 'storyboard', 'drawing', 'preparing', 'ready'
+                    )),
+                    completed_panels INTEGER NOT NULL DEFAULT 0,
+                    total_panels INTEGER
+                );
                 CREATE TABLE IF NOT EXISTS comics (
                     id TEXT PRIMARY KEY,
                     payload TEXT NOT NULL,
@@ -65,19 +73,31 @@ class Store:
                 "INSERT INTO jobs(id,request,problem,status,created_at) VALUES(?,?,?,'queued',?)",
                 (job_id, request.model_dump_json(), json.dumps(problem.to_dict()), time.time()),
             )
+            db.execute("INSERT INTO job_progress(job_id,stage) VALUES(?,'queued')", (job_id,))
         return job_id
 
     def job(self, job_id: str) -> JobStatus | None:
         with self.connection() as db:
-            row = db.execute("SELECT * FROM jobs WHERE id=?", (job_id,)).fetchone()
+            row = db.execute(
+                "SELECT jobs.*,stage,completed_panels,total_panels FROM jobs "
+                "LEFT JOIN job_progress ON job_progress.job_id=jobs.id WHERE jobs.id=?",
+                (job_id,),
+            ).fetchone()
         if row is None:
             return None
-        return JobStatus(
+        result = JobStatus(
             jobId=row["id"],
             status=row["status"],
             comicId=row["comic_id"],
             errorCode=row["error_code"],
         )
+        if row["stage"] is not None:
+            progress = JobProgress(stage=row["stage"])
+            if row["total_panels"] is not None:
+                progress.completedPanels = row["completed_panels"]
+                progress.totalPanels = row["total_panels"]
+            result.progress = progress
+        return result
 
     def claim(self, lease_seconds: float) -> dict | None:
         with self.connection() as db:
@@ -98,7 +118,43 @@ class Store:
                 "UPDATE jobs SET status='running',owner=?,lease_expires=? WHERE id=?",
                 (owner, time.time() + lease_seconds, row["id"]),
             )
+            db.execute(
+                "INSERT INTO job_progress(job_id,stage) VALUES(?,'storyboard') "
+                "ON CONFLICT(job_id) DO UPDATE SET stage='storyboard'",
+                (row["id"],),
+            )
             return dict(row) | {"owner": owner}
+
+    def begin_panels(self, claim: dict, total: int, *, prepared: bool):
+        if total < 1:
+            raise ValueError("A storyboard must contain at least one panel")
+        with self.connection() as db:
+            updated = db.execute(
+                "UPDATE job_progress SET stage=?,total_panels=? "
+                "WHERE job_id=? AND stage='storyboard' AND EXISTS ("
+                "SELECT 1 FROM jobs WHERE id=job_progress.job_id "
+                "AND status='running' AND owner=? AND lease_expires>=?)",
+                (
+                    "preparing" if prepared else "drawing",
+                    total,
+                    claim["id"],
+                    claim["owner"],
+                    time.time(),
+                ),
+            )
+            if updated.rowcount != 1:
+                raise RuntimeError("Worker no longer owns this storyboard")
+
+    def panel_saved(self, claim: dict, panel_id: int):
+        # Validated panels are saved in order. Re-recording a panel is a no-op.
+        with self.connection() as db:
+            db.execute(
+                "UPDATE job_progress SET completed_panels=? "
+                "WHERE job_id=? AND stage='drawing' AND completed_panels=? AND total_panels>=? "
+                "AND EXISTS (SELECT 1 FROM jobs WHERE id=job_progress.job_id "
+                "AND status='running' AND owner=? AND lease_expires>=?)",
+                (panel_id, claim["id"], panel_id - 1, panel_id, claim["owner"], time.time()),
+            )
 
     def fail(self, claim: dict, code: ErrorCode):
         with self.connection() as db:
@@ -136,6 +192,14 @@ class Store:
                     json.dumps(hints, ensure_ascii=False),
                 ),
             )
+            progress = db.execute(
+                "UPDATE job_progress SET stage='ready',completed_panels=total_panels "
+                "WHERE job_id=? AND (stage='preparing' OR "
+                "(stage='drawing' AND completed_panels=total_panels))",
+                (claim["id"],),
+            )
+            if progress.rowcount != 1:
+                raise RuntimeError("Comic panels are incomplete")
 
     def comic(self, comic_id: str) -> dict | None:
         with self.connection() as db:

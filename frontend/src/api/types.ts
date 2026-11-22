@@ -75,6 +75,12 @@ export interface ContinuationJobRequest {
 
 export type JobStatus = 'queued' | 'running' | 'ready' | 'failed'
 
+export interface JobProgress {
+  stage: 'queued' | 'storyboard' | 'drawing' | 'preparing' | 'ready'
+  completedPanels?: number
+  totalPanels?: number
+}
+
 /** POST /api/comic-jobs → 202 */
 export interface ComicJobCreated {
   jobId: string
@@ -87,6 +93,7 @@ export interface ComicJob {
   status: JobStatus
   comicId: string | null
   errorCode: string | null
+  progress?: JobProgress
 }
 
 export interface Api {

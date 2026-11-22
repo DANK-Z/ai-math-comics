@@ -108,6 +108,7 @@ class Worker:
                 validate_library_story,
             )
             payload, hints = episode_payload(comic_id, story, problem)
+            self.store.begin_panels(claim, len(payload["ru"]["panels"]), prepared=True)
             self.store.publish(
                 claim,
                 comic_id,
@@ -131,7 +132,10 @@ class Worker:
             (PreparedStory if prepared else Story).model_json_schema(),
             lambda raw: validate_story(raw, problem, prepared=prepared),
         )
-        aspects = {} if prepared else await self.render_live_images(comic_id, story.ru.panels)
+        self.store.begin_panels(claim, len(story.ru.panels), prepared=prepared)
+        aspects = (
+            {} if prepared else await self.render_live_images(claim, comic_id, story.ru.panels)
+        )
 
         exercise_id = f"fractions-{comic_id}"
         payload = {}
@@ -204,7 +208,7 @@ class Worker:
             ) from None
 
     async def render_live_images(
-        self, comic_id: str, panels: Sequence[ScenePanel]
+        self, claim: dict, comic_id: str, panels: Sequence[ScenePanel]
     ) -> dict[int, float]:
         if self.image is None:
             raise ProviderError("image_generation_failed", stage="image:provider_missing")
@@ -230,6 +234,7 @@ class Worker:
             temporary = directory / f"{panel.id}.tmp"
             temporary.write_bytes(image)
             temporary.replace(directory / f"{panel.id}.png")
+            self.store.panel_saved(claim, panel.id)
         return aspects
 
 

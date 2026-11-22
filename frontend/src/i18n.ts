@@ -51,9 +51,11 @@ export interface UiStrings {
   generate: string
   submitting: string
   jobQueued: string
-  jobRunning: string
+  jobStoryboard: string
+  jobDrawing: string
+  jobPreparing: string
+  jobPanelCount: (completed: number, total: number) => string
   jobWaitNote: string
-  jobSteps: [string, string, string]
   jobElapsed: (s: number) => string
   stopWaiting: string
   pollPaused: string
@@ -122,7 +124,7 @@ export interface UiStrings {
   pizzaHook: string
   createOwn: string
   /** Generation copy when the backend runs COMIC_ART_MODE=prepared (no new images are drawn). */
-  prepared: { createLead: string; jobRunning: string; jobSteps: [string, string, string] }
+  prepared: { createLead: string }
   demoTitle: string
   readComic: string
   backHome: string
@@ -198,9 +200,11 @@ export const STRINGS: Record<Lang, UiStrings> = {
     generate: 'Создать комикс',
     submitting: 'Отправляем…',
     jobQueued: 'Задание в очереди…',
-    jobRunning: 'Пифик рисует комикс…',
+    jobStoryboard: 'Пишем сценарий…',
+    jobDrawing: 'Рисуем иллюстрации…',
+    jobPreparing: 'Подготавливаем кадры…',
+    jobPanelCount: (completed, total) => `Кадры: ${completed} из ${total}`,
     jobWaitNote: 'Обычно это занимает меньше минуты.',
-    jobSteps: ['Задание принято', 'Рисуем кадры', 'Готово'],
     jobElapsed: (s) => `${s} с`,
     stopWaiting: 'Приостановить проверку',
     pollPaused: 'Проверка приостановлена. Комикс может ещё создаваться.',
@@ -301,8 +305,6 @@ export const STRINGS: Record<Lang, UiStrings> = {
     createOwn: 'Создать свой комикс',
     prepared: {
       createLead: 'Выбери класс и сложность — Пифик придумает историю и задачу на дроби с готовыми иллюстрациями.',
-      jobRunning: 'Пифик сочиняет историю…',
-      jobSteps: ['Задание принято', 'Пишем историю', 'Готово'],
     },
     readComic: 'Читать комикс',
     backHome: 'Все комиксы',
@@ -379,9 +381,11 @@ export const STRINGS: Record<Lang, UiStrings> = {
     generate: 'Комикс жасау',
     submitting: 'Жіберілуде…',
     jobQueued: 'Тапсырма кезекте…',
-    jobRunning: 'Пифик комикс салып жатыр…',
+    jobStoryboard: 'Оқиға жазылуда…',
+    jobDrawing: 'Суреттер салынуда…',
+    jobPreparing: 'Кадрлар дайындалуда…',
+    jobPanelCount: (completed, total) => `Кадрлар: ${completed} / ${total}`,
     jobWaitNote: 'Әдетте бұл бір минуттан аз уақыт алады.',
-    jobSteps: ['Тапсырма қабылданды', 'Кадрлар салынуда', 'Дайын'],
     jobElapsed: (s) => `${s} с`,
     stopWaiting: 'Тексеруді кідірту',
     pollPaused: 'Тексеру кідіртілді. Комикс әлі жасалып жатуы мүмкін.',
@@ -482,8 +486,6 @@ export const STRINGS: Record<Lang, UiStrings> = {
     createOwn: 'Өз комиксіңді жасау',
     prepared: {
       createLead: 'Сынып пен күрделілікті таңда — Пифик дайын иллюстрациялармен оқиға мен бөлшектерге есеп құрастырады.',
-      jobRunning: 'Пифик оқиға құрастырып жатыр…',
-      jobSteps: ['Тапсырма қабылданды', 'Оқиға жазылуда', 'Дайын'],
     },
     readComic: 'Комиксті оқу',
     backHome: 'Барлық комикстер',

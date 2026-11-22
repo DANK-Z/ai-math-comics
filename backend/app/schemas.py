@@ -92,8 +92,15 @@ class JobAccepted(BaseModel):
     status: Literal["queued"] = "queued"
 
 
+class JobProgress(BaseModel):
+    stage: Literal["queued", "storyboard", "drawing", "preparing", "ready"]
+    completedPanels: int | None = None
+    totalPanels: int | None = None
+
+
 class JobStatus(BaseModel):
     jobId: str
     status: Literal["queued", "running", "ready", "failed"]
     comicId: str | None = None
     errorCode: ErrorCode | None = None
+    progress: JobProgress | None = None

@@ -120,12 +120,14 @@ def test_generation_round_trip_and_restart(setup, grade, lang, difficulty):
         "status": "queued",
         "comicId": None,
         "errorCode": None,
+        "progress": {"stage": "queued"},
     }
 
     def while_running():
         result = client.get(f"/api/comic-jobs/{job_id}").json()
         assert result["status"] == "running"
         assert result["comicId"] is result["errorCode"] is None
+        assert result["progress"] == {"stage": "storyboard"}
 
     text, images = DeterministicText(while_running), DeterministicImages()
     assert asyncio.run(Worker(store, text, images, settings).run_once())
@@ -345,6 +347,7 @@ def test_image_failure_cleans_files_and_next_job_runs(setup, caplog):
         "status": "failed",
         "comicId": None,
         "errorCode": "image_generation_failed",
+        "progress": {"stage": "drawing", "completedPanels": 2, "totalPanels": 6},
     }
     assert list(store.images_dir.iterdir()) == []
     assert store.comic(first) is None

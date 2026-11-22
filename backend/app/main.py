@@ -54,7 +54,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def create_continuation(body: ContinuationRequest, request: Request) -> JobAccepted:
         return JobAccepted(jobId=get_store(request).enqueue(body))
 
-    @app.get("/api/comic-jobs/{job_id}", response_model=JobStatus)
+    @app.get(
+        "/api/comic-jobs/{job_id}", response_model=JobStatus, response_model_exclude_unset=True
+    )
     def get_job(job_id: str, request: Request) -> JobStatus:
         job = get_store(request).job(job_id)
         if job is None:

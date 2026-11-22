@@ -91,6 +91,12 @@ The original pizza demo remains available without a worker or credentials.
 
 Statuses: `queued`, `running`, `ready`, `failed`. `comicId` is non-null only when
 ready. `errorCode` is non-null only when failed. Missing jobs return HTTP 404.
+New jobs also return `progress.stage`: `queued`, `storyboard`, `drawing`,
+`preparing` (prepared artwork), or `ready`. Once the storyboard passes validation,
+`progress.completedPanels` and `progress.totalPanels` describe the saved panels.
+Live counts advance after each image is saved. Prepared panels count when the comic
+is published. Failed jobs retain their last stage and counts. Older records may omit
+`progress`.
 Safe error codes: `provider_not_configured`, `provider_authentication`,
 `provider_rate_limited`, `provider_timeout`, `provider_unavailable`,
 `invalid_provider_output`, `job_timeout`, `worker_interrupted`, `image_generation_failed`,

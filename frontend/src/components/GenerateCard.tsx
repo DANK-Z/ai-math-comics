@@ -1,8 +1,9 @@
 import { useEffect, useId, useState, type FormEvent, type ReactNode } from 'react'
-import { api, ART_MODE, DIFFICULTIES, GRADES, LANGS, TOPICS, type ComicJobRequest, type Difficulty, type Grade, type Lang, type Topic } from '../api'
+import { api, ART_MODE, type JobProgress, DIFFICULTIES, GRADES, LANGS, TOPICS, type ComicJobRequest, type Difficulty, type Grade, type Lang, type Topic } from '../api'
 import { PORTRAITS } from '../art/sheet'
 import { STRINGS, type UiStrings } from '../i18n'
 import { useComicJob, type JobFailure, type JobState } from '../jobs'
+import { GenerationProgress } from './GenerationProgress'
 import { SheetCrop } from './SheetCrop'
 
 interface Option<T> {
@@ -78,57 +79,30 @@ function useElapsed(since: number | null) {
   return since === null ? 0 : Math.max(0, Math.round((now - since) / 1000))
 }
 
-/** Generation copy for the configured art mode; prepared mode must not promise new drawings. */
-function generationCopy(t: UiStrings) {
-  return ART_MODE === 'prepared' ? t.prepared : { createLead: t.createLead, jobRunning: t.jobRunning, jobSteps: t.jobSteps }
-}
-
-function JobProgress({ state, t, onStop }: {
+function WaitingJob({ state, t, onStop }: {
   state: Extract<JobState, { phase: 'submitting' | 'waiting' }>
   t: UiStrings
   onStop: () => void
 }) {
-  const copy = generationCopy(t)
   const waiting = state.phase === 'waiting' ? state : null
   const elapsed = useElapsed(waiting ? waiting.startedAt : null)
-  const step = waiting?.status === 'running' ? 2 : 1
-  const title =
-    state.phase === 'submitting' ? t.submitting : waiting?.status === 'running' ? copy.jobRunning : t.jobQueued
+  const stage = waiting ? (waiting.status === 'queued' ? 'queued' : 'storyboard') : 'submitting'
 
   return (
-    <div role="status" aria-live="polite" className="rounded-2xl border-[3px] border-ink bg-sky p-4">
+    <div className="rounded-2xl border-[3px] border-ink bg-sky p-4">
       <div className="flex items-center gap-3">
-        <SheetCrop rect={PORTRAITS.pifikFace} className="w-14 shrink-0 animate-bounce rounded-full border-[3px] border-ink bg-white [animation-duration:1.6s] motion-reduce:animate-none" />
+        <SheetCrop rect={PORTRAITS.pifikFace} className="w-12 shrink-0 rounded-full border-[3px] border-ink bg-white" />
         <div className="min-w-0 flex-1">
-          <p className="text-lg leading-tight font-black text-ink">{title}</p>
-          <p className="text-sm font-semibold text-ink/70">
+          <GenerationProgress t={t} stage={stage} progress={waiting?.progress} />
+          <p className="mt-2 text-sm font-semibold text-ink/70">
             {t.jobWaitNote}
             {waiting && <span className="ml-1 tabular-nums">· {t.jobElapsed(elapsed)}</span>}
           </p>
         </div>
       </div>
-      <ol className="mt-4 grid grid-cols-3 gap-2 text-center text-xs font-extrabold sm:text-sm">
-        {copy.jobSteps.map((label, i) => {
-          const n = i + 1
-          const done = n < step
-          const current = n === step
-          return (
-            <li key={label} aria-current={current ? 'step' : undefined} className="flex flex-col items-center gap-1">
-              <span
-                className={`grid h-8 w-8 place-items-center rounded-full border-[3px] border-ink text-sm font-black ${
-                  done ? 'bg-emerald-400 text-ink' : current ? 'bg-sun text-ink' : 'bg-white text-ink/40'
-                }`}
-              >
-                {done ? '✓' : current ? <span className="h-3 w-3 animate-spin rounded-full border-2 border-ink border-t-transparent" /> : n}
-              </span>
-              <span className={done || current ? 'text-ink' : 'text-ink/50'}>{label}</span>
-            </li>
-          )
-        })}
-      </ol>
       {waiting && (
         <div className="mt-4 text-center">
-          <button type="button" onClick={onStop} className="text-sm font-extrabold text-brand-dark underline underline-offset-4 hover:text-ink">
+          <button type="button" onClick={onStop} className="min-h-11 text-sm font-extrabold text-brand-dark underline underline-offset-4 hover:text-ink">
             {t.stopWaiting}
           </button>
         </div>
@@ -137,12 +111,13 @@ function JobProgress({ state, t, onStop }: {
   )
 }
 
-function JobFailed({ failure, t, onRetry, onEdit }: { failure: JobFailure; t: UiStrings; onRetry: () => void; onEdit: () => void }) {
+function JobFailed({ failure, progress, t, onRetry, onEdit }: { failure: JobFailure; progress?: JobProgress; t: UiStrings; onRetry: () => void; onEdit: () => void }) {
   const detail = failureDetail(failure)
   return (
     <div role="alert" className="rounded-2xl border-[3px] border-rose-700 bg-rose-50 p-4 text-rose-950">
       <p className="text-lg font-black">{t.jobFailedTitle}</p>
       <p className="mt-1 font-semibold">{failureMessage(t, failure)}</p>
+      {progress && <div className="mt-2"><GenerationProgress t={t} progress={progress} stopped /></div>}
       {detail && (
         <details className="mt-2 text-sm">
           <summary className="cursor-pointer font-bold">{t.errorDetails}</summary>
@@ -213,11 +188,11 @@ export function GenerateCard({ lang, onReady, autoOpen }: {
           <h1 id="generate-title" className="text-xl leading-tight font-black sm:text-2xl">
             {t.createTitle}
           </h1>
-          <p className="text-sm font-semibold text-white/90">{generationCopy(t).createLead}</p>
+          <p className="text-sm font-semibold text-white/90">{ART_MODE === 'prepared' ? t.prepared.createLead : t.createLead}</p>
         </div>
       </div>
 
-      <form onSubmit={onSubmit} className="flex flex-col gap-4 p-4 sm:p-5" aria-busy={active}>
+      <form onSubmit={onSubmit} className="flex flex-col gap-4 p-4 sm:p-5">
         <fieldset disabled={locked} className="grid min-w-0 gap-4 sm:grid-cols-2">
           <Field>
             <Segmented<Grade>
@@ -252,10 +227,11 @@ export function GenerateCard({ lang, onReady, autoOpen }: {
         </fieldset>
 
         {state.phase === 'failed' ? (
-          <JobFailed failure={state.failure} t={t} onRetry={() => submit(state.request)} onEdit={reset} />
+          <JobFailed failure={state.failure} progress={state.progress} t={t} onRetry={() => submit(state.request)} onEdit={reset} />
         ) : state.phase === 'paused' ? (
           <div className="rounded-2xl border-[3px] border-ink bg-sky p-4">
-            <p role="status" className="font-semibold">{t.pollPaused}</p>
+            <p role="status" className="mb-2 font-semibold">{t.pollPaused}</p>
+            <GenerationProgress t={t} progress={state.progress} stopped />
             {state.reason.kind === 'api' && (
               <details className="mt-2 text-sm">
                 <summary>{t.errorDetails}</summary>
@@ -268,7 +244,7 @@ export function GenerateCard({ lang, onReady, autoOpen }: {
           </div>
         ) : state.phase === 'ready' ? (
           <div className="rounded-2xl border-[3px] border-ink bg-sky p-4">
-            <p role="status" className="font-black">{t.jobReady}</p>
+            {state.progress ? <GenerationProgress t={t} progress={state.progress} stopped /> : <p role="status" className="font-black">{t.jobReady}</p>}
             <div className="mt-3 flex flex-wrap gap-2">
               <button type="button" onClick={() => onReady(state.comicId, state.request)} className="min-h-11 rounded-xl border-2 border-ink bg-sun px-3 font-black">
                 {t.readComic}
@@ -286,7 +262,7 @@ export function GenerateCard({ lang, onReady, autoOpen }: {
             <span aria-hidden="true">✨ </span>{t.generate}
           </button>
         ) : (
-          <JobProgress state={state} t={t} onStop={pauseWaiting} />
+          <WaitingJob state={state} t={t} onStop={pauseWaiting} />
         )}
       </form>
     </section>
