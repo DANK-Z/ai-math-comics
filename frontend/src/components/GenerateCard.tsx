@@ -33,7 +33,7 @@ function Segmented<T extends string | number>({
           <label
             key={String(o.value)}
             lang={o.lang}
-            className="flex min-h-11 flex-auto cursor-pointer items-center justify-center rounded-2xl border-[3px] border-ink bg-white px-3 text-center leading-tight font-black text-ink shadow-[0_3px_0_var(--color-ink)] transition select-none hover:bg-sky has-checked:translate-y-[2px] has-checked:bg-brand-dark has-checked:text-white has-checked:shadow-[0_1px_0_var(--color-ink)] has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-sun has-disabled:cursor-not-allowed has-disabled:opacity-60"
+            className="group flex min-h-11 flex-auto cursor-pointer items-center justify-center gap-1.5 rounded-xl border-[3px] border-ink bg-white px-4 text-center leading-tight font-black text-ink shadow-[0_3px_0_var(--color-ink)] transition select-none hover:bg-sky has-checked:translate-y-[2px] has-checked:bg-sun has-checked:shadow-[0_1px_0_var(--color-ink)] has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-brand has-disabled:cursor-not-allowed has-disabled:opacity-60"
           >
             <input
               type="radio"
@@ -43,6 +43,7 @@ function Segmented<T extends string | number>({
               onChange={() => onChange(o.value)}
               className="sr-only"
             />
+            <span aria-hidden className="hidden group-has-checked:inline">✓</span>
             {o.label}
           </label>
         ))}
@@ -190,7 +191,7 @@ export function GenerateCard({ lang, onReady, autoOpen }: {
   return (
     <section
       aria-labelledby="generate-title"
-      className="overflow-hidden rounded-[28px] border-[4px] border-ink bg-cream shadow-[0_6px_0_var(--color-ink)]"
+      className="overflow-hidden rounded-2xl border-[4px] border-ink bg-cream shadow-[0_6px_0_var(--color-ink)]"
     >
       <div className="flex items-center gap-3 bg-brand px-4 py-3 text-white sm:px-5">
         <span aria-hidden className="grid h-9 w-9 shrink-0 place-items-center rounded-full border-[3px] border-ink bg-sun text-lg">

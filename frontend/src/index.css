@@ -24,67 +24,45 @@ html {
   paint-order: stroke fill;
 }
 
-.fair-route-stops {
+/* School Fair route: one top-to-bottom path in reading order. A dashed line joins the
+   numbered markers; each card sits to the right of its marker. */
+.fair-route-path {
   display: grid;
-  gap: 0.5rem;
+  gap: 0.625rem;
 }
 
-.fair-route-stops > li {
+.fair-route-path > li {
   position: relative;
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.5rem;
   min-width: 0;
 }
 
-.fair-route-stops > li::after {
+.fair-route-path > li:not(:last-child)::after {
   position: absolute;
-  top: 100%;
-  left: 21px;
-  height: 0.5rem;
-  border-left: 2px dashed var(--color-brand);
+  top: 50%;
+  left: calc(1rem - 1.5px);
+  height: calc(100% + 0.625rem);
+  border-left: 3px dashed var(--color-brand);
   content: '';
   pointer-events: none;
 }
 
-@media (min-width: 48rem) {
-  .fair-route-stops {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.75rem 1rem;
+.fair-route-marker {
+  position: relative;
+  z-index: 1;
+}
+
+@media (min-width: 40rem) {
+  .fair-route-path > li {
+    grid-template-columns: 2.25rem minmax(0, 1fr);
+    gap: 0.75rem;
   }
 
-  .fair-route-stops > li:nth-child(n + 4) {
-    grid-row: 2;
-  }
-
-  .fair-route-stops > li:nth-child(4) { grid-column: 3; }
-  .fair-route-stops > li:nth-child(5) { grid-column: 2; }
-  .fair-route-stops > li:nth-child(6) { grid-column: 1; }
-
-  .fair-route-stops > li::after {
-    top: 50%;
-    left: 100%;
-    width: 1rem;
-    height: 0;
-    border: 0;
-    border-top: 2px dashed var(--color-brand);
-  }
-
-  .fair-route-stops > li:nth-child(4)::after,
-  .fair-route-stops > li:nth-child(5)::after {
-    right: 100%;
-    left: auto;
-  }
-
-  .fair-route-stops > li:nth-child(3)::after,
-  .fair-route-stops > li:nth-child(6)::after {
-    top: 100%;
-    left: 50%;
-    width: 0;
-    height: 0.75rem;
-    border: 0;
-    border-left: 2px dashed var(--color-brand);
-  }
-
-  .fair-route-finale {
-    width: calc((100% - 2rem) / 3);
+  .fair-route-path > li:not(:last-child)::after {
+    left: calc(1.125rem - 1.5px);
   }
 }
 
