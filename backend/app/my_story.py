@@ -15,7 +15,7 @@ from pydantic import Field
 
 from .fraction_context import CONTEXTS, RESOURCE_IMAGE_RULE, ContextId, contextual_actions
 from .problems import Problem
-from .schemas import JobRequest, StoryOptions
+from .schemas import Emotion, JobRequest, StoryOptions
 from .story import (
     LIVE_SCENES,
     TOPIC_LIVE_PROPS,
@@ -93,6 +93,7 @@ SpeakerId = Literal["pifik", "aruna", "aldiyar", "custom1", "custom2"]
 class MyStoryPanel(StrictModel):
     id: int = Field(ge=1, le=6)
     text: str = Field(min_length=1, max_length=600)
+    emotion: Emotion = "neutral"
     scene: Literal["welcome", "discuss", "consider", "question", "serve", "celebrate"]
     speaker: SpeakerId
 
@@ -245,6 +246,8 @@ def validate_my_story(
     for index, (ru, kk) in enumerate(zip(story.ru.panels, story.kk.panels, strict=True)):
         if ru.speaker != kk.speaker:
             raise StoryRuleError(f"kk.panels[{index}].speaker", "same_speaker_across_translations")
+        if ru.emotion != kk.emotion:
+            raise StoryRuleError(f"kk.panels[{index}].emotion", "same_emotion_across_translations")
         if ru.text == kk.text:
             raise StoryRuleError(f"kk.panels[{index}].text", "distinct_translation")
     if story.ru.title == story.kk.title:

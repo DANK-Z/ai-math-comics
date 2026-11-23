@@ -16,6 +16,7 @@ from PIL import Image
 from pydantic import TypeAdapter, ValidationError
 
 from .config import Settings
+from .depth import LAYERS, split_panel
 from .fraction_context import CONTEXTS, CONTEXTUAL_ENDING, ContextSelection, context_prompt
 from .gemini import gemini_providers
 from .library_episode import (
@@ -55,6 +56,7 @@ from .schemas import (
     Exercise,
     JobRequest,
     Panel,
+    PanelLayers,
     PanelPlaceholder,
     StoryOptions,
 )
@@ -150,6 +152,8 @@ class Worker:
                 for index in range(1, 7):
                     if not keep_saved_panels:
                         (directory / f"{index}.png").unlink(missing_ok=True)
+                        for layer in LAYERS:
+                            (directory / f"{index}-{layer}.webp").unlink(missing_ok=True)
                     (directory / f"{index}.{claim['owner']}.tmp").unlink(missing_ok=True)
                 if not keep_saved_panels:
                     (directory / "_cast.png").unlink(missing_ok=True)
@@ -204,6 +208,9 @@ class Worker:
         problem: Problem | EquationProblem,
     ):
         """Fractions or equations comic (classic or My Story) with a panel-four boss."""
+        clock = asyncio.get_running_loop().time
+        # Keep optional effects within the original job deadline, with time left to publish.
+        depth_deadline = clock() + self.settings.job_timeout - 2
         checkpoint = claim["storyboard"]
         prepared = self.settings.art_mode == "prepared" and checkpoint is None
         options = request.story  # «Моя история» options, or None for a classic comic
@@ -281,18 +288,30 @@ class Worker:
         cast_prompt = (
             custom_cast_prompt(options) if options and custom_art and not legacy_art else None
         )
+        speakers_by_scene = {panel.scene: panel.speaker for panel in story.ru.panels}
 
         def scene_prompt(scene: str) -> str:
             if options is None:
-                return image_prompt(scene, topic, context=context, boss=story.boss_design)
-            return my_story_image_prompt(
-                scene,
-                options,
-                topic,
-                custom_reference=not legacy_art,
-                context=context,
-                boss=story.boss_design,
-            )
+                prompt = image_prompt(scene, topic, context=context, boss=story.boss_design)
+            else:
+                prompt = my_story_image_prompt(
+                    scene,
+                    options,
+                    topic,
+                    custom_reference=not legacy_art,
+                    context=context,
+                    boss=story.boss_design,
+                )
+            if self.settings.depth_model is not None:
+                hero = {"aldiyar": "Aldiyar", "aruna": "Aruna", "pifik": "Pifik"}.get(
+                    speakers_by_scene[scene],
+                    "the original hero in the scene",
+                )
+                prompt += (
+                    f" Frame {hero} clearly in the foreground with a readable silhouette. "
+                    "Keep the complete scene and the other characters visible."
+                )
+            return prompt
 
         if cached is not None:
             aspects = hit.aspects
@@ -306,6 +325,8 @@ class Worker:
                 )
             )
             image_owner = comic_id
+        if not prepared and cached is None and self.settings.depth_model is not None:
+            await self.render_depth(comic_id, tuple(aspects), depth_deadline)
 
         exercise_id = f"{topic}-{comic_id}"
         answer_format = "whole-number" if topic == "equations" else None
@@ -325,6 +346,7 @@ class Worker:
                         id=p.id,
                         speaker=PREPARED_SPEAKERS[p.speaker],
                         text=p.text,
+                        emotion=p.emotion if p.emotion != "neutral" else None,
                         imageKey=f"{comic_id}-{p.id:02d}",
                         imageAspect=aspects.get(p.id),
                         imageUrl=(
@@ -339,6 +361,15 @@ class Worker:
                 panels = my_story_panels(
                     comic_id, localized.panels, options, prepared, aspects, image_owner
                 )
+            if not prepared:
+                for panel in panels:
+                    source_dir = self.store.images_dir / image_owner
+                    if all((source_dir / f"{panel.id}-{layer}.webp").is_file() for layer in LAYERS):
+                        url = f"/api/comic-images/{image_owner}/{panel.id}.png"
+                        panel.layers = PanelLayers(
+                            backgroundUrl=f"{url}?layer=background",
+                            foregroundUrl=f"{url}?layer=foreground",
+                        )
             # Close the story with the consequence of solving its problem. The last panel
             # is gated by the reader and the ending never reaches the image provider.
             conclusion = CONTEXTUAL_ENDING[lang] if context else TOPIC_ENDING[topic][lang]
@@ -495,6 +526,30 @@ class Worker:
                 "invalid_provider_output", stage=f"story_schema_validation:{path}:{error['type']}"
             ) from None
 
+    async def render_depth(self, comic_id: str, panel_ids: tuple[int, ...], deadline: float):
+        directory = self.store.images_dir / comic_id
+        model = self.settings.depth_model
+        if model is None:
+            return
+        for panel_id in panel_ids:
+            remaining = deadline - asyncio.get_running_loop().time()
+            if remaining <= 0:
+                return
+            paths = [directory / f"{panel_id}-{layer}.webp" for layer in LAYERS]
+            try:
+                layers = await asyncio.wait_for(
+                    asyncio.to_thread(split_panel, directory / f"{panel_id}.png", model),
+                    timeout=min(15, remaining),
+                )
+                if layers is not None:
+                    for path, image in zip(paths, layers, strict=True):
+                        path.write_bytes(image)
+            except Exception as exc:
+                for path in paths:
+                    path.unlink(missing_ok=True)
+                logger.warning("Panel depth unavailable (%s)", type(exc).__name__)
+                return
+
     async def render_live_images(
         self,
         claim: dict,
@@ -589,6 +644,7 @@ def my_story_panels(
                 id=p.id,
                 speaker=speaker_name(p.speaker, options),
                 text=p.text,
+                emotion=p.emotion if p.emotion != "neutral" else None,
                 imageKey=f"{comic_id}-{p.id:02d}",
                 imageAspect=aspects.get(p.id),
                 imageUrl=url,

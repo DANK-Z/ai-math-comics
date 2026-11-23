@@ -15,7 +15,7 @@ from .fraction_context import (
 )
 from .prepared_art import PREPARED_PANELS
 from .problems import Problem
-from .schemas import BossCharacter, JobRequest
+from .schemas import BossCharacter, Emotion, JobRequest
 
 SCENES = (
     "welcome",
@@ -113,6 +113,7 @@ class StrictModel(BaseModel):
 class ScenePanel(StrictModel):
     id: int = Field(ge=1, le=6)
     text: str = Field(min_length=1, max_length=600)
+    emotion: Emotion = "neutral"
     scene: Literal[
         "welcome", "discuss", "consider", "question", "think", "encourage", "serve", "celebrate"
     ]
@@ -216,6 +217,10 @@ def validate_narrative(text: str, path: str, *, context: ContextId | None = None
 def boss_story_prompt(prompt: str) -> str:
     data = json.loads(prompt)
     data["task"] = data["task"].replace("No other fields.", "Use only the fields in the schema.")
+    data["dialogue_emotion"] = (
+        "Give each panel an emotion field, using neutral, happy, confused, scared, surprised "
+        "or angry. Choose the same emotion in both languages. Keep tags out of the dialogue."
+    )
     data["boss_design"] = {
         "instructions": (
             "Invent a friendly fantasy challenger who fits the setting and the problem. "
@@ -237,6 +242,11 @@ def boss_story_schema(model: type[BossStoryboard]) -> dict:
     schema = model.model_json_schema()
     schema["properties"]["boss_design"] = {"$ref": "#/$defs/BossDesign"}
     schema["required"].append("boss_design")
+    for definition in schema["$defs"].values():
+        properties = definition.get("properties", {})
+        if "emotion" in properties:
+            properties["emotion"].pop("default", None)
+            definition["required"].append("emotion")
     return schema
 
 
@@ -297,6 +307,8 @@ def validate_story(
     for index, (ru, kk) in enumerate(zip(story.ru.panels, story.kk.panels, strict=True)):
         if ru.speaker != kk.speaker:
             raise StoryRuleError(f"kk.panels[{index}].speaker", "same_speaker_across_translations")
+        if ru.emotion != kk.emotion:
+            raise StoryRuleError(f"kk.panels[{index}].emotion", "same_emotion_across_translations")
         if ru.text == kk.text:
             raise StoryRuleError(f"kk.panels[{index}].text", "distinct_translation")
     if story.ru.title == story.kk.title:

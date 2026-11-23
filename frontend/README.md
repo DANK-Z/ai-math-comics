@@ -114,6 +114,13 @@ outside season progress.
   language. UI strings live in `src/i18n.ts`.
 - **Answer feedback** — `correct` / `incorrect` / `invalid` states with the server's message.
 - **Pifik's hints** — step 1 then step 2, driven by `hasMore`.
+- **Dialogue motion** — generated dialogue can include a validated emotion. The bubble
+  changes colour and shape, and a named character can show an expression beside it.
+  Dialogue animates on entry while the complete line stays available to assistive technology.
+  Exercise text appears immediately. Pifik reacts to a missed answer and to boss victory.
+- **Panel depth** — layered artwork responds to scrolling, with optional phone tilt on
+  supported devices after the reader enables the sensor. Tilt needs a secure origin.
+  Thumbnails and reduced-motion mode use the original image.
 - **Illustrations** — Pizza for Everyone and School Store Discount use their own bundled panels
   and covers. Generated comics use their own image URLs. `PanelArt` displays the dialogue beneath
   these images, and `RichText` renders fractions as stacked numerators and denominators.

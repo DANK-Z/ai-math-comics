@@ -1,10 +1,12 @@
 import { useState } from 'react'
-import { resolveImageUrl, type Lang, type StorySetting } from '../api'
+import { resolveImageUrl, type Emotion, type Lang, type PanelLayers, type StorySetting } from '../api'
 import { PANEL_ASPECT, SCENES, type BubbleBox } from '../art/sheet'
 import { characterFor } from '../characters'
 import { RichText } from './RichText'
 import { SheetCrop } from './SheetCrop'
 import { STRINGS } from '../i18n'
+import { DepthArt } from './DepthArt'
+import { EmotionAvatar } from './EmotionAvatar'
 
 const TAIL_PATHS = {
   // Fill covers the bubble border where the tail joins; the stroke draws only the outer edges.
@@ -23,7 +25,7 @@ function Tail({ side, at }: { side: BubbleBox['tail']; at: number }) {
         : { bottom: -23, left: `${at}%` }
   return (
     <svg aria-hidden viewBox={side === 'bottom' ? '0 0 20 26' : '0 0 26 22'} className={`absolute ${p.box}`} style={pos}>
-      <path d={p.fill} className="fill-cream" />
+      <path d={p.fill} className="comic-bubble-fill" />
       <path d={p.stroke} className="fill-none stroke-ink" strokeWidth={3} strokeLinejoin="round" />
     </svg>
   )
@@ -40,17 +42,20 @@ interface Props {
   thumb?: boolean
   priority?: boolean
   imageAspect?: number
+  layers?: PanelLayers
+  emotion?: Emotion
+  animateDialogue?: boolean
   /** My Story: a student hero's panel without artwork. */
   placeholder?: { setting: StorySetting } | null
 }
 
 /** One comic panel: style-sheet artwork with a live, translatable speech bubble on top. */
-export function PanelArt({ imageKey, imageUrl, lang, speaker, text, thumb = false, priority = false, imageAspect, placeholder }: Props) {
+export function PanelArt({ imageKey, imageUrl, lang, speaker, text, thumb = false, priority = false, imageAspect, placeholder, emotion = 'neutral', layers, animateDialogue = true }: Props) {
   const scene = SCENES[imageKey]
   const character = characterFor(speaker)
 
   if (!imageUrl && placeholder) {
-    return <PlaceholderPanel setting={placeholder.setting} speaker={speaker} text={text} thumb={thumb} imageAspect={imageAspect ?? PANEL_ASPECT} />
+    return <PlaceholderPanel setting={placeholder.setting} speaker={speaker} text={text} thumb={thumb} imageAspect={imageAspect ?? PANEL_ASPECT} emotion={emotion} animateDialogue={animateDialogue} />
   }
 
   if (imageUrl) {
@@ -66,6 +71,9 @@ export function PanelArt({ imageKey, imageUrl, lang, speaker, text, thumb = fals
         priority={priority}
         imageAspect={imageAspect ?? PANEL_ASPECT}
         tag={character?.tag}
+        layers={layers}
+        emotion={emotion}
+        animateDialogue={animateDialogue}
       />
     )
   }
@@ -75,9 +83,9 @@ export function PanelArt({ imageKey, imageUrl, lang, speaker, text, thumb = fals
       <div className="@container relative grid h-full w-full place-items-center bg-cream" style={{ aspectRatio: PANEL_ASPECT }}>
         <span className="rounded-lg border-2 border-dashed border-ink/40 px-3 py-1 font-mono text-sm text-ink/60">{imageKey}</span>
         {!thumb && (
-          <p className="absolute inset-x-3 bottom-3 rounded-2xl border-[3px] border-ink bg-cream p-3 text-center font-bold">
+          <p data-dialogue-emotion={emotion} className="comic-bubble absolute inset-x-3 bottom-3 rounded-2xl border-[3px] border-ink bg-cream p-3 text-center font-bold">
             <span className="block text-xs text-brand-dark uppercase">{speaker}</span>
-            <RichText text={text} />
+            <DialogueWords text={text} animate={animateDialogue} />
           </p>
         )}
       </div>
@@ -89,8 +97,9 @@ export function PanelArt({ imageKey, imageUrl, lang, speaker, text, thumb = fals
     <div className="@container relative h-full w-full bg-sky-100" style={{ aspectRatio: PANEL_ASPECT }}>
       <SheetCrop rect={scene.crop} className="h-full w-full" eager={priority} />
       <div
+        data-dialogue-emotion={thumb ? undefined : emotion}
         className={`absolute flex flex-col items-center justify-center rounded-[38%/30%] border-ink bg-cream text-center text-ink ${
-          thumb ? 'border-[1.5px]' : 'border-[3px] px-[4%] py-[3%] shadow-[0_3px_0_rgb(29_39_102/0.25)]'
+          thumb ? 'border-[1.5px]' : 'comic-bubble border-[3px] px-[4%] py-[3%] shadow-[0_3px_0_rgb(29_39_102/0.25)]'
         }`}
         style={{ left: `${b.left}%`, top: `${b.top}%`, width: `${b.width}%`, minHeight: `${b.height}%` }}
       >
@@ -105,7 +114,7 @@ export function PanelArt({ imageKey, imageUrl, lang, speaker, text, thumb = fals
               {speaker}
             </span>
             <p className="text-[clamp(13px,4.3cqw,24px)] leading-[1.2] font-extrabold text-balance">
-              <RichText text={text} />
+              <DialogueWords text={text} animate={animateDialogue} />
             </p>
           </>
         )}
@@ -128,6 +137,9 @@ function RemotePanel({
   priority,
   imageAspect,
   tag,
+  layers,
+  emotion,
+  animateDialogue,
 }: {
   url: string
   imageKey: string
@@ -138,6 +150,9 @@ function RemotePanel({
   priority: boolean
   imageAspect: number
   tag?: string
+  layers?: PanelLayers
+  emotion: Emotion
+  animateDialogue: boolean
 }) {
   const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>('loading')
 
@@ -151,7 +166,7 @@ function RemotePanel({
       className={`relative overflow-hidden bg-sky-100 ${thumb ? '' : 'w-full max-h-[70dvh] lg:max-h-[max(16rem,calc(100dvh-22rem))]'}`}
       style={{ aspectRatio: imageAspect }}
     >
-      {status === 'loading' && <div aria-hidden className="absolute inset-0 animate-pulse bg-[linear-gradient(110deg,#dbe8ff_30%,#eef4ff_50%,#dbe8ff_70%)]" />}
+      {status === 'loading' && <div aria-hidden className="absolute inset-0 bg-[linear-gradient(110deg,#dbe8ff_30%,#eef4ff_50%,#dbe8ff_70%)] motion-safe:animate-pulse" />}
       {status === 'error' ? (
         <div className="absolute inset-0 grid place-items-center p-2 text-center">
           <span className={`font-bold text-ink/60 ${thumb ? 'text-lg' : 'text-sm'}`}>
@@ -170,6 +185,7 @@ function RemotePanel({
           className={`absolute inset-0 h-full w-full ${thumb ? 'object-cover' : 'object-contain'} transition-opacity duration-300 ${status === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
         />
       )}
+      {!thumb && status === 'loaded' && layers && <DepthArt key={layers.foregroundUrl} layers={layers} lang={lang} />}
     </div>
   )
 
@@ -178,18 +194,20 @@ function RemotePanel({
   return (
     <div className="@container">
       {art}
-      <DialogueBand speaker={speaker} text={text} tag={tag} />
+      <DialogueBand speaker={speaker} text={text} tag={tag} emotion={emotion} animate={animateDialogue} />
     </div>
   )
 }
 
 /** The speech bubble under generated or placeholder art. */
-function DialogueBand({ speaker, text, tag }: { speaker: string; text: string; tag?: string }) {
+function DialogueBand({ speaker, text, tag, emotion, animate }: {
+  speaker: string; text: string; tag?: string; emotion: Emotion; animate: boolean
+}) {
   return (
     <div className="border-t-[5px] border-ink bg-white px-3 pt-5 pb-3 sm:px-4">
-      <div className="relative rounded-[22px] border-[3px] border-ink bg-cream px-4 pt-4 pb-3 text-center text-ink shadow-[0_3px_0_rgb(29_39_102/0.25)]">
+      <div data-dialogue-emotion={emotion} className="comic-bubble relative rounded-[22px] border-[3px] border-ink bg-cream px-4 pt-4 pb-3 text-center text-ink shadow-[0_3px_0_rgb(29_39_102/0.25)]">
         <svg aria-hidden viewBox="0 0 22 26" className="absolute -top-[23px] left-[14%] h-[26px] w-[22px]">
-          <path d="M0,26 L6,0 L18,26 Z" className="fill-cream" />
+          <path d="M0,26 L6,0 L18,26 Z" className="comic-bubble-fill" />
           <path d="M1,25 L6,0 L17,25" className="fill-none stroke-ink" strokeWidth={3} strokeLinejoin="round" />
         </svg>
         <span
@@ -197,11 +215,37 @@ function DialogueBand({ speaker, text, tag }: { speaker: string; text: string; t
         >
           {speaker}
         </span>
-        <p className="text-[clamp(15px,3.6cqw,24px)] leading-[1.25] font-extrabold text-balance">
-          <RichText text={text} />
-        </p>
+        <div className="flex items-center justify-center gap-2">
+          {emotion !== 'neutral' && <EmotionAvatar speaker={speaker} emotion={emotion} className="w-8 sm:w-10" />}
+          <p className="min-w-0 break-words text-[clamp(15px,3.6cqw,24px)] leading-[1.25] font-extrabold text-balance">
+            <DialogueWords key={text} text={text} animate={animate} />
+          </p>
+        </div>
       </div>
     </div>
+  )
+}
+
+function DialogueWords({ text, animate }: { text: string; animate: boolean }) {
+  if (!animate) return <RichText text={text} />
+  const tokens = text.match(/\d+\s*\/\s*\d+|[^\s]+|\s+/gu) ?? []
+  const interval = Math.min(18, 800 / Math.max(1, text.length))
+  let position = 0
+  return (
+    <>
+      <span className="sr-only"><RichText text={text} /></span>
+      <span aria-hidden="true">
+        {tokens.map((token, index) => {
+          if (/^\s+$/u.test(token)) return token
+          const characters = token.includes('/') && /^\d/u.test(token) ? [token] : Array.from(token)
+          return <span key={index}>{characters.map((char, i) => (
+            <span className="comic-dialogue-char" key={i} style={{ animationDelay: `${interval * position++}ms` }}>
+              {char.length === 1 ? char : <RichText text={char} />}
+            </span>
+          ))}</span>
+        })}
+      </span>
+    </>
   )
 }
 
@@ -216,12 +260,14 @@ const PLACEHOLDER_SCENE: Record<StorySetting, { background: string; icon: string
  * A student's own hero (My Story, prepared art): not drawn, so the panel shows the
  * setting with the hero's initial. The dialogue stays real text.
  */
-function PlaceholderPanel({ setting, speaker, text, thumb, imageAspect }: {
+function PlaceholderPanel({ setting, speaker, text, thumb, imageAspect, emotion, animateDialogue }: {
   setting: StorySetting
   speaker: string
   text: string
   thumb: boolean
   imageAspect: number
+  emotion: Emotion
+  animateDialogue: boolean
 }) {
   const scene = PLACEHOLDER_SCENE[setting]
   const art = (
@@ -242,7 +288,7 @@ function PlaceholderPanel({ setting, speaker, text, thumb, imageAspect }: {
   return (
     <div className="@container">
       {art}
-      <DialogueBand speaker={speaker} text={text} />
+      <DialogueBand speaker={speaker} text={text} emotion={emotion} animate={animateDialogue} />
     </div>
   )
 }

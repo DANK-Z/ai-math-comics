@@ -177,12 +177,19 @@ def art_token(request: Request, comic_id: str) -> str:
 
 def absolute_art(request: Request, comic: Comic, private_source: str | None = None) -> Comic:
     base = request.app.state.settings.public_base_url.rstrip("/")
+
+    def absolute_url(url: str) -> str:
+        if private_source and url.startswith(f"/api/comic-images/{private_source}/"):
+            separator = "&" if "?" in url else "?"
+            url += f"{separator}art={art_token(request, private_source)}"
+        return f"{base}{url}"
+
     for panel in comic.panels:
-        url = panel.imageUrl
-        if url:
-            panel.imageUrl = f"{base}{url}"
-            if private_source and url.startswith(f"/api/comic-images/{private_source}/"):
-                panel.imageUrl += f"?art={art_token(request, private_source)}"
+        if panel.imageUrl:
+            panel.imageUrl = absolute_url(panel.imageUrl)
+        if panel.layers:
+            panel.layers.backgroundUrl = absolute_url(panel.layers.backgroundUrl)
+            panel.layers.foregroundUrl = absolute_url(panel.layers.foregroundUrl)
     return comic
 
 

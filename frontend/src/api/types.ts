@@ -2,10 +2,15 @@
 export type Lang = 'ru' | 'kk'
 export const LANGS: readonly Lang[] = ['ru', 'kk']
 
+export type Emotion = 'neutral' | 'happy' | 'confused' | 'scared' | 'surprised' | 'angry'
+export type PanelLayers = { backgroundUrl: string; foregroundUrl: string }
+
 export interface Panel {
   id: number
   speaker: string
   text: string
+  emotion?: Emotion
+  layers?: PanelLayers
   imageKey: string
   /** Generated comics: server-rendered artwork. May be relative to the API origin. */
   imageUrl?: string | null

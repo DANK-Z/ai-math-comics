@@ -6,7 +6,7 @@ import re
 import secrets
 from contextlib import asynccontextmanager
 from fractions import Fraction
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -201,7 +201,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return absolute_art(request, comic, private_source)
 
     @app.get("/api/comic-images/{comic_id}/{panel_id}.png")
-    def comic_image(comic_id: str, panel_id: int, request: Request, art: str = "") -> FileResponse:
+    def comic_image(
+        comic_id: str,
+        panel_id: int,
+        request: Request,
+        art: str = "",
+        layer: Literal["background", "foreground"] | None = None,
+    ) -> FileResponse:
         store = get_store(request)
         # Publication in SQLite gates access: incomplete attempts are never served.
         if panel_id not in range(1, 7) or store.comic(comic_id) is None:
@@ -212,10 +218,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             or not hmac.compare_digest(art, art_token(request, comic_id))
         ):
             raise HTTPException(404, "image_not_found")
-        path = store.images_dir / comic_id / f"{panel_id}.png"
+        filename = f"{panel_id}-{layer}.webp" if layer else f"{panel_id}.png"
+        path = store.images_dir / comic_id / filename
         if not path.is_file():
             raise HTTPException(404, "image_not_found")
-        return FileResponse(path, media_type="image/png")
+        return FileResponse(path, media_type="image/webp" if layer else "image/png")
 
     @app.get("/api/prepared-art/{panel_id}.jpg")
     def prepared_image(panel_id: int) -> FileResponse:

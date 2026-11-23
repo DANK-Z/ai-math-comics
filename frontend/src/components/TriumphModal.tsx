@@ -123,6 +123,7 @@ export function TriumphModal({ open, name, lang, rounds, misses, reward, onClose
               <p className="text-xs font-black tracking-wide text-brand-dark uppercase">{t.trophy}</p>
               <p className="font-black leading-tight break-words">{name}</p>
             </div>
+            <EmotionAvatar speaker="Пифик" emotion="happy" className="ml-auto w-10 bg-sky" />
           </div>
           <p className="mt-2 text-2xl leading-none tracking-widest text-amber-500" role="img" aria-label={t.stars(stars)}>
             {'★'.repeat(stars)}<span className="text-ink/20">{'★'.repeat(3 - stars)}</span>
@@ -179,3 +180,4 @@ export function TriumphModal({ open, name, lang, rounds, misses, reward, onClose
     </dialog>
   )
 }
+import { EmotionAvatar } from './EmotionAvatar'

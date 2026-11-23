@@ -328,6 +328,7 @@ export function buildGeneratedComic(comicId: string, lang: Lang): Comic | null {
       id: i + 1,
       speaker,
       text,
+      emotion: (['happy', 'surprised', 'confused', 'neutral', 'neutral', 'happy'] as const)[i],
       imageKey: `${comicId}-${i + 1}`,
       imageUrl: `${IMG}${PANEL_ART[i]}.jpg`,
     })),

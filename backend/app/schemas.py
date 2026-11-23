@@ -19,6 +19,14 @@ class PanelPlaceholder(BaseModel):
     setting: StorySetting
 
 
+Emotion = Literal["neutral", "happy", "confused", "scared", "surprised", "angry"]
+
+
+class PanelLayers(BaseModel):
+    backgroundUrl: str
+    foregroundUrl: str
+
+
 class Panel(BaseModel):
     id: int
     speaker: str
@@ -27,6 +35,8 @@ class Panel(BaseModel):
     imageUrl: str | None = None
     imageAspect: float | None = None
     placeholder: PanelPlaceholder | None = None
+    emotion: Emotion | None = None
+    layers: PanelLayers | None = None
 
 
 class Exercise(BaseModel):

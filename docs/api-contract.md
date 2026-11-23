@@ -178,6 +178,16 @@ shapes and validation as `pizza-share`. Every generated comic has a unique
 exercise ID and two progressive localized hints. Expected answers stay server-side;
 equivalent fractions are checked with exact arithmetic. Unknown exercises return 404.
 
+### Panel emotion and depth
+
+The optional `emotion` field can be `neutral`, `happy`, `confused`, `scared`, `surprised`
+or `angry`. New standalone storyboards use the same value in both translations. Missing
+values render as neutral. Dialogue remains plain text.
+
+A live-art panel may also include `layers: {backgroundUrl, foregroundUrl}`. Both URLs serve
+WebP and follow the same authorization as the original artwork. The foreground has an alpha
+channel. Always keep `imageUrl` as the full-image fallback.
+
 ### Topics
 
 - `fractions`: share a resource chosen to fit the story, such as lemonade, ribbon, or water.

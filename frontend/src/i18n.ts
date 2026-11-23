@@ -110,6 +110,7 @@ export interface UiStrings {
     locked: string
     remaining: (count: number) => string
     hp: (current: number, max: number) => string
+    hit: (damage: number) => string
     round: (current: number, total: number) => string
     cleared: string
     active: string
@@ -297,10 +298,11 @@ export const STRINGS: Record<Lang, UiStrings> = {
     guardian: {
       title: 'Финальное испытание',
       name: 'Страж ярмарки',
-      intro: 'Пифик стал Стражем ярмарки. Реши три задачи: каждый верный ответ снимает 30 HP в его испытании.',
+      intro: 'Помоги Пифику одолеть Стража ярмарки. Реши три задачи: каждый верный ответ снимает 30 HP.',
       locked: 'Испытание откроется после прохождения всех глав.',
       remaining: (count) => `Осталось пройти глав: ${count}`,
       hp: (current, max) => `${current} / ${max} HP`,
+      hit: (damage) => `Верно! Страж теряет ${damage} HP`,
       round: (current, total) => `Раунд ${current} из ${total}`,
       cleared: 'Пройден',
       active: 'Текущий',
@@ -495,10 +497,11 @@ export const STRINGS: Record<Lang, UiStrings> = {
     guardian: {
       title: 'Соңғы сынақ',
       name: 'Жәрмеңке сақшысы',
-      intro: 'Пифик жәрмеңке сақшысы болды. Үш есепті шығар: әр дұрыс жауап сынақтағы HP көрсеткішін 30-ға азайтады.',
+      intro: 'Пификке жәрмеңке сақшысын жеңуге көмектес. Үш есепті шығар: әр дұрыс жауап Сақшының HP көрсеткішін 30-ға азайтады.',
       locked: 'Сынақ барлық тараудан өткен соң ашылады.',
       remaining: (count) => `Әлі ${count} тарау қалды`,
       hp: (current, max) => `${current} / ${max} HP`,
+      hit: (damage) => `Дұрыс! Сақшының HP көрсеткіші ${damage}-ға азайды`,
       round: (current, total) => `${total} раундтың ${current}-раунды`,
       cleared: 'Аяқталды',
       active: 'Ағымдағы',

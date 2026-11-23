@@ -71,18 +71,22 @@ export function PifikSprite({
   className = '',
   eager = false,
   alt = '',
+  expression,
 }: {
   rect?: Rect
   skin?: SkinKey | null
   className?: string
   eager?: boolean
   alt?: string
+  expression?: ReactNode
 }) {
   const account = useAccount()
   const worn = skin === undefined ? account.skin : skin
   return (
     <SheetCrop rect={rect} className={className} eager={eager} alt={alt}>
+      {expression}
       {worn && <SkinLayer skin={worn} rect={rect} />}
     </SheetCrop>
   )
 }
+import type { ReactNode } from 'react'

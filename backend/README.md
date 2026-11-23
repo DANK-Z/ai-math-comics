@@ -94,6 +94,28 @@ For a different port, update the API bind port, `PUBLIC_BASE_URL` and the fronte
 
 ## Generate and read a comic
 
+### Optional parallax layers
+
+The worker can separate each new live panel into a background and a transparent foreground
+after saving the original. The local U²-Net model detects the main foreground subject.
+OpenCV fills the background behind it. This step makes no extra provider calls.
+
+From `backend/`, install the optional packages and download the
+[U²-Net lightweight weights](https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2netp.onnx)
+into `data/models/u2netp.onnx`.
+
+```powershell
+.venv\Scripts\python -m pip install -r requirements-depth.txt
+```
+
+Set `COMIC_DEPTH_MODEL=data/models/u2netp.onnx` with `COMIC_ART_MODE=live` and restart the
+worker. Relative paths resolve from `backend/`. The API uses the same `COMIC_DATA_DIR`.
+Layered panels gain two WebP URLs. If segmentation fails or the mask is unsuitable, the
+comic still publishes with its original panel. Prepared art and existing flat images use
+their original file. Comics reusing cached art inherit any layers already present.
+
+### Standard job request
+
 ```powershell
 $body = @{grade=5; topic="fractions"; lang="ru"; difficulty="basic"} | ConvertTo-Json
 $job = Invoke-RestMethod http://127.0.0.1:8000/api/comic-jobs -Method Post -ContentType application/json -Body $body

@@ -5,7 +5,7 @@ import { BOSS_COPY } from '../boss'
 import { useAnswerCheck } from '../hooks'
 import { STRINGS } from '../i18n'
 import { RichText } from './RichText'
-import { PifikSprite } from './PifikSprite'
+import { EmotionAvatar } from './EmotionAvatar'
 import { TriumphModal } from './TriumphModal'
 
 // Panel four of a generated comic as a boss fight: three server-owned rounds,
@@ -167,6 +167,7 @@ export function BossFight({ boss, lang, active, cleared, onRoundCleared, misses,
   const [hit, setHit] = useState<{ round: number; at: number } | null>(null)
   const [triumph, setTriumph] = useState(false)
   const [reward, setReward] = useState<Reward | null>(null)
+  const [missedRound, setMissedRound] = useState<string | null>(null)
   const { setCoins } = useAccount()
   const hpId = useId()
   const heading = useRef<HTMLHeadingElement>(null)
@@ -175,6 +176,10 @@ export function BossFight({ boss, lang, active, cleared, onRoundCleared, misses,
   const hp = Math.max(0, boss.maxHp - shownCleared * damage)
   const defeated = cleared >= total
   const round = boss.rounds[Math.min(cleared, total - 1)]
+  const miss = useCallback(() => {
+    setMissedRound(round.exerciseId)
+    onMiss()
+  }, [onMiss, round.exerciseId])
 
   const onHit = useCallback(
     (response: CheckResponse) => {
@@ -217,7 +222,8 @@ export function BossFight({ boss, lang, active, cleared, onRoundCleared, misses,
             <h2 id={`${hpId}-title`} ref={heading} tabIndex={-1} className="text-2xl font-black text-white outline-none sm:text-3xl">
               {name}
             </h2>
-            <p className="mt-1 text-sm font-semibold text-white/90 sm:text-base">
+            <p data-dialogue-emotion={!defeated && missedRound === round.exerciseId ? 'angry' : undefined}
+              className={`mt-1 text-sm font-semibold text-white/90 sm:text-base ${!defeated && missedRound === round.exerciseId ? 'comic-bubble border-2 border-white/40 px-2 py-1 font-black' : ''}`}>
               {defeated ? (character?.farewell ?? copy.defeatedText[boss.kind]) : (character?.introduction ?? copy.taunts[boss.kind])}
             </p>
           </div>
@@ -258,7 +264,7 @@ export function BossFight({ boss, lang, active, cleared, onRoundCleared, misses,
       <div className="bg-cream p-4 sm:p-5">
         {defeated ? (
           <div className="flex items-center gap-3">
-            <span aria-hidden className="boss-trophy text-4xl">🏆</span>
+            <EmotionAvatar speaker="Пифик" emotion="happy" className="w-11 bg-white" />
             <div className="min-w-0 flex-1">
               <p className="text-xl font-black text-ink">{copy.defeated}</p>
               <p className="font-semibold text-ink/80">{copy.readOn} <span aria-hidden>→</span></p>
@@ -278,10 +284,10 @@ export function BossFight({ boss, lang, active, cleared, onRoundCleared, misses,
         ) : (
           <>
             <div className="mb-2 flex items-center gap-2">
-              <PifikSprite className="w-10 shrink-0 rounded-full border-2 border-ink bg-white" />
+              <EmotionAvatar speaker="Пифик" emotion={missedRound === round.exerciseId ? 'confused' : 'neutral'} className="w-10 bg-white" />
               <p className="text-sm font-black text-brand-dark">{copy.round(cleared + 1, total)}</p>
             </div>
-            <RoundForm key={round.exerciseId} round={round} lang={lang} onHit={onHit} onMiss={onMiss} />
+            <RoundForm key={round.exerciseId} round={round} lang={lang} onHit={onHit} onMiss={miss} />
           </>
         )}
       </div>

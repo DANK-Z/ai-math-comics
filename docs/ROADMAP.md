@@ -59,6 +59,8 @@ These items are not on the request list, but the planned work builds on them.
 | Consistent props | In progress | Every live panel receives the same description for the model-selected fraction resource or equation chest. Visual consistency across completed images still needs verification. |
 | Clear story resolution | Done | The final panel includes a bilingual server-authored consequence of solving the story's problem. The illustration prompt does not receive this text or the answer. |
 | Story-specific boss | Done | The model chooses the look and writes bilingual dialogue. The boss is drawn on the exercise panel in live artwork, with server-owned rounds. |
+| Dialogue presentation | Done | Bilingual storyboard emotions drive bubble colours and character expressions. Dialogue entry and parallax respect reduced-motion settings. |
+| Parallax layers | Available | An optional local segmentation model splits new live panels. The reader moves the foreground faster than the background and supports phone tilt where available. |
 
 ### 4. My Comics — Done
 
@@ -105,6 +107,7 @@ The Guardian final challenge exists (`9dc0af2`): three rounds (fractions, percen
 | Part | Status | Notes |
 | --- | --- | --- |
 | Visual phases | Done | Each topic has a distinct panel accent and icon. |
+| Guardian arena and hit feedback | Done | Pifik faces the Guardian with motion for hits, blocks and victory. The answer area shows damage and remaining HP, including with reduced motion. |
 | New problem numbers on replay | Done | Replay alternates two additional sets of operands and saves the active set across reloads. |
 
 ### 9. Motion League — Done

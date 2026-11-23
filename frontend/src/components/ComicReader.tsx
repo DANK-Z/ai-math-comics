@@ -111,7 +111,8 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
           className={`panel-enter relative overflow-hidden rounded-2xl border-[5px] border-ink bg-sky-100 transition-[border-color,box-shadow] duration-500 ${arena ? 'boss-arena' : ''}`}
           aria-label={`${panel.speaker}: ${panel.text}`}
         >
-          <PanelArt imageKey={panel.imageKey} imageUrl={panel.imageUrl} lang={lang} speaker={panel.speaker} text={panel.text} imageAspect={panel.imageAspect} placeholder={panel.placeholder} priority />
+          <PanelArt imageKey={panel.imageKey} imageUrl={panel.imageUrl} lang={lang} speaker={panel.speaker} text={panel.text} imageAspect={panel.imageAspect} placeholder={panel.placeholder}
+            emotion={panel.emotion} layers={panel.layers} animateDialogue={!isExercisePanel} priority />
           <span className={`absolute ${panel.imageUrl ? 'top-2' : 'bottom-2'} left-2 grid h-9 w-9 place-items-center rounded-full border-[3px] border-ink bg-sun text-lg font-black text-ink`}>
             {panel.id}
           </span>
