@@ -5,7 +5,7 @@ import mosaicLit from '../assets/lights/mosaic-3.webp'
 import mosaicConcert from '../assets/lights/mosaic-4.webp'
 import { useFinale, type FinaleDef, type FinaleRound } from '../finales'
 import { STRINGS } from '../i18n'
-import { findOperation, operationHref } from '../operations'
+import { FINALE_LOCK, findOperation, operationHref } from '../operations'
 import { RichText } from './RichText'
 
 // A season finale: three rounds, each lighting up one part of the scene.
@@ -105,7 +105,7 @@ function RoundExercise({ lang, round, onSubmit }: {
   )
 }
 
-export function FinaleScreen({ lang, def }: { lang: Lang; def: FinaleDef }) {
+export function FinaleScreen({ lang, def, remaining }: { lang: Lang; def: FinaleDef; remaining: number }) {
   const copy = COPY[lang]
   const { run, submit, replay } = useFinale(def)
   const total = def.rounds.length
@@ -125,6 +125,17 @@ export function FinaleScreen({ lang, def }: { lang: Lang; def: FinaleDef }) {
   const back = operation && (
     <a href={operationHref(operation.id)} className={`${BUTTON} bg-white`}><span aria-hidden>←&nbsp;</span>{operation.title[lang]}</a>
   )
+
+  if (remaining > 0 && !run.won) {
+    return (
+      <section className={`mx-auto max-w-2xl ${CARD}`}>
+        <h1 className="text-2xl font-black text-ink">{def.title[lang]}</h1>
+        <p className="mt-2 font-semibold"><span aria-hidden>🔒 </span>{FINALE_LOCK[lang].locked}</p>
+        <p className="mt-2 font-black text-brand-dark">{FINALE_LOCK[lang].left(remaining)}</p>
+        <div className="mt-4">{back}</div>
+      </section>
+    )
+  }
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-5">

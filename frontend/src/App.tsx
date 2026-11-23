@@ -24,7 +24,7 @@ import { useMyComics } from './myComics'
 import { STRINGS } from './i18n'
 import { useBonusStickers } from './bonusStickers'
 import { comicHref, parseRoute, SCHOOL_MAP_COMIC_ID, SECTION_HREFS, useRoute, type Route } from './route'
-import { findOperation, operationChapter, useOperationProgress } from './operations'
+import { chaptersLeft, findOperation, operationChapter, useOperationProgress } from './operations'
 import { useSeasonProgress } from './seasonProgress'
 import { SCHOOL_FAIR_CHAPTER_COUNT } from './schoolFair'
 
@@ -220,7 +220,7 @@ function AppShell() {
           )}
           {route.name === 'guardian' && <Suspense><GuardianScreen lang={lang} remaining={remaining} challenge={guardian} /></Suspense>}
           {route.name === 'guardianAssignment' && <Suspense><AssignedGuardian key={guardianAssignmentHref(route.assignment)} assignment={route.assignment} remaining={remaining} lang={lang} /></Suspense>}
-          {route.name === 'roadGuardian' && <RoadGuardianScreen lang={lang} challenge={roadGuardian} />}
+          {route.name === 'roadGuardian' && <RoadGuardianScreen lang={lang} challenge={roadGuardian} remaining={chaptersLeft('roads', operations.completed)} />}
           {route.name === 'operations' && <OperationsScreen lang={lang} completed={operations.completed} />}
           {route.name === 'operation' && (() => {
             const operation = findOperation(route.id)
@@ -229,7 +229,7 @@ function AppShell() {
               : <OperationsScreen lang={lang} completed={operations.completed} />
           })()}
           {route.name === 'operationFinale' && (FINALES[route.id]
-            ? <FinaleScreen key={route.id} lang={lang} def={FINALES[route.id]} />
+            ? <FinaleScreen key={route.id} lang={lang} def={FINALES[route.id]} remaining={chaptersLeft(route.id, operations.completed)} />
             : <OperationsScreen lang={lang} completed={operations.completed} />)}
           {route.name === 'motionLeague' && <Suspense><MotionLeague lang={lang} /></Suspense>}
           {route.name === 'comic' && (

@@ -8,7 +8,7 @@ import gate1 from '../assets/roads/gate-1.webp'
 import gate2 from '../assets/roads/gate-2.webp'
 import gate3 from '../assets/roads/gate-3.webp'
 import gate4 from '../assets/roads/gate-4.webp'
-import { findOperation, operationHref } from '../operations'
+import { FINALE_LOCK, findOperation, operationHref } from '../operations'
 import { SECTION_HREFS } from '../route'
 import { RichText } from './RichText'
 import { SheetCrop } from './SheetCrop'
@@ -202,7 +202,7 @@ export function MotionExercise({ lang, round, check }: { lang: Lang; round: (typ
   )
 }
 
-export function RoadGuardianScreen({ lang, challenge }: { lang: Lang; challenge: Challenge }) {
+export function RoadGuardianScreen({ lang, challenge, remaining = 0 }: { lang: Lang; challenge: Challenge; remaining?: number }) {
   const t = STRINGS[lang]
   const copy = ROAD_COPY[lang]
   const { run, submit, replay } = challenge
@@ -223,6 +223,17 @@ export function RoadGuardianScreen({ lang, challenge }: { lang: Lang; challenge:
   const catalog = season
     ? <a href={operationHref(season.id)} className={`${BUTTON} bg-white`}><span aria-hidden>←&nbsp;</span>{season.title[lang]}</a>
     : <a href={SECTION_HREFS.comics} className={`${BUTTON} bg-white`}>{t.backToCatalog}</a>
+
+  if (remaining > 0 && !run.won) {
+    return (
+      <section className={`mx-auto max-w-2xl ${CARD} bg-white`}>
+        <h1 className="text-2xl font-black text-ink">{copy.title}</h1>
+        <p className="mt-2 font-semibold"><span aria-hidden>🔒 </span>{FINALE_LOCK[lang].locked}</p>
+        <p className="mt-2 font-black text-brand-dark">{FINALE_LOCK[lang].left(remaining)}</p>
+        <div className="mt-4">{catalog}</div>
+      </section>
+    )
+  }
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-5">

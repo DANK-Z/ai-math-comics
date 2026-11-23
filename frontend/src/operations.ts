@@ -97,8 +97,8 @@ export const OPERATIONS: readonly Operation[] = [
     icon: '🏙️',
     title: t('Операция «Огни Кокшетау»', '«Көкшетау шамдары» операциясы'),
     lead: t(
-      'Друзья готовят вечерний праздник. В городе уже зажигаются огни, а сцены всё ещё нет.',
-      'Достар кешкі мерекеге дайындалып жатыр. Қалада шамдар жанып жатыр, ал сахна әлі дайын емес.',
+      'Друзья готовят вечерний праздник у озера. В городе уже зажигаются огни, а сцена ещё тёмная: нет ни декораций, ни света.',
+      'Достар көл жағасындағы кешкі мерекеге дайындалып жатыр. Қалада шамдар жанып жатыр, ал сахна әлі қараңғы: безендіру де, жарық та жоқ.',
     ),
     chapters: [
       {
@@ -111,7 +111,7 @@ export const OPERATIONS: readonly Operation[] = [
       },
       {
         number: 3, comicId: LIGHTS_GARLAND_ID, title: t('Гирлянда с запасом', 'Қоры бар шамтізбе'), story: t('Сцену обводят огнями, оставив свободным вход для музыкантов.', 'Музыканттардың кіретін жерін бос қалдырып, сахнаны шаммен қоршайды.'), math: t('Периметр', 'Периметр'),
-        speaker: 'aldiyar', ending: t('Гирлянда на месте! Не хватает ещё огоньков — идём к киоскам.', 'Шамтізбе орнында! Тағы шамдар жетпейді — дүңгіршектерге барайық.'),
+        speaker: 'aldiyar', ending: t('Гирлянда на месте! А на световую мозаику огоньков не хватает — идём к киоскам.', 'Шамтізбе орнында! Ал жарық мозаикасына шам жетпейді — дүңгіршектерге барайық.'),
       },
       {
         number: 4, comicId: LIGHTS_KIOSKS_ID, title: t('Два киоска, две скидки', 'Екі дүңгіршек, екі жеңілдік'), story: t('Скидка в процентах или в тенге — бюджета хватит только при удачном выборе.', 'Пайыздық па, теңгелік пе — бюджет тек дұрыс таңдауда жетеді.'), math: t('Проценты', 'Пайыздар'),
@@ -195,6 +195,18 @@ const byComicId = new Map(
 
 export function operationHref(id: string) {
   return `#/operation/${id}`
+}
+
+/** Chapters of an operation the student still has to solve before its finale opens. */
+export function chaptersLeft(id: string, completed: ReadonlySet<string>): number {
+  const operation = findOperation(id)
+  return operation ? operation.chapters.filter((c) => !c.comicId || !completed.has(c.comicId)).length : 0
+}
+
+/** Locked-finale copy shared by the operation finales. */
+export const FINALE_LOCK = {
+  ru: { locked: 'Финал откроется, когда пройдёшь все главы операции.', left: (n: number) => `Осталось глав: ${n}` },
+  kk: { locked: 'Финал операцияның барлық тарауынан өткен соң ашылады.', left: (n: number) => `Қалған тараулар: ${n}` },
 }
 
 export function findOperation(id: string): Operation | undefined {
