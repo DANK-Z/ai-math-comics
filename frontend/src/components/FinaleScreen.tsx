@@ -7,6 +7,10 @@ import hall1 from '../assets/museum/hall-1.webp'
 import hall2 from '../assets/museum/hall-2.webp'
 import hall3 from '../assets/museum/hall-3.webp'
 import hall4 from '../assets/museum/hall-4.webp'
+import stage1 from '../assets/weather/stage-1.webp'
+import stage2 from '../assets/weather/stage-2.webp'
+import stage3 from '../assets/weather/stage-3.webp'
+import stage4 from '../assets/weather/stage-4.webp'
 import { useFinale, type FinaleDef, type FinaleRound } from '../finales'
 import { STRINGS } from '../i18n'
 import { FINALE_LOCK, findOperation, operationHref } from '../operations'
@@ -68,6 +72,7 @@ function MosaicScene({ lit, total, caption }: { lit: number; total: number; capt
 /** Finales told as a sequence of frames: one frame per solved round (start, 1, 2, 3). */
 const FRAME_SCENES: Record<string, { frames: string[]; aspect: string }> = {
   museum: { frames: [hall1, hall2, hall3, hall4], aspect: '824 / 460' },
+  weather: { frames: [stage1, stage2, stage3, stage4], aspect: '826 / 460' },
 }
 
 function FramesScene({ frames, aspect, lit, caption, total }: { frames: string[]; aspect: string; lit: number; caption: string; total: number }) {
