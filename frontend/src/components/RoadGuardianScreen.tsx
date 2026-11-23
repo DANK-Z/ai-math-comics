@@ -55,10 +55,11 @@ function FinishGates({ lit, lang }: { lit: number; lang: Lang }) {
             className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${i === frame ? 'opacity-100' : 'opacity-0'}`}
           />
         ))}
-        {/* The middle lamp sits at about 52% × 16% of the frame. */}
+        {/* The middle lamp sits higher than the side ones (the arch curves): its centre is at
+            51.9% × 12% of the frame and its glass is ~7% of the width (measured on the art). */}
         <span
           aria-hidden
-          className={`absolute top-[16%] left-[52%] aspect-square w-[9%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,#fffbe6_0%,#fde68a_45%,#f5b729_70%,transparent_72%)] shadow-[0_0_24px_10px_rgb(253_224_71/0.7)] transition-opacity duration-700 ${lit === 2 ? 'opacity-100' : 'opacity-0'}`}
+          className={`absolute top-[12%] left-[51.9%] aspect-square w-[7.2%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,#fffbe6_0%,#fde68a_40%,#f5b729_68%,#e59a1d_100%)] shadow-[0_0_14px_5px_rgb(253_224_71/0.65)] transition-opacity duration-700 ${lit === 2 ? 'opacity-100' : 'opacity-0'}`}
         />
       </div>
       <figcaption aria-live="polite" className="bg-sun px-3 py-1.5 text-center text-sm font-black text-ink">
