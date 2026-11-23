@@ -6,6 +6,7 @@ import { CONTINUATION_COPY, type ContinuationJob } from '../continuation'
 import { useComic } from '../hooks'
 import { STRINGS } from '../i18n'
 import { readReadingProgress, startReadingReplay, updateReadingProgress } from '../readingProgress'
+import { operationChapter, operationHref } from '../operations'
 import { comicHref, DEMO_COMIC_ID, SECTION_HREFS } from '../route'
 import type { SchoolFairCollectible } from '../schoolFair'
 import { ComicReader } from './ComicReader'
@@ -37,6 +38,7 @@ export function ReaderScreen({ comicId, lang, onChapterComplete, onEarnBonusStic
   const [index, setIndex] = useState(() => openEnding && chapterThreeSolved ? SCHOOL_MAP.panels.length - 1 : initial.saved?.index ?? 0)
   const [savedSolved, setSavedSolved] = useState(initial.saved?.solved ?? false)
   const { data: comic, loading, error, errorDetail, retry } = useComic(comicId, lang)
+  const operation = operationChapter(comicId)?.operation
   const loadedId = comic?.id
   useEffect(() => {
     if (loadedId === comicId) onOpen(comicId)
@@ -61,10 +63,10 @@ export function ReaderScreen({ comicId, lang, onChapterComplete, onEarnBonusStic
     <div className="flex flex-col gap-4" aria-busy={loading}>
       <div className="flex flex-wrap items-center gap-3">
         <a
-          href={SECTION_HREFS[backTo]}
+          href={operation ? operationHref(operation.id) : SECTION_HREFS[backTo]}
           className="inline-flex min-h-11 items-center gap-1.5 rounded-2xl border-[3px] border-ink bg-white px-4 font-black text-ink shadow-[0_4px_0_var(--color-ink)] transition active:translate-y-[3px] active:shadow-[0_1px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun"
         >
-          <span aria-hidden>←</span> {backTo === 'myComics' ? t.myComics.title : t.backHome}
+          <span aria-hidden>←</span> {operation ? operation.title[lang] : backTo === 'myComics' ? t.myComics.title : t.backHome}
         </a>
         {comic?.continuation && (
           <>

@@ -3,6 +3,7 @@ import { mockAccounts } from './mockAccounts'
 import { mockApi } from './mockApi'
 import { FAIR_CHAPTERS, LIBRARY_BOXES, SCHOOL_MAP } from './fairChapters'
 import { buildLocalComic, checkLocalAnswer, localHint, type LocalComicDef } from './localComics'
+import { ROADS_CHAPTERS } from './roadsChapters'
 import { SCHOOL_STORE } from './schoolStore'
 import type { AccountApi, Api } from './types'
 import { withPizzaArtwork } from '../art/pizza'
@@ -26,7 +27,7 @@ export const createContinuationJob = httpApi.createContinuationJob
 export const resumeComicJob = API_MODE === 'live' ? httpApi.resumeComicJob : undefined
 
 /** Bundled chapters 2–6 of “Operation: School Fair”: served locally in both API modes, no generator needed. */
-export const LOCAL_COMICS: readonly LocalComicDef[] = [SCHOOL_STORE, ...FAIR_CHAPTERS]
+export const LOCAL_COMICS: readonly LocalComicDef[] = [SCHOOL_STORE, ...FAIR_CHAPTERS, ...ROADS_CHAPTERS]
 const byComicId = new Map(LOCAL_COMICS.map((d) => [d.id, d]))
 const byExerciseId = new Map(LOCAL_COMICS.map((d) => [d.exerciseId, d]))
 
@@ -46,7 +47,7 @@ export const api: Api = {
         ...comic,
         panels: comic.panels.map((panel) => {
           const art = artSource.panels[panel.id - 1]
-          return art ? {
+          return art?.image ? {
             ...panel,
             imageUrl: new URL(art.image, window.location.href).href,
             imageAspect: artSource.imageAspect,

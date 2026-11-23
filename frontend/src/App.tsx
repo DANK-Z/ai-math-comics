@@ -10,6 +10,7 @@ import { GenerateCard } from './components/GenerateCard'
 import { CatalogScreen, HomeScreen } from './components/HomeScreen'
 import { LanguageSwitcher } from './components/LanguageSwitcher'
 import { ReaderScreen } from './components/ReaderScreen'
+import { OperationScreen, OperationsScreen } from './components/OperationsScreen'
 import { RoadGuardianScreen } from './components/RoadGuardianScreen'
 import { DesktopNavigation, MobileNavigation } from './components/SectionNavigation'
 import { useContinuationJob } from './continuation'
@@ -21,6 +22,7 @@ import { useMyComics } from './myComics'
 import { STRINGS } from './i18n'
 import { useBonusStickers } from './bonusStickers'
 import { comicHref, parseRoute, SCHOOL_MAP_COMIC_ID, SECTION_HREFS, useRoute, type Route } from './route'
+import { findOperation, operationChapter, useOperationProgress } from './operations'
 import { useSeasonProgress } from './seasonProgress'
 import { SCHOOL_FAIR_CHAPTER_COUNT } from './schoolFair'
 
@@ -107,6 +109,16 @@ function AppShell() {
   const account = useAccount()
   const role = account.user?.role ?? null
   const { completedChapters, completeChapter, mergeChapters } = useSeasonProgress()
+  const operations = useOperationProgress()
+  const { complete: completeOperation, merge: mergeOperations } = operations
+  // One completion callback for the reader: School Fair chapters give a collectible, operation chapters don't.
+  const finishChapter = useCallback((comicId: string) => {
+    if (operationChapter(comicId)) {
+      completeOperation(comicId)
+      return null
+    }
+    return completeChapter(comicId)
+  }, [completeChapter, completeOperation])
   const { earned: bonusStickers, award: awardBonusSticker, restore: restoreBonusStickers } = useBonusStickers()
   const ready = account.ready
   useEffect(() => {
@@ -130,18 +142,19 @@ function AppShell() {
     if (synced.current !== student.id) {
       synced.current = student.id
       mergeChapters(serverChapters ?? [])
+      mergeOperations(serverChapters ?? [])
       restoreBonusStickers(serverStickers ?? [])
     }
-  }, [student, serverChapters, serverStickers, mergeChapters, restoreBonusStickers])
+  }, [student, serverChapters, serverStickers, mergeChapters, mergeOperations, restoreBonusStickers])
   const { saveProgress } = account
   useEffect(() => {
     if (!student || synced.current !== student.id) return
-    const chapters = [...completedChapters].sort()
+    const chapters = [...completedChapters, ...operations.completed].sort()
     const stickers = [...bonusStickers].sort()
     const known = new Set(serverChapters ?? [])
     const missing = chapters.some((id) => !known.has(id)) || stickers.some((id) => !serverStickers?.includes(id))
     if (missing) saveProgress(chapters, stickers).catch(() => {})
-  }, [student, completedChapters, bonusStickers, serverChapters, serverStickers, saveProgress])
+  }, [student, completedChapters, operations.completed, bonusStickers, serverChapters, serverStickers, saveProgress])
   const guardian = useGuardianChallenge()
   const roadGuardian = useRoadGuardian()
   const continuationJob = useContinuationJob()
@@ -150,8 +163,9 @@ function AppShell() {
   const myComics = useMyComics()
   // A saved generated comic belongs to My Comics; everything else to the catalog.
   const readerSection = route.name === 'comic' && myComics.some((c) => c.comicId === route.comicId) ? 'myComics' as const : 'comics' as const
-  const activeSection = route.name === 'comic' ? readerSection : route.name === 'teacherClass' ? 'teacher' : route.name === 'motionLeague' ? 'roadGuardian' : route.name === 'guardianAssignment' ? 'guardian' : route.name
-  const navigation = { t, active: activeSection, completed: completedChapters.size, remaining, myComics: myComics.length, roadHp: ROAD_MAX_HP - roadGuardian.run.cleared * ROAD_DAMAGE, roadWon: roadGuardian.run.won, lang }
+  const readerNav = route.name === 'comic' && operationChapter(route.comicId) ? 'operations' as const : readerSection
+  const activeSection = route.name === 'comic' ? readerNav : route.name === 'operation' ? 'operations' : route.name === 'teacherClass' ? 'teacher' : route.name === 'motionLeague' ? 'roadGuardian' : route.name === 'guardianAssignment' ? 'guardian' : route.name
+  const navigation = { t, active: activeSection, completed: completedChapters.size, remaining, myComics: myComics.length, roadHp: ROAD_MAX_HP - roadGuardian.run.cleared * ROAD_DAMAGE, roadWon: roadGuardian.run.won, operationsDone: operations.completed.size, lang }
 
   const openGenerated = useCallback(
     (comicId: string, request: ComicJobRequest) => {
@@ -205,13 +219,20 @@ function AppShell() {
           {route.name === 'guardian' && <Suspense><GuardianScreen lang={lang} remaining={remaining} challenge={guardian} /></Suspense>}
           {route.name === 'guardianAssignment' && <Suspense><AssignedGuardian key={guardianAssignmentHref(route.assignment)} assignment={route.assignment} remaining={remaining} lang={lang} /></Suspense>}
           {route.name === 'roadGuardian' && <RoadGuardianScreen lang={lang} challenge={roadGuardian} />}
+          {route.name === 'operations' && <OperationsScreen lang={lang} completed={operations.completed} />}
+          {route.name === 'operation' && (() => {
+            const operation = findOperation(route.id)
+            return operation
+              ? <OperationScreen lang={lang} operation={operation} completed={operations.completed} finaleWon={operation.id === 'roads' && roadGuardian.run.won} />
+              : <OperationsScreen lang={lang} completed={operations.completed} />
+          })()}
           {route.name === 'motionLeague' && <Suspense><MotionLeague lang={lang} /></Suspense>}
           {route.name === 'comic' && (
             <ReaderScreen
               key={`${comicHref(route.comicId, route.ending)}|${route.replay ?? ''}`}
               comicId={route.comicId}
               lang={lang}
-              onChapterComplete={completeChapter}
+              onChapterComplete={finishChapter}
               onEarnBonusSticker={awardBonusSticker}
               continuationJob={continuationJob}
               chapterThreeSolved={route.comicId === SCHOOL_MAP_COMIC_ID && completedChapters.has(route.comicId)}

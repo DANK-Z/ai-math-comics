@@ -10,6 +10,7 @@ import { useAnswerCheck } from '../hooks'
 import { GUIDE_COPY } from '../guideCopy'
 import { STRINGS } from '../i18n'
 import { comicHref, DEMO_COMIC_ID, GARLAND_COMIC_ID, GUARDIAN_HREF, SCHOOL_MAP_COMIC_ID, SECTION_HREFS } from '../route'
+import { operationChapter } from '../operations'
 import { schoolFairChapter, type SchoolFairCollectible } from '../schoolFair'
 import { BossFight } from './BossFight'
 import { CastCard } from './CastCard'
@@ -41,6 +42,15 @@ interface Props {
 
 const BTN =
   'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-2xl border-[3px] border-ink px-4 py-2 font-black shadow-[0_4px_0_var(--color-ink)] transition active:translate-y-[3px] active:shadow-[0_1px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none'
+
+/** Ending line and onward link for a School Fair or operation chapter. */
+function chapterEnding(comicId: string) {
+  const fair = schoolFairChapter(comicId)
+  if (fair) return { ...fair, doneHref: SECTION_HREFS.comics, doneLabel: undefined }
+  const op = operationChapter(comicId)
+  if (!op) return undefined
+  return { speaker: op.speaker, ending: op.ending, nextComicId: op.nextComicId, doneHref: op.doneHref, doneLabel: op.operation.finale.title }
+}
 
 /** Wide screens: which panels are open, where the task is, and why the ending is still closed. */
 function ProgressCard({ lang, total, current, maxIndex, exerciseIndex, solved, boss, onGoTo }: {
@@ -133,7 +143,7 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
   const showSidebar = showCast || showHints
   const locked = current === maxIndex && maxIndex < total - 1
   const justUnlocked = exerciseSolved && isExercisePanel && current < total - 1
-  const ending = solved && current === total - 1 ? schoolFairChapter(comic.id) : undefined
+  const ending = solved && current === total - 1 ? chapterEnding(comic.id) : undefined
   const bonusSticker = ending ? chapterBonus(comicId) : undefined
 
   useEffect(() => {
@@ -189,10 +199,10 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
             <p className="mt-2 font-bold text-ink">{ending.ending[lang]}</p>
             <div className="mt-3 flex flex-wrap gap-2">
               <a
-                href={ending.nextComicId ? comicHref(ending.nextComicId) : SECTION_HREFS.comics}
+                href={ending.nextComicId ? comicHref(ending.nextComicId) : ending.doneHref}
                 className={`${BTN} w-full bg-sun sm:w-auto`}
               >
-                {ending.nextComicId ? t.nextChapter : t.backToCatalog}
+                {ending.nextComicId ? t.nextChapter : ending.doneLabel?.[lang] ?? t.backToCatalog}
                 <span aria-hidden>→</span>
               </a>
               {comicId === GARLAND_COMIC_ID && (
@@ -313,7 +323,7 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
         <aside hidden={!showHints} aria-label={t.navigation.hints} className="rounded-2xl border-2 border-ink bg-cream p-3 shadow-[0_3px_0_var(--color-ink)] sm:p-4">
           <h2 className="mb-3 text-base font-black">{t.navigation.hints}</h2>
           <PifikHints key={hintExerciseId} exerciseId={hintExerciseId} lang={lang} mapHints={comicId === SCHOOL_MAP_COMIC_ID}
-            structured={!!schoolFairChapter(comicId)} savedComicId={rememberReading ? comicId : undefined} />
+            structured={!!schoolFairChapter(comicId) || !!operationChapter(comicId)} savedComicId={rememberReading ? comicId : undefined} />
         </aside>
         <div hidden={!showCast}>
           {showCast && <CastCard lang={lang} activeSpeaker={panel.speaker} compact={isExercisePanel} />}

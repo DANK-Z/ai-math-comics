@@ -9,6 +9,7 @@ export const SECTION_HREFS = {
   guardian: '#/guardian',
   roadGuardian: '#/road-guardian',
   motionLeague: '#/motion-league',
+  operations: '#/operations',
   create: '#/create',
   login: '#/login',
   profile: '#/profile',
@@ -21,6 +22,7 @@ export type Route =
   | { name: Section }
   | { name: 'comic'; comicId: string; ending: boolean; replay: string | null }
   | { name: 'teacherClass'; classId: number }
+  | { name: 'operation'; id: string }
   | { name: 'guardianAssignment'; assignment: GuardianAssignment }
 export const GUARDIAN_HREF = SECTION_HREFS.guardian
 
@@ -37,6 +39,8 @@ export function parseRoute(hash: string): Route {
   for (const section of Object.keys(SECTION_HREFS) as Section[]) {
     if (hash === SECTION_HREFS[section]) return { name: section }
   }
+  const operation = /^#\/operation\/([a-z0-9-]{1,40})$/.exec(hash)
+  if (operation) return { name: 'operation', id: operation[1] }
   const teacherClass = /^#\/teacher\/class\/([0-9]{1,9})$/.exec(hash)
   if (teacherClass) return { name: 'teacherClass', classId: Number(teacherClass[1]) }
   const m = /^#\/comic\/([^/?#]+)/.exec(hash)

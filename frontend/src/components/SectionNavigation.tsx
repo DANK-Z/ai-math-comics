@@ -5,6 +5,11 @@ import { ROAD_COPY, ROAD_MAX_HP } from '../roadGuardian'
 import { SECTION_HREFS, type Section } from '../route'
 import { SCHOOL_FAIR_CHAPTER_COUNT } from '../schoolFair'
 
+const OPERATIONS_NAV = {
+  ru: { label: 'Операции', detail: (n: number) => n ? `Глав пройдено: ${n}` : '5 новых историй' },
+  kk: { label: 'Операциялар', detail: (n: number) => n ? `Өтілген тараулар: ${n}` : '5 жаңа оқиға' },
+}
+
 interface Props {
   t: UiStrings
   active: Section
@@ -15,10 +20,12 @@ interface Props {
   /** Road Guardian (motion problems) state for the navigation detail. */
   roadHp: number
   roadWon: boolean
+  /** Chapters solved across the operations after the fair. */
+  operationsDone: number
   lang: Lang
 }
 
-function SectionLinks({ t, active, completed, remaining, myComics, roadHp, roadWon, lang, onSelect }: Props & { onSelect?: () => void }) {
+function SectionLinks({ t, active, completed, remaining, myComics, roadHp, roadWon, operationsDone, lang, onSelect }: Props & { onSelect?: () => void }) {
   const id = useId()
   const links = [
     { section: 'map', icon: '🗺️', label: t.fairRoute.title, detail: t.seasonProgress(completed, SCHOOL_FAIR_CHAPTER_COUNT) },
@@ -26,6 +33,7 @@ function SectionLinks({ t, active, completed, remaining, myComics, roadHp, roadW
     { section: 'myComics', icon: '🖍️', label: t.myComics.title, detail: myComics > 0 ? t.myComics.count(myComics) : undefined },
     { section: 'backpack', icon: '🎒', label: t.backpack.title, detail: t.backpack.progress(completed, SCHOOL_FAIR_CHAPTER_COUNT) },
     { section: 'guardian', icon: remaining > 0 ? '🔒' : '★', label: t.guardian.title, detail: remaining > 0 ? t.guardian.remaining(remaining) : t.fairRoute.guardianUnlocked },
+    { section: 'operations', icon: '🧭', label: OPERATIONS_NAV[lang].label, detail: OPERATIONS_NAV[lang].detail(operationsDone) },
     { section: 'roadGuardian', icon: '🛣️', label: ROAD_COPY[lang].title, detail: ROAD_COPY[lang].navDetail(roadHp, ROAD_MAX_HP, roadWon) },
     { section: 'create', icon: '✨', label: t.createOwn },
   ] satisfies { section: Section; icon: string; label: string; detail?: string }[]

@@ -132,6 +132,11 @@ function CatalogCard({ entry, lang, t, completed }: {
   )
 }
 
+const NEXT_OPERATIONS = {
+  ru: { title: 'Операции после ярмарки', lead: 'Дороги, огни города, музей, погода и Марс' },
+  kk: { title: 'Жәрмеңкеден кейінгі операциялар', lead: 'Жолдар, қала шамдары, мұражай, ауа райы және Марс' },
+}
+
 const CTA = 'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border-[3px] border-ink px-4 font-black text-ink shadow-[0_3px_0_var(--color-ink)] transition active:translate-y-[2px] active:shadow-[0_1px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand'
 
 /** Where the student stopped and what to do next: the next chapter with its thumbnail, or the finale. */
@@ -203,6 +208,14 @@ export function HomeScreen({ lang, completedChapters, remaining, guardianWon, la
         <aside className="flex max-w-3xl flex-col gap-4 xl:sticky xl:top-5 xl:col-start-2 xl:row-start-1">
           <ContinueCard lang={lang} completedChapters={completedChapters} guardianWon={guardianWon} lastComicId={lastComicId} />
           <StudentAssignments lang={lang} />
+          <a href={SECTION_HREFS.operations} className="flex items-center gap-3 rounded-2xl border-[3px] border-ink bg-[linear-gradient(120deg,#d9f2e6,#dbe8ff)] p-3 font-black text-ink shadow-[0_4px_0_var(--color-ink)] hover:bg-sky focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand">
+            <span aria-hidden className="text-3xl">🧭</span>
+            <span className="min-w-0 flex-1">
+              <span className="block leading-tight">{NEXT_OPERATIONS[lang].title}</span>
+              <span className="mt-0.5 block text-sm font-semibold text-ink/75">{NEXT_OPERATIONS[lang].lead}</span>
+            </span>
+            <span aria-hidden>→</span>
+          </a>
         </aside>
         <div className="max-w-3xl min-w-0 xl:col-start-1 xl:row-start-1">
           <SchoolFairRoute t={t} covers={ROUTE_COVERS} completedChapters={completedChapters}

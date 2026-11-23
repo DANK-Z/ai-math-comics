@@ -1,4 +1,4 @@
-import type { CheckResponse, CheckStatus, Comic, HintResponse, HintStep, Lang } from './types'
+import type { CheckResponse, CheckStatus, Comic, HintResponse, HintStep, Lang, StorySetting } from './types'
 
 // Comics bundled with the frontend (artwork + text + answer checking), so they are
 // readable without the backend's generator. Every one has four panels with the
@@ -20,10 +20,13 @@ export interface LocalComicText {
 export interface LocalComicDef {
   id: string
   exerciseId: string
-  panels: { image: string; speaker: string }[]
+  /** Panels without `image` show a placeholder scene until their artwork is ready. */
+  panels: { image?: string; speaker: string }[]
   /** Width / height of the panel artwork. */
   imageAspect: number
   exercisePanelId: number
+  /** Placeholder scene for panels that have no artwork yet. */
+  placeholder?: StorySetting
   /** Whole-number answer. */
   answer: number
   text: Record<Lang, LocalComicText>
@@ -40,7 +43,8 @@ export function buildLocalComic(def: LocalComicDef, lang: Lang): Comic {
       speaker,
       imageKey: `${def.id}-${index + 1}`,
       // Vite serves these assets on the frontend origin, including in live API mode.
-      imageUrl: new URL(image, window.location.href).href,
+      imageUrl: image ? new URL(image, window.location.href).href : undefined,
+      placeholder: image ? undefined : { setting: def.placeholder ?? 'custom' },
       imageAspect: def.imageAspect,
       text: text.dialogue[index],
     })),

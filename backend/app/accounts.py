@@ -135,7 +135,7 @@ class JoinClass(BaseModel):
 class SeasonUpdate(BaseModel):
     model_config = {"extra": "forbid"}
 
-    completedChapters: list[str] = Field(default_factory=list, max_length=30)
+    completedChapters: list[str] = Field(default_factory=list, max_length=60)
     stickers: list[str] = Field(default_factory=list, max_length=30)
 
     @field_validator("completedChapters", "stickers")
