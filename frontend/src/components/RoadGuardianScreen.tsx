@@ -222,7 +222,7 @@ export function RoadGuardianScreen({ lang, challenge, remaining = 0 }: { lang: L
   const season = findOperation('roads')
   const catalog = season
     ? <a href={operationHref(season.id)} className={`${BUTTON} bg-white`}><span aria-hidden>←&nbsp;</span>{season.title[lang]}</a>
-    : <a href={SECTION_HREFS.comics} className={`${BUTTON} bg-white`}>{t.backToCatalog}</a>
+    : <a href={SECTION_HREFS.operations} className={`${BUTTON} bg-white`}>{t.backToCatalog}</a>
 
   if (remaining > 0 && !run.won) {
     return (

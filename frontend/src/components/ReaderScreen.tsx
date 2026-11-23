@@ -63,10 +63,10 @@ export function ReaderScreen({ comicId, lang, onChapterComplete, onEarnBonusStic
     <div className="flex flex-col gap-4" aria-busy={loading}>
       <div className="flex flex-wrap items-center gap-3">
         <a
-          href={operation ? operationHref(operation.id) : SECTION_HREFS[backTo]}
+          href={operation ? operationHref(operation.id) : backTo === 'myComics' ? SECTION_HREFS.myComics : SECTION_HREFS.map}
           className="inline-flex min-h-11 items-center gap-1.5 rounded-2xl border-[3px] border-ink bg-white px-4 font-black text-ink shadow-[0_4px_0_var(--color-ink)] transition active:translate-y-[3px] active:shadow-[0_1px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun"
         >
-          <span aria-hidden>←</span> {operation ? operation.title[lang] : backTo === 'myComics' ? t.myComics.title : t.backHome}
+          <span aria-hidden>←</span> {operation ? operation.title[lang] : backTo === 'myComics' ? t.myComics.title : t.fairRoute.title}
         </a>
         {comic?.continuation && (
           <>

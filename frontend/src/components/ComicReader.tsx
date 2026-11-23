@@ -46,7 +46,7 @@ const BTN =
 /** Ending line and onward link for a School Fair or operation chapter. */
 function chapterEnding(comicId: string) {
   const fair = schoolFairChapter(comicId)
-  if (fair) return { ...fair, doneHref: SECTION_HREFS.comics, doneLabel: undefined }
+  if (fair) return { ...fair, doneHref: SECTION_HREFS.map, doneLabel: undefined }
   const op = operationChapter(comicId)
   if (!op) return undefined
   return { speaker: op.speaker, ending: op.ending, nextComicId: op.nextComicId, doneHref: op.doneHref, doneLabel: op.operation.finale.href ? op.operation.finale.title : op.operation.title }
@@ -202,7 +202,7 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
                 href={ending.nextComicId ? comicHref(ending.nextComicId) : ending.doneHref}
                 className={`${BTN} w-full bg-sun sm:w-auto`}
               >
-                {ending.nextComicId ? t.nextChapter : ending.doneLabel?.[lang] ?? t.backToCatalog}
+                {ending.nextComicId ? t.nextChapter : ending.doneLabel?.[lang] ?? t.fairRoute.title}
                 <span aria-hidden>→</span>
               </a>
               {comicId === GARLAND_COMIC_ID && (

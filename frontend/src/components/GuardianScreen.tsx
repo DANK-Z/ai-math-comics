@@ -161,7 +161,7 @@ export default function GuardianScreen({ lang, remaining, challenge, assigned = 
     }
   }, [run.cleared])
 
-  const catalog = <a href={SECTION_HREFS.comics} className={`${BUTTON} bg-white`}>{t.backToCatalog}</a>
+  const catalog = <a href={SECTION_HREFS.map} className={`${BUTTON} bg-white`}><span aria-hidden>←&nbsp;</span>{t.fairRoute.title}</a>
   if (remaining > 0) {
     return (
       <section className={`mx-auto max-w-2xl ${CARD}`}>

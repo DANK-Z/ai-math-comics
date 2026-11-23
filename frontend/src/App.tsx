@@ -165,9 +165,9 @@ function AppShell() {
   const myComics = useMyComics()
   // A saved generated comic belongs to My Comics; everything else to the catalog.
   const readerSection = route.name === 'comic' && myComics.some((c) => c.comicId === route.comicId) ? 'myComics' as const : 'comics' as const
-  const readerNav = route.name === 'comic' && operationChapter(route.comicId) ? 'operations' as const : readerSection
-  const activeSection = route.name === 'comic' ? readerNav : route.name === 'operation' || route.name === 'operationFinale' ? 'operations' : route.name === 'teacherClass' ? 'teacher' : route.name === 'motionLeague' ? 'roadGuardian' : route.name === 'guardianAssignment' ? 'guardian' : route.name
-  const navigation = { t, active: activeSection, completed: completedChapters.size, remaining, myComics: myComics.length, roadOpened: roadGuardian.run.cleared, roadWon: roadGuardian.run.won, operationsDone: operations.completed.size, lang }
+  const readerNav = route.name === 'comic' && operationChapter(route.comicId) ? 'operations' as const : readerSection === 'comics' ? 'map' as const : readerSection
+  const activeSection = route.name === 'comic' ? readerNav : route.name === 'operation' || route.name === 'operationFinale' ? 'operations' : route.name === 'teacherClass' ? 'teacher' : route.name === 'motionLeague' || route.name === 'roadGuardian' ? 'operations' : route.name === 'guardianAssignment' || route.name === 'guardian' || route.name === 'comics' ? 'map' : route.name
+  const navigation = { t, active: activeSection, completed: completedChapters.size, remaining, myComics: myComics.length, guardianWon: guardian.run.won, operationsDone: operations.completed.size, lang }
 
   const openGenerated = useCallback(
     (comicId: string, request: ComicJobRequest) => {

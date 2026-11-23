@@ -1,7 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import type { Lang } from '../api/types'
 import type { UiStrings } from '../i18n'
-import { ROAD_COPY, ROAD_ROUNDS } from '../roadGuardian'
 import { SECTION_HREFS, type Section } from '../route'
 import { SCHOOL_FAIR_CHAPTER_COUNT } from '../schoolFair'
 
@@ -15,26 +14,29 @@ interface Props {
   active: Section
   completed: number
   remaining: number
+  /** The School Fair finale (the arch keeper) was completed. */
+  guardianWon: boolean
   /** Saved generated comics in this browser. */
   myComics: number
-  /** Road Guardian locks opened so far (motion problems), for the navigation detail. */
-  roadOpened: number
-  roadWon: boolean
   /** Chapters solved across the operations after the fair. */
   operationsDone: number
   lang: Lang
 }
 
-function SectionLinks({ t, active, completed, remaining, myComics, roadOpened, roadWon, operationsDone, lang, onSelect }: Props & { onSelect?: () => void }) {
+/**
+ * One entry per season plus the student's own things. Finales live inside their season
+ * (the fair route, the operation pages), so they are not separate menu entries.
+ */
+function SectionLinks({ t, active, completed, remaining, guardianWon, myComics, operationsDone, lang, onSelect }: Props & { onSelect?: () => void }) {
   const id = useId()
+  const fairDetail = remaining > 0
+    ? t.seasonProgress(completed, SCHOOL_FAIR_CHAPTER_COUNT)
+    : guardianWon ? t.guardian.wonBadge : t.fairRoute.guardianUnlocked
   const links = [
-    { section: 'map', icon: '🗺️', label: t.fairRoute.title, detail: t.seasonProgress(completed, SCHOOL_FAIR_CHAPTER_COUNT) },
-    { section: 'comics', icon: '📚', label: t.backHome },
+    { section: 'map', icon: '🗺️', label: t.fairRoute.title, detail: fairDetail },
+    { section: 'operations', icon: '🧭', label: OPERATIONS_NAV[lang].label, detail: OPERATIONS_NAV[lang].detail(operationsDone) },
     { section: 'myComics', icon: '🖍️', label: t.myComics.title, detail: myComics > 0 ? t.myComics.count(myComics) : undefined },
     { section: 'backpack', icon: '🎒', label: t.backpack.title, detail: t.backpack.progress(completed, SCHOOL_FAIR_CHAPTER_COUNT) },
-    { section: 'guardian', icon: remaining > 0 ? '🔒' : '★', label: t.guardian.title, detail: remaining > 0 ? t.guardian.remaining(remaining) : t.fairRoute.guardianUnlocked },
-    { section: 'operations', icon: '🧭', label: OPERATIONS_NAV[lang].label, detail: OPERATIONS_NAV[lang].detail(operationsDone) },
-    { section: 'roadGuardian', icon: '🛣️', label: ROAD_COPY[lang].title, detail: ROAD_COPY[lang].navDetail(roadOpened, ROAD_ROUNDS.length, roadWon) },
     { section: 'create', icon: '✨', label: t.createOwn },
   ] satisfies { section: Section; icon: string; label: string; detail?: string }[]
 
