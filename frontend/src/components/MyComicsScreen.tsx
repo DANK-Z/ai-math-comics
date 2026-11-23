@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { resolveImageUrl, type Lang } from '../api'
 import { useComic } from '../hooks'
+import { GUIDE_COPY } from '../guideCopy'
 import { STRINGS, type UiStrings } from '../i18n'
 import { MY_COMIC_TITLE_LIMIT, removeMyComic, renameMyComic, restoreMyComic, type MyComic, type MyComicKind } from '../myComics'
 import { comicHref, replayHref, SECTION_HREFS } from '../route'
@@ -47,8 +48,8 @@ function Thumbnail({ comic, loading, lang }: { comic: ReturnType<typeof useComic
 }
 
 /** One saved comic: title and first-panel thumbnail come from the existing comic endpoint. */
-function MyComicCard({ entry, lang, t, search, onRemove }: {
-  entry: MyComic; lang: Lang; t: UiStrings; search: string; onRemove: (entry: MyComic) => void
+function MyComicCard({ entry, lang, t, search, onRemove, last }: {
+  entry: MyComic; lang: Lang; t: UiStrings; search: string; onRemove: (entry: MyComic) => void; last: boolean
 }) {
   const copy = t.myComics
   const { data: comic, loading, error } = useComic(entry.comicId, lang)
@@ -60,12 +61,17 @@ function MyComicCard({ entry, lang, t, search, onRemove }: {
   const closeEditor = () => { setEditing(false); changeTitle.current?.focus() }
 
   return (
-    <li hidden={!matches} className={`${matches ? 'flex' : 'hidden'} min-w-0 flex-col overflow-hidden rounded-2xl border-[3px] border-ink bg-white shadow-[0_5px_0_var(--color-ink)]`}>
+    <li hidden={!matches} className={`${matches ? 'flex' : 'hidden'} min-w-0 flex-col overflow-hidden rounded-2xl border-[3px] border-ink bg-white shadow-[0_5px_0_var(--color-ink)] ${last ? 'ring-4 ring-sun' : ''}`}>
       <div className="relative border-b-[3px] border-ink bg-sky-100">
         <Thumbnail comic={comic} loading={loading} lang={lang} />
         <span className="absolute top-2 left-2 rounded-lg border-2 border-ink bg-sun px-2 py-0.5 text-xs font-black text-ink">
           {copy.kind[entry.kind]}
         </span>
+        {last && (
+          <span className="absolute top-2 right-2 rounded-lg border-2 border-ink bg-white px-2 py-0.5 text-xs font-black text-ink">
+            <span aria-hidden>📖 </span>{GUIDE_COPY[lang].myComics.lastOpened}
+          </span>
+        )}
       </div>
 
       <div className="flex flex-1 flex-col gap-3 p-3 sm:p-4">
@@ -121,13 +127,15 @@ function MyComicCard({ entry, lang, t, search, onRemove }: {
   )
 }
 
-export default function MyComicsScreen({ lang, comics }: { lang: Lang; comics: MyComic[] }) {
+export default function MyComicsScreen({ lang, comics, lastComicId }: { lang: Lang; comics: MyComic[]; lastComicId: string | null }) {
   const t = STRINGS[lang]
   const copy = t.myComics
   const [search, setSearch] = useState('')
   const [kind, setKind] = useState<MyComicKind | ''>('')
   const [removed, setRemoved] = useState<MyComic | null>(null)
-  const filtered = kind ? comics.filter((entry) => entry.kind === kind) : comics
+  // The comic opened last goes first and is highlighted, the rest stay newest first.
+  const ordered = [...comics].sort((a, b) => Number(b.comicId === lastComicId) - Number(a.comicId === lastComicId))
+  const filtered = kind ? ordered.filter((entry) => entry.kind === kind) : ordered
   const remove = (entry: MyComic) => {
     removeMyComic(entry.comicId)
     setRemoved(entry)
@@ -174,7 +182,8 @@ export default function MyComicsScreen({ lang, comics }: { lang: Lang; comics: M
           <div className="group">
             <ol role="list" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {filtered.map((entry) => (
-                <MyComicCard key={entry.comicId} entry={entry} lang={lang} t={t} search={search.trim().toLowerCase()} onRemove={remove} />
+                <MyComicCard key={entry.comicId} entry={entry} lang={lang} t={t} search={search.trim().toLowerCase()} onRemove={remove}
+                  last={entry.comicId === lastComicId} />
               ))}
             </ol>
             <p role="status" className="hidden font-bold group-not-has-[li:not([hidden])]:block">{copy.noMatches}</p>

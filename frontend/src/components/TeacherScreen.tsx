@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react'
-import { accounts, API_MODE, isAbortError, type ClassInfo, type Dashboard, type Grade, type HeatCell, type Lang, type Topic } from '../api'
+import { accounts, API_MODE, classroomApi, isAbortError, type AssignmentReport, type ClassInfo, type Dashboard, type Grade, type HeatCell, type Lang, type Topic } from '../api'
 import { useAccount } from '../account'
 import { ACCOUNT_COPY, skillCopy } from '../accountCopy'
 import { GUARDIAN_SETUP, GUARDIAN_TOPICS, guardianAssignmentHref, type GuardianTopic } from '../guardianAssignment'
+import { GUIDE_COPY } from '../guideCopy'
 import { STRINGS } from '../i18n'
 import { comicHref, teacherClassHref, SECTION_HREFS } from '../route'
 import { SCHOOL_FAIR_STOPS } from '../schoolFair'
@@ -13,12 +14,12 @@ import { CARD, errorKey, FieldError, INPUT, PRIMARY, SECONDARY } from './AuthScr
 const CHOICE =
   'group relative flex min-h-12 cursor-pointer items-center justify-center rounded-xl border-[3px] border-ink bg-white px-3 font-black text-ink shadow-[0_3px_0_var(--color-ink)] select-none hover:bg-sky has-checked:translate-y-[2px] has-checked:bg-sun has-checked:shadow-[0_1px_0_var(--color-ink)] has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-brand'
 
-function CopyCode({ code, lang }: { code: string; lang: Lang }) {
+function CopyCode({ code, lang, large = false }: { code: string; lang: Lang; large?: boolean }) {
   const c = ACCOUNT_COPY[lang].teacherArea
   const [copied, setCopied] = useState(false)
   return (
     <span className="inline-flex flex-wrap items-center gap-2">
-      <code className="rounded-lg border-2 border-ink bg-cream px-2 py-1 font-mono text-base font-black tracking-wide break-all text-ink">{code}</code>
+      <code className={`rounded-lg border-2 border-ink bg-cream px-2 py-1 font-mono font-black tracking-wide break-all text-ink ${large ? 'text-2xl' : 'text-base'}`}>{code}</code>
       <button
         type="button"
         onClick={() => navigator.clipboard?.writeText(code).then(() => setCopied(true), () => setCopied(false))}
@@ -27,6 +28,35 @@ function CopyCode({ code, lang }: { code: string; lang: Lang }) {
         {copied ? c.copied : c.copy}
       </button>
     </span>
+  )
+}
+
+/** Class card summary: how the newest assignment went (live API only). */
+function LatestAssignment({ classId, lang }: { classId: number; lang: Lang }) {
+  const g = GUIDE_COPY[lang].teacher
+  const [latest, setLatest] = useState<AssignmentReport | null | undefined>(undefined)
+  useEffect(() => {
+    const api = classroomApi
+    if (!api) return
+    const ctrl = new AbortController()
+    api.assignmentReports(classId, lang, ctrl.signal).then((items) => setLatest(items[0] ?? null), (err) => {
+      if (!isAbortError(err)) setLatest(undefined)
+    })
+    return () => ctrl.abort()
+  }, [classId, lang])
+  if (latest === undefined) return null
+  if (latest === null) return <p className="text-sm font-semibold text-ink/75">{g.noAssignments}</p>
+  const done = latest.students.filter((s) => s.completed).length
+  const hinted = latest.students.filter((s) => s.hints.length > 0).length
+  return (
+    <div className="rounded-xl border-2 border-ink/60 bg-white p-2">
+      <p className="text-xs font-black tracking-wide text-brand-dark uppercase">{g.latest}</p>
+      <p className="font-black break-words text-ink">{latest.title}</p>
+      <ul className="mt-1 flex flex-wrap gap-1.5 text-xs font-bold">
+        <li className="rounded-lg border-2 border-emerald-700 bg-emerald-100 px-2 py-0.5">{g.solved(done, latest.students.length)}</li>
+        <li className="rounded-lg border-2 border-amber-600 bg-amber-100 px-2 py-0.5">{g.hints(hinted)}</li>
+      </ul>
+    </div>
   )
 }
 
@@ -238,7 +268,19 @@ export function TeacherHome({ lang }: { lang: Lang }) {
               <li key={cl.id} className="flex flex-col gap-2 rounded-2xl border-[3px] border-ink bg-sky/60 p-3">
                 <p className="text-2xl font-black text-ink">{cl.name}</p>
                 <p className="text-sm font-bold text-ink/80">{c.teacherArea.students(cl.students ?? 0)}</p>
-                <CopyCode code={cl.code} lang={lang} />
+                {cl.students ? (
+                  <>
+                    <CopyCode code={cl.code} lang={lang} />
+                    <LatestAssignment classId={cl.id} lang={lang} />
+                  </>
+                ) : (
+                  // Nobody has joined yet: the code is the one thing the teacher needs.
+                  <div className="flex flex-col gap-1.5 rounded-xl border-2 border-dashed border-ink/50 bg-white/80 p-2">
+                    <p className="text-sm font-bold text-ink">{GUIDE_COPY[lang].teacher.waiting}</p>
+                    <CopyCode code={cl.code} lang={lang} large />
+                    <p className="text-xs font-semibold text-ink/70">{GUIDE_COPY[lang].teacher.shareCode}</p>
+                  </div>
+                )}
                 <a href={teacherClassHref(cl.id)} className={`${PRIMARY} mt-1`}>{c.teacherArea.open} <span aria-hidden>→</span></a>
               </li>
             ))}

@@ -10,8 +10,10 @@ import mapCover from '../assets/school-map/cover.webp'
 import pizzaCover from '../assets/pizza/cover.png'
 import storeCover from '../assets/school-store/cover.png'
 import { STRINGS, type UiStrings } from '../i18n'
-import { comicHref, DEMO_COMIC_ID } from '../route'
-import { schoolFairChapter } from '../schoolFair'
+import { GUIDE_COPY } from '../guideCopy'
+import { comicHref, DEMO_COMIC_ID, GUARDIAN_HREF, SECTION_HREFS } from '../route'
+import { SCHOOL_FAIR_STOPS, schoolFairChapter } from '../schoolFair'
+import { PifikSprite } from './PifikSprite'
 import { SchoolFairRoute } from './SchoolFairRoute'
 import { StudentAssignments } from './ClassAssignments'
 
@@ -130,6 +132,58 @@ function CatalogCard({ entry, lang, t, completed }: {
   )
 }
 
+const CTA = 'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border-[3px] border-ink px-4 font-black text-ink shadow-[0_3px_0_var(--color-ink)] transition active:translate-y-[2px] active:shadow-[0_1px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand'
+
+/** Where the student stopped and what to do next: the next chapter with its thumbnail, or the finale. */
+function ContinueCard({ lang, completedChapters, guardianWon, lastComicId }: {
+  lang: Lang
+  completedChapters: ReadonlySet<string>
+  guardianWon: boolean
+  lastComicId: string | null
+}) {
+  const t = STRINGS[lang]
+  const g = GUIDE_COPY[lang].map
+  const next = SCHOOL_FAIR_STOPS.find(({ comicId }) => !completedChapters.has(comicId))
+  const art = next && ROUTE_COVERS.get(next.comicId)
+  const showLast = lastComicId && lastComicId !== next?.comicId
+
+  return (
+    <section aria-labelledby="continue-title" className="overflow-hidden rounded-2xl border-[3px] border-ink bg-white shadow-[0_5px_0_var(--color-ink)]">
+      {next ? (
+        art && (
+          <a href={comicHref(next.comicId)} tabIndex={-1} aria-hidden className="relative block aspect-[5/2] border-b-[3px] xl:aspect-video border-ink bg-sky-100">
+            <img src={art.src} alt="" style={{ objectPosition: art.focus }} className="h-full w-full object-cover" />
+            <span className="absolute top-2 left-2 rounded-lg border-2 border-ink bg-sun px-2 py-0.5 text-xs font-black">{t.chapterLabel(next.number)}</span>
+          </a>
+        )
+      ) : (
+        <div aria-hidden className="grid place-items-center border-b-[3px] border-ink bg-[radial-gradient(circle_at_50%_60%,#fff6c7,#f8cd45_70%)] py-4">
+          <PifikSprite eager className="w-20 rounded-xl" />
+        </div>
+      )}
+      <div className="flex flex-col gap-2 p-3 sm:p-4">
+        <h2 id="continue-title" className="text-lg leading-tight font-black text-ink">
+          {next ? (completedChapters.size ? g.continueFrom(next.number) : g.startSeason) : guardianWon ? g.seasonDone : g.allChapters}
+        </h2>
+        <p className="text-sm font-bold text-ink/80">
+          {next ? t.fairRoute.locations[next.location] : guardianWon ? g.seasonDoneLead : g.allChaptersLead}
+        </p>
+        <a
+          href={next ? comicHref(next.comicId) : guardianWon ? SECTION_HREFS.create : GUARDIAN_HREF}
+          className={`${CTA} bg-sun`}
+        >
+          {next ? g.read(next.number) : guardianWon ? g.createComic : g.toGuardian} <span aria-hidden>→</span>
+        </a>
+        {showLast && (
+          <a href={comicHref(lastComicId)} className={`${CTA} bg-white text-sm`}>
+            <span aria-hidden>↺</span> {g.lastOpened}
+          </a>
+        )}
+      </div>
+    </section>
+  )
+}
+
 export function HomeScreen({ lang, completedChapters, remaining, guardianWon, lastComicId }: {
   lang: Lang
   completedChapters: ReadonlySet<string>
@@ -144,9 +198,17 @@ export function HomeScreen({ lang, completedChapters, remaining, guardianWon, la
         <h1 className="text-3xl leading-tight font-black text-ink sm:text-4xl">{t.schoolFairTitle}</h1>
         <p className="mt-1.5 text-base font-semibold text-ink/85 sm:text-lg">{t.catalogLead}</p>
       </div>
-      <StudentAssignments lang={lang} />
-      <SchoolFairRoute t={t} covers={ROUTE_COVERS} completedChapters={completedChapters}
-        remaining={remaining} guardianWon={guardianWon} lastComicId={lastComicId} />
+      {/* Wide screens: the route on the left, "what next" in the free column on the right. */}
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,48rem)_minmax(15rem,20rem)]">
+        <aside className="flex max-w-3xl flex-col gap-4 xl:sticky xl:top-5 xl:col-start-2 xl:row-start-1">
+          <ContinueCard lang={lang} completedChapters={completedChapters} guardianWon={guardianWon} lastComicId={lastComicId} />
+          <StudentAssignments lang={lang} />
+        </aside>
+        <div className="max-w-3xl min-w-0 xl:col-start-1 xl:row-start-1">
+          <SchoolFairRoute t={t} covers={ROUTE_COVERS} completedChapters={completedChapters}
+            remaining={remaining} guardianWon={guardianWon} />
+        </div>
+      </div>
     </div>
   )
 }

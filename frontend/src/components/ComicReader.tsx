@@ -7,6 +7,7 @@ import { chapterBonus, type BonusSticker } from '../bonusPuzzles'
 import { CHARACTERS } from '../characters'
 import type { ContinuationJob } from '../continuation'
 import { useAnswerCheck } from '../hooks'
+import { GUIDE_COPY } from '../guideCopy'
 import { STRINGS } from '../i18n'
 import { comicHref, DEMO_COMIC_ID, GARLAND_COMIC_ID, GUARDIAN_HREF, SCHOOL_MAP_COMIC_ID, SECTION_HREFS } from '../route'
 import { schoolFairChapter, type SchoolFairCollectible } from '../schoolFair'
@@ -40,6 +41,63 @@ interface Props {
 
 const BTN =
   'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-2xl border-[3px] border-ink px-4 py-2 font-black shadow-[0_4px_0_var(--color-ink)] transition active:translate-y-[3px] active:shadow-[0_1px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none'
+
+/** Wide screens: which panels are open, where the task is, and why the ending is still closed. */
+function ProgressCard({ lang, total, current, maxIndex, exerciseIndex, solved, boss, onGoTo }: {
+  lang: Lang
+  total: number
+  current: number
+  maxIndex: number
+  exerciseIndex: number
+  solved: boolean
+  boss: { cleared: number; rounds: number } | null
+  onGoTo: (i: number) => void
+}) {
+  const g = GUIDE_COPY[lang].reader
+  const taskPanel = exerciseIndex + 1
+  const closed = !solved && exerciseIndex >= 0 && maxIndex < total - 1
+  return (
+    <section aria-label={g.title} className="rounded-2xl border-2 border-ink bg-white p-3 shadow-[0_3px_0_var(--color-ink)] sm:p-4">
+      <h2 className="text-base font-black">{g.title}</h2>
+      <p className="mt-1 text-sm font-bold text-ink/80">{g.panels(maxIndex + 1, total)}</p>
+      <ol aria-hidden className="mt-2 flex gap-1">
+        {Array.from({ length: total }, (_, i) => (
+          <li
+            key={i}
+            className={`grid h-7 flex-1 place-items-center rounded-md border-2 text-xs font-black ${
+              i > maxIndex ? 'border-dashed border-ink/30 bg-sky-50 text-ink/40'
+                : i === current ? 'border-ink bg-sun text-ink'
+                  : 'border-ink/70 bg-emerald-100 text-ink'
+            }`}
+          >
+            {i > maxIndex ? '🔒' : i === exerciseIndex ? '★' : i + 1}
+          </li>
+        ))}
+      </ol>
+      {exerciseIndex >= 0 && (
+        <p className="mt-1.5 text-xs font-bold text-ink/65">★ — {g.legendTask}</p>
+      )}
+      {closed ? (
+        <div className="mt-3 rounded-xl bg-sun/30 p-2.5">
+          <p className="text-sm leading-snug font-extrabold text-ink">
+            <span aria-hidden>🔒 </span>
+            {boss ? g.bossReason(taskPanel, boss.cleared, boss.rounds) : g.lockReason(taskPanel)}
+          </p>
+          {current !== exerciseIndex && (
+            <button type="button" onClick={() => onGoTo(exerciseIndex)}
+              className="mt-2 min-h-10 w-full rounded-xl border-[3px] border-ink bg-sun px-3 text-sm font-black shadow-[0_3px_0_var(--color-ink)] active:translate-y-[2px] active:shadow-[0_1px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun">
+              {g.toTask(taskPanel)} <span aria-hidden>→</span>
+            </button>
+          )}
+        </div>
+      ) : exerciseIndex >= 0 && (
+        <p className="mt-3 rounded-xl bg-emerald-100 p-2.5 text-sm font-extrabold text-emerald-900">
+          <span aria-hidden>✓ </span>{g.open}
+        </p>
+      )}
+    </section>
+  )
+}
 
 export function ComicReader({ comic, lang, index, onIndexChange, onChapterComplete, onEarnBonusSticker, continuationJob, chapterThreeSolved, replay = false, syncBossProgress, rememberReading, savedSolved }: Props) {
   const t = STRINGS[lang]
@@ -89,7 +147,7 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
   }, [current, maxIndex, onIndexChange])
 
   return (
-    <div className={`grid items-start gap-5 ${showSidebar ? 'xl:grid-cols-[minmax(0,1fr)_17rem]' : ''}`}>
+    <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_17rem]">
       <section
         aria-label={comic.title}
         className="min-w-0 rounded-[28px] border-[3px] border-ink/10 bg-white p-3 shadow-[0_10px_30px_rgb(36_57_159/0.15)] sm:p-4 xl:col-start-1 xl:row-start-1"
@@ -246,13 +304,18 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
           <ExerciseCard exercise={comic.exercise} lang={lang} check={{ ...check, solved: exerciseSolved }} reward={reward} />
         )}
       </div>
-      <div hidden={!showSidebar} className="min-w-0 xl:sticky xl:top-5 xl:col-start-2 xl:row-span-2 xl:row-start-1">
+      {/* The progress card only shows on wide screens; narrow ones keep the sidebar for hints and cast. */}
+      <div className={`min-w-0 flex-col gap-5 xl:sticky xl:top-5 xl:col-start-2 xl:row-span-2 xl:row-start-1 xl:flex ${showSidebar ? 'flex' : 'hidden'}`}>
+        <div className="hidden xl:block">
+          <ProgressCard lang={lang} total={total} current={current} maxIndex={maxIndex} exerciseIndex={exerciseIndex}
+            solved={solved} boss={boss ? { cleared: bossCleared, rounds: boss.rounds.length } : null} onGoTo={onIndexChange} />
+        </div>
         <aside hidden={!showHints} aria-label={t.navigation.hints} className="rounded-2xl border-2 border-ink bg-cream p-3 shadow-[0_3px_0_var(--color-ink)] sm:p-4">
           <h2 className="mb-3 text-base font-black">{t.navigation.hints}</h2>
           <PifikHints key={hintExerciseId} exerciseId={hintExerciseId} lang={lang} mapHints={comicId === SCHOOL_MAP_COMIC_ID}
             structured={!!schoolFairChapter(comicId)} savedComicId={rememberReading ? comicId : undefined} />
         </aside>
-        <div hidden={!showCast} className={showHints ? 'mt-5' : undefined}>
+        <div hidden={!showCast}>
           {showCast && <CastCard lang={lang} activeSpeaker={panel.speaker} compact={isExercisePanel} />}
         </div>
       </div>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { classroomApi, isAbortError, type AssignmentReport, type ClassAssignment, type Lang } from '../api'
 import { useAccount } from '../account'
 import { ASSIGNMENT_COPY } from '../assignmentCopy'
+import { GUIDE_COPY } from '../guideCopy'
 import { comicHref } from '../route'
 
 const CARD = 'min-w-0 rounded-2xl border-[3px] border-ink bg-white p-3 shadow-[0_4px_0_var(--color-ink)] sm:p-4'
@@ -48,6 +49,12 @@ export function StudentAssignments({ lang }: { lang: Lang }) {
   return (
     <div aria-live="polite" className={items.length || error ? 'grid gap-3' : undefined}>
       {error && <p className="font-bold text-rose-800">{copy.error}</p>}
+      {items.length > 0 && (
+        <h2 className="flex items-center gap-2 text-lg font-black text-brand-dark">
+          <span aria-hidden className="grid size-8 place-items-center rounded-full border-[3px] border-ink bg-rose-300 text-sm">📍</span>
+          {GUIDE_COPY[lang].map.teacherStop}
+        </h2>
+      )}
       {items.map((item) => (
         <a key={item.id} className={CARD + ' flex flex-wrap items-center gap-x-4 gap-y-2 bg-sun/40 focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-brand'} href={comicHref(item.id)}>
           <span aria-hidden="true" className="text-2xl">🌟</span>

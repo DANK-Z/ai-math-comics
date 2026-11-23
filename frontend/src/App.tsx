@@ -198,7 +198,7 @@ function AppShell() {
               lastComicId={lastComicId} />
           )}
           {route.name === 'comics' && <CatalogScreen lang={lang} completedChapters={completedChapters} />}
-          {route.name === 'myComics' && <Suspense><MyComicsScreen lang={lang} comics={myComics} /></Suspense>}
+          {route.name === 'myComics' && <Suspense><MyComicsScreen lang={lang} comics={myComics} lastComicId={lastComicId} /></Suspense>}
           {route.name === 'backpack' && (
             <BackpackCollection t={t} lang={lang} completedChapters={completedChapters} bonusStickers={bonusStickers} />
           )}
