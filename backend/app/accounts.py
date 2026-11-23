@@ -142,13 +142,18 @@ class JoinClass(BaseModel):
 
 
 # One-time coins for operation progress, by completed id. «Дороги ярмарки» is the pilot:
-# 5 coins per chapter and 10 for its finale (reported as ``roads-finale``).
+# 5 coins per chapter and 10 for its finale (reported as ``roads-finale``), plus 5 for each
+# secret spotted on a chapter's first panel (``secret-<chapter>``).
 PROGRESS_REWARDS: dict[str, int] = {
     "roads-flag": 5,
     "roads-bridge": 5,
     "roads-river": 5,
     "roads-hill": 5,
     "roads-finale": 10,
+    "secret-roads-flag": 5,
+    "secret-roads-bridge": 5,
+    "secret-roads-river": 5,
+    "secret-roads-hill": 5,
 }
 
 

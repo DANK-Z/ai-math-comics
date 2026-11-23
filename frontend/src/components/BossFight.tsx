@@ -12,6 +12,7 @@ import { TriumphModal } from './TriumphModal'
 // each correct answer deals maxHp / rounds damage. Radii follow 16 / 12 / 8.
 
 const HIT_MS = 900
+const MISS_SHAKE_MS = 320
 
 function SlimeArt() {
   return (
@@ -168,6 +169,14 @@ export function BossFight({ boss, lang, active, cleared, onRoundCleared, misses,
   const [triumph, setTriumph] = useState(false)
   const [reward, setReward] = useState<Reward | null>(null)
   const [missedRound, setMissedRound] = useState<string | null>(null)
+  // A miss is the boss's counter-attack: a short red flash and shake of the arena.
+  const [missCount, setMissCount] = useState(0)
+  const [shaking, setShaking] = useState(false)
+  useEffect(() => {
+    if (!missCount) return
+    const timer = setTimeout(() => setShaking(false), MISS_SHAKE_MS)
+    return () => clearTimeout(timer)
+  }, [missCount])
   const { setCoins } = useAccount()
   const hpId = useId()
   const heading = useRef<HTMLHeadingElement>(null)
@@ -178,6 +187,8 @@ export function BossFight({ boss, lang, active, cleared, onRoundCleared, misses,
   const round = boss.rounds[Math.min(cleared, total - 1)]
   const miss = useCallback(() => {
     setMissedRound(round.exerciseId)
+    setMissCount((n) => n + 1)
+    setShaking(true)
     onMiss()
   }, [onMiss, round.exerciseId])
 
@@ -210,8 +221,11 @@ export function BossFight({ boss, lang, active, cleared, onRoundCleared, misses,
   return (
     <section
       aria-labelledby={`${hpId}-title`}
-      className="boss-enter overflow-hidden rounded-2xl border-[3px] border-ink bg-white shadow-[0_6px_0_var(--color-ink)]"
+      className={`${shaking ? 'boss-miss-shake' : 'boss-enter'} relative overflow-hidden rounded-2xl border-[3px] border-ink bg-white shadow-[0_6px_0_var(--color-ink)]`}
     >
+      {shaking && (
+        <span key={missCount} aria-hidden className="boss-miss-flash pointer-events-none absolute inset-0 z-10 bg-rose-600/30 opacity-0" />
+      )}
       <div className={`relative p-4 sm:p-5 ${boss.kind === 'x-master' ? 'bg-[linear-gradient(160deg,#2a1f6b,#5b3cc4)]' : 'bg-[linear-gradient(160deg,#1f5132,#3f9a4d)]'}`}>
         <p className="inline-flex items-center gap-1.5 rounded-lg border-2 border-ink bg-sun px-2 py-0.5 text-xs font-black tracking-wide text-ink uppercase">
           <span aria-hidden>⚔️</span>{copy.arena}

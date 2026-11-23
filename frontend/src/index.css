@@ -417,3 +417,78 @@ html {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* Chapter atmosphere over the art (PanelEffects): only when motion is welcome. */
+.panel-fx { display: none; }
+.panel-fx > span { position: absolute; left: var(--x); top: var(--y); display: block; }
+.panel-fx-leaves > span {
+  top: -6%; width: calc(14px * var(--size)); height: calc(8px * var(--size));
+  border-radius: 0 100% 0 100%; background: #6fbf4a; border: 1px solid #2f6b22; opacity: 0.85;
+}
+.panel-fx-snow > span, .panel-fx-rain > span { top: -8%; }
+.panel-fx-snow > span { width: calc(7px * var(--size)); height: calc(7px * var(--size)); border-radius: 50%; background: #fff; box-shadow: 0 0 3px rgb(150 190 255 / 0.9); }
+.panel-fx-rain > span { width: 2px; height: calc(18px * var(--size)); border-radius: 2px; background: rgb(120 170 255 / 0.7); }
+.panel-fx-glow > span { width: calc(9px * var(--size)); height: calc(9px * var(--size)); border-radius: 50%; background: #ffe27a; box-shadow: 0 0 10px 4px rgb(255 200 60 / 0.65); }
+.panel-fx-dust > span { width: calc(4px * var(--size)); height: calc(4px * var(--size)); border-radius: 50%; background: rgb(255 246 220 / 0.85); box-shadow: 0 0 4px rgb(255 240 200 / 0.8); }
+.panel-fx-sparks > span { width: calc(16px * var(--size)); height: 2px; border-radius: 2px; background: linear-gradient(90deg, transparent, #5ff3ff, #ff6ad5); box-shadow: 0 0 6px #5ff3ff; transform: rotate(-25deg); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .panel-fx { display: block; }
+  .panel-fx-leaves > span { animation: fx-leaf calc(9s / var(--speed)) linear var(--delay) infinite; }
+  .panel-fx-snow > span { animation: fx-fall calc(10s / var(--speed)) linear var(--delay) infinite; }
+  .panel-fx-rain > span { animation: fx-rain calc(1.3s / var(--speed)) linear var(--delay) infinite; }
+  .panel-fx-glow > span { animation: fx-glow calc(4s / var(--speed)) ease-in-out var(--delay) infinite alternate; }
+  .panel-fx-dust > span { animation: fx-dust calc(12s / var(--speed)) ease-in-out var(--delay) infinite alternate; }
+  .panel-fx-sparks > span { animation: fx-spark calc(5s / var(--speed)) ease-in var(--delay) infinite; }
+}
+
+@keyframes fx-leaf {
+  0% { top: -6%; transform: translateX(0) rotate(0); opacity: 0; }
+  10% { opacity: 0.85; }
+  50% { transform: translateX(-30px) rotate(200deg); }
+  90% { opacity: 0.85; }
+  100% { top: 106%; transform: translateX(20px) rotate(400deg); opacity: 0; }
+}
+@keyframes fx-fall {
+  0% { top: -6%; transform: translateX(0); opacity: 0; }
+  10% { opacity: 1; }
+  100% { top: 106%; transform: translateX(-20px); opacity: 0.6; }
+}
+@keyframes fx-rain {
+  from { top: -10%; transform: translateX(0) rotate(12deg); }
+  to { top: 110%; transform: translateX(-24px) rotate(12deg); }
+}
+@keyframes fx-glow {
+  from { opacity: 0.15; transform: translate(0, 0) scale(0.7); }
+  to { opacity: 0.9; transform: translate(10px, -14px) scale(1); }
+}
+@keyframes fx-dust {
+  from { opacity: 0; transform: translate(0, 0); }
+  50% { opacity: 0.9; }
+  to { opacity: 0.2; transform: translate(26px, -30px); }
+}
+@keyframes fx-spark {
+  0% { opacity: 0; transform: translate(0, 0) rotate(-25deg); }
+  8% { opacity: 1; }
+  30% { opacity: 0; transform: translate(-80px, 40px) rotate(-25deg); }
+  100% { opacity: 0; transform: translate(-80px, 40px) rotate(-25deg); }
+}
+
+/* A hidden secret on a panel: a small twinkle, only noticeable to a careful reader. */
+.panel-secret { opacity: 0.75; }
+@media (prefers-reduced-motion: no-preference) {
+  .panel-secret { animation: secret-twinkle 2.6s ease-in-out infinite; }
+  .secret-pop { animation: boss-enter 320ms cubic-bezier(0.2, 0.9, 0.3, 1.2); }
+  .boss-miss-flash { animation: boss-miss-flash 320ms ease-out forwards; }
+  .boss-miss-shake { animation: boss-miss-shake 260ms ease-in-out; }
+}
+@keyframes secret-twinkle {
+  0%, 70%, 100% { opacity: 0.35; transform: translate(-50%, -50%) scale(0.75) rotate(0); }
+  80% { opacity: 1; transform: translate(-50%, -50%) scale(1.15) rotate(20deg); }
+}
+@keyframes boss-miss-flash { from { opacity: 1; } to { opacity: 0; } }
+@keyframes boss-miss-shake {
+  25% { transform: translateX(-6px); }
+  50% { transform: translateX(5px); }
+  75% { transform: translateX(-3px); }
+}

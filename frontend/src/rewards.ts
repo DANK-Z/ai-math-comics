@@ -1,5 +1,6 @@
 import { ROADS_FLAG_ID } from './api/roadsChapters'
 import type { Lang } from './api/types'
+import { PANEL_SECRETS, SECRET_COINS } from './panelSecrets'
 import { operationHref } from './operations'
 import type { SchoolFairCollectible } from './schoolFair'
 
@@ -19,6 +20,7 @@ export const PROGRESS_REWARDS: Readonly<Record<string, number>> = {
   'roads-river': 5,
   'roads-hill': 5,
   [ROADS_FINALE_ID]: 10,
+  ...Object.fromEntries(PANEL_SECRETS.map((s) => [s.id, SECRET_COINS])),
 }
 
 type Text = Record<Lang, string>

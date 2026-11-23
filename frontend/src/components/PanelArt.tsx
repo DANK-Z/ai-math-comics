@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { resolveImageUrl, type Emotion, type Lang, type PanelLayers, type StorySetting } from '../api'
 import { PANEL_ASPECT, SCENES, type BubbleBox } from '../art/sheet'
 import { characterFor } from '../characters'
@@ -47,10 +47,12 @@ interface Props {
   animateDialogue?: boolean
   /** My Story: a student hero's panel without artwork. */
   placeholder?: { setting: StorySetting } | null
+  /** Drawn over the loaded picture (effects, secrets), in % of the picture itself. */
+  overlay?: ReactNode
 }
 
 /** One comic panel: style-sheet artwork with a live, translatable speech bubble on top. */
-export function PanelArt({ imageKey, imageUrl, lang, speaker, text, thumb = false, priority = false, imageAspect, placeholder, emotion = 'neutral', layers, animateDialogue = true }: Props) {
+export function PanelArt({ imageKey, imageUrl, lang, speaker, text, thumb = false, priority = false, imageAspect, placeholder, emotion = 'neutral', layers, animateDialogue = true, overlay }: Props) {
   const scene = SCENES[imageKey]
   const character = characterFor(speaker)
 
@@ -74,6 +76,7 @@ export function PanelArt({ imageKey, imageUrl, lang, speaker, text, thumb = fals
         layers={layers}
         emotion={emotion}
         animateDialogue={animateDialogue}
+        overlay={overlay}
       />
     )
   }
@@ -140,6 +143,7 @@ function RemotePanel({
   layers,
   emotion,
   animateDialogue,
+  overlay,
 }: {
   url: string
   imageKey: string
@@ -153,6 +157,7 @@ function RemotePanel({
   layers?: PanelLayers
   emotion: Emotion
   animateDialogue: boolean
+  overlay?: ReactNode
 }) {
   const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>('loading')
 
@@ -186,6 +191,12 @@ function RemotePanel({
         />
       )}
       {!thumb && status === 'loaded' && layers && <DepthArt key={layers.foregroundUrl} layers={layers} lang={lang} />}
+      {!thumb && status === 'loaded' && overlay && (
+        // The box may be letterboxed (object-contain); this layer matches the picture itself.
+        <div className="absolute inset-y-0 left-1/2 h-full max-w-full -translate-x-1/2" style={{ aspectRatio: imageAspect }}>
+          {overlay}
+        </div>
+      )}
     </div>
   )
 

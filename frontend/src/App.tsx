@@ -26,6 +26,7 @@ import { STRINGS } from './i18n'
 import { useBonusStickers } from './bonusStickers'
 import { comicHref, parseRoute, SCHOOL_MAP_COMIC_ID, SECTION_HREFS, useRoute, type Route } from './route'
 import { chaptersLeft, findOperation, operationChapter, useOperationProgress } from './operations'
+import { mergeSecrets, useFoundSecrets } from './panelSecrets'
 import { findForChapter, logFind, ROADS_FINALE_ID } from './rewards'
 import { useSeasonProgress } from './seasonProgress'
 import { SCHOOL_FAIR_CHAPTER_COUNT } from './schoolFair'
@@ -139,19 +140,21 @@ function AppShell() {
       synced.current = student.id
       mergeChapters(serverChapters ?? [])
       mergeOperations(serverChapters ?? [])
+      mergeSecrets(serverChapters ?? [])
       restoreBonusStickers(serverStickers ?? [])
     }
   }, [student, serverChapters, serverStickers, mergeChapters, mergeOperations, restoreBonusStickers])
   const { saveProgress } = account
+  const secrets = useFoundSecrets()
   useEffect(() => {
     if (!student || synced.current !== student.id) return
     // A won «Дороги ярмарки» finale is reported as its own progress id, so its reward is paid once.
-    const chapters = [...completedChapters, ...operations.completed, ...(roadGuardian.run.won ? [ROADS_FINALE_ID] : [])].sort()
+    const chapters = [...completedChapters, ...operations.completed, ...(roadGuardian.run.won ? [ROADS_FINALE_ID] : []), ...secrets].sort()
     const stickers = [...bonusStickers].sort()
     const known = new Set(serverChapters ?? [])
     const missing = chapters.some((id) => !known.has(id)) || stickers.some((id) => !serverStickers?.includes(id))
     if (missing) saveProgress(chapters, stickers).catch(() => {})
-  }, [student, completedChapters, operations.completed, roadGuardian.run.won, bonusStickers, serverChapters, serverStickers, saveProgress])
+  }, [student, completedChapters, operations.completed, roadGuardian.run.won, secrets, bonusStickers, serverChapters, serverStickers, saveProgress])
   const guardian = useGuardianChallenge()
   const continuationJob = useContinuationJob()
   const remaining = SCHOOL_FAIR_CHAPTER_COUNT - completedChapters.size

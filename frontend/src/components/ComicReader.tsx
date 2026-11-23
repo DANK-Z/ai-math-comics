@@ -22,6 +22,10 @@ import { PanelArt } from './PanelArt'
 import { PifikHints } from './PifikHints'
 import { BonusPuzzle } from './BonusPuzzle'
 import { YellowFlag } from './BackpackCollection'
+import { PanelEffects, panelEffectFor } from './PanelEffects'
+import { PanelSecretSpot } from './PanelSecretSpot'
+import { PifikSprite } from './PifikSprite'
+import { secretFor } from '../panelSecrets'
 
 // Panels after the exercise panel stay locked until the answer is correct,
 // so later panels don't spoil the solution.
@@ -63,6 +67,29 @@ function RewardNotes({ comicId, lang }: { comicId: string; lang: Lang }) {
       {coins && (student
         ? <span className="rounded-lg border-2 border-amber-700 bg-sun px-2 py-0.5 text-ink"><span aria-hidden>🪙 </span>{copy.coins(coins)}</span>
         : <span className="text-ink/70">{copy.guest}</span>)}
+    </div>
+  )
+}
+
+const GREETING = {
+  ru: (name: string | null, title: string) => `Салем${name ? `, ${name}` : ''}! Нам нужна твоя помощь в главе «${title}» — без тебя не справимся!`,
+  kk: (name: string | null, title: string) => `Сәлем${name ? `, ${name}` : ''}! «${title}» тарауында бізге сенің көмегің керек — сенсіз болмайды!`,
+}
+
+/** Panel 1: Pifik turns to the reader and greets the student by name (kept on this device, never sent anywhere). */
+function ReaderGreeting({ lang, title }: { lang: Lang; title: string }) {
+  const user = useAccount().user
+  const name = user?.role === 'student' ? user.displayName.trim().split(/\s+/)[0] || null : null
+  return (
+    <div className="mb-3 flex items-center gap-3 px-1">
+      <PifikSprite eager className="w-12 shrink-0 rounded-2xl border-[3px] border-ink bg-sky-100 sm:w-14" />
+      <p className="comic-bubble relative min-w-0 flex-1 rounded-2xl border-[3px] border-ink bg-cream px-3 py-2 text-sm leading-snug font-extrabold text-ink sm:text-base">
+        <svg aria-hidden viewBox="0 0 14 18" className="absolute top-1/2 -left-[13px] h-[18px] w-[14px] -translate-y-1/2">
+          <path d="M14,0 L0,9 L14,18 Z" className="comic-bubble-fill" />
+          <path d="M14,1 L1,9 L14,17" className="fill-none stroke-ink" strokeWidth={3} strokeLinejoin="round" />
+        </svg>
+        {GREETING[lang](name, title)}
+      </p>
     </div>
   )
 }
@@ -169,6 +196,8 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
   const justUnlocked = exerciseSolved && isExercisePanel && current < total - 1
   const ending = solved && current === total - 1 ? chapterEnding(comic.id) : undefined
   const bonusSticker = ending ? chapterBonus(comicId) : undefined
+  const effect = panelEffectFor(comicId)
+  const secret = secretFor(comicId, panel.id)
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -194,6 +223,7 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
             {t.panelOf(current + 1, total)}
           </p>
         </div>
+        {current === 0 && <ReaderGreeting lang={lang} title={comic.title} />}
         {comic.artwork === 'prepared' && (
           <p className="mb-3 px-1 text-sm font-semibold text-ink/70">{t.preparedArtwork}</p>
         )}
@@ -204,7 +234,8 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
           aria-label={`${panel.speaker}: ${panel.text}`}
         >
           <PanelArt imageKey={panel.imageKey} imageUrl={panel.imageUrl} lang={lang} speaker={panel.speaker} text={panel.text} imageAspect={panel.imageAspect} placeholder={panel.placeholder}
-            emotion={panel.emotion} layers={panel.layers} animateDialogue={!isExercisePanel} priority />
+            emotion={panel.emotion} layers={panel.layers} animateDialogue={!isExercisePanel} priority
+            overlay={effect || secret ? <>{effect && <PanelEffects effect={effect} />}{secret && <PanelSecretSpot key={secret.id} secret={secret} lang={lang} />}</> : undefined} />
           <span className={`absolute ${panel.imageUrl ? 'top-2' : 'bottom-2'} left-2 grid h-9 w-9 place-items-center rounded-full border-[3px] border-ink bg-sun text-lg font-black text-ink`}>
             {panel.id}
           </span>
