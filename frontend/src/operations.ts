@@ -34,6 +34,8 @@ export interface Operation {
   lead: Text
   chapters: OperationChapter[]
   finale: { title: Text; story: Text; math: Text; href?: string }
+  /** Optional practice open at any time, e.g. the Motion League for «Дороги ярмарки». */
+  practice?: { title: Text; lead: Text; href: string }
 }
 
 const t = (ru: string, kk: string): Text => ({ ru, kk })
@@ -87,9 +89,14 @@ export const OPERATIONS: readonly Operation[] = [
     ],
     finale: {
       title: t('Три замка Хранителя', 'Сақшының үш құлпы'),
-      story: t('Верный ответ двигает велосипед, поднимает мост или направляет лодку к причалу.', 'Дұрыс жауап велосипедті жылжытады, көпірді көтереді немесе қайықты айлаққа бағыттайды.'),
+      story: t('Каждый верный ответ зажигает фонарь на финишных воротах, а три фонаря открывают путь на ярмарку.', 'Әр дұрыс жауап мәре қақпасындағы шамды жағады, ал үш шам жәрмеңкеге жол ашады.'),
       math: t('Погоня, встреча и течение', 'Қуу, кездесу және ағыс'),
       href: '#/road-guardian',
+    },
+    practice: {
+      title: t('Лига движения', 'Қозғалыс лигасы'),
+      lead: t('Тренировка задач на движение — открыта в любое время.', 'Қозғалысқа есептер жаттығуы — кез келген уақытта ашық.'),
+      href: '#/motion-league',
     },
   },
   {

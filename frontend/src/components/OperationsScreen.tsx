@@ -210,6 +210,16 @@ export function OperationScreen({ lang, operation, completed, finaleWon }: {
               )}
             </div>
           </section>
+          {operation.practice && (
+            <a href={operation.practice.href} className="flex items-center gap-3 rounded-2xl border-[3px] border-ink bg-white p-3 text-ink shadow-[0_4px_0_var(--color-ink)] hover:bg-sky focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand">
+              <span aria-hidden className="text-2xl">🏁</span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-black leading-tight">{operation.practice.title[lang]}</span>
+                <span className="mt-0.5 block text-sm font-semibold text-ink/75">{operation.practice.lead[lang]}</span>
+              </span>
+              <span aria-hidden>→</span>
+            </a>
+          )}
         </aside>
       </div>
     </section>
