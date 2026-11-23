@@ -10,6 +10,8 @@ import { SCHOOL_FAIR_STOPS } from '../schoolFair'
 import { BattleLauncher } from './ClassBattle'
 import { TeacherLeague } from './ClassLeague'
 import { CARD, errorKey, FieldError, INPUT, PRIMARY, SECONDARY } from './AuthScreen'
+import { ClassAssignmentReports } from './ClassAssignments'
+import { TeacherWorkshop } from './TeacherWorkshop'
 
 // Teacher area: classes with join codes, and a class dashboard (ranking + error heatmap).
 
@@ -298,15 +300,34 @@ export function TeacherHome({ lang }: { lang: Lang }) {
 }
 
 const HEAT = (rate: number) => (rate >= 0.6 ? 'bg-rose-200 border-rose-700' : rate >= 0.3 ? 'bg-amber-100 border-amber-600' : 'bg-emerald-100 border-emerald-700')
+const CLASS_SECTIONS = ['overview', 'assignments', 'games'] as const
+const CLASS_DASHBOARD = {
+  ru: {
+    overview: 'Аналитика', assignments: 'Задания', games: 'Бои и лига',
+    section: 'Разделы класса', students: 'Учеников в классе', finished: 'Победили хотя бы одного босса',
+    empty: 'Статистика появится после первых проверенных ответов учеников.',
+    first: 'С чего начать повторение',
+  },
+  kk: {
+    overview: 'Талдау', assignments: 'Тапсырмалар', games: 'Шайқас пен лига',
+    section: 'Сынып бөлімдері', students: 'Сыныптағы оқушылар', finished: 'Кемінде бір боссты жеңді',
+    empty: 'Оқушылардың алғашқы жауаптары тексерілген соң статистика шығады.',
+    first: 'Қайталауды неден бастау керек',
+  },
+}
 
-function HeatmapCell({ cell, lang }: { cell?: HeatCell; lang: Lang }) {
+function HeatmapCell({ cell, lang }: { cell: HeatCell; lang: Lang }) {
   const d = ACCOUNT_COPY[lang].dashboard
-  if (!cell) return <div className="grid min-h-28 place-items-center rounded-xl border-2 border-dashed border-ink/30 p-2 text-center text-sm font-semibold text-ink/60">{d.noData}</div>
   const skill = skillCopy(lang, cell.skill)
   return (
-    <div className={`flex min-h-28 flex-col gap-1 rounded-xl border-2 p-2 ${HEAT(cell.mistakeRate)}`}>
-      <p className="text-2xl font-black text-ink">{Math.round(cell.mistakeRate * 100)}%</p>
-      {skill && <p className="text-xs leading-tight font-black text-ink/80">{skill.name}</p>}
+    <div className={`grid min-w-0 gap-1 rounded-xl border-2 p-3 ${HEAT(cell.mistakeRate)}`}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          {skill && <p className="break-words text-sm leading-tight font-black text-ink">{skill.name}</p>}
+          <p className="text-xs font-bold text-ink/75">{d.round(cell.round)}</p>
+        </div>
+        <p className="shrink-0 text-lg leading-tight font-black text-ink">{Math.round(cell.mistakeRate * 100)}%</p>
+      </div>
       <p className="text-xs font-semibold text-ink/80">{d.mistakes(cell.studentsWithMistakes, cell.students)}</p>
       {cell.invalidAnswers > 0 && <p className="text-xs font-semibold text-ink/80">{d.invalid(cell.invalidAnswers)}</p>}
       {cell.commonWrong.length > 0 && (
@@ -321,13 +342,18 @@ function HeatmapCell({ cell, lang }: { cell?: HeatCell; lang: Lang }) {
 export function ClassDashboard({ lang, classId }: { lang: Lang; classId: number }) {
   const c = ACCOUNT_COPY[lang]
   const d = c.dashboard
+  const copy = CLASS_DASHBOARD[lang]
   const id = useId()
   const [data, setData] = useState<Dashboard | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [section, setSection] = useState<(typeof CLASS_SECTIONS)[number]>('overview')
 
   useEffect(() => {
     const ctrl = new AbortController()
-    accounts.dashboard(classId, ctrl.signal).then(setData, (err) => {
+    accounts.dashboard(classId, ctrl.signal).then((dashboard) => {
+      setData(dashboard)
+      setError(null)
+    }, (err) => {
       if (!isAbortError(err)) setError(c.errors[errorKey(err)] ?? c.errors.network)
     })
     return () => ctrl.abort()
@@ -340,99 +366,122 @@ export function ClassDashboard({ lang, classId }: { lang: Lang; classId: number 
   const topics = [...new Set(data.heatmap.map((h) => h.topic))].sort() as Topic[]
   const rec = data.recommendation
   const recSkill = rec && skillCopy(lang, rec.skill)
+  const finished = data.students.filter((student) => student.bossesBeaten > 0).length
   // Mistakes exist but too few students answered for a class-wide recommendation.
   const fewAnswers = !rec && data.heatmap.some((h) => h.mistakeRate >= 0.5 && h.students < 2)
 
   return (
     <div className="flex flex-col gap-4">
-      <div>{back}</div>
       <section className={CARD} aria-labelledby={`${id}-title`}>
-        <h1 id={`${id}-title`} className="text-3xl font-black text-ink">{data.schoolClass.name}</h1>
-        <p className="mt-1 text-sm font-bold text-ink/80">{c.teacherArea.students(data.schoolClass.students ?? data.students.length)}</p>
-        <div className="mt-3 flex flex-col gap-1">
-          <p className="text-sm font-black text-ink/80">{c.teacherArea.code}</p>
-          <CopyCode code={data.schoolClass.code} lang={lang} />
-          <p className="text-sm font-semibold text-ink/75">{d.shareCode(data.schoolClass.code)}</p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 id={`${id}-title`} className="text-3xl font-black text-ink">{data.schoolClass.name}</h1>
+            <p className="mt-1 text-sm font-bold text-ink/80">{c.teacherArea.code}</p>
+            <CopyCode code={data.schoolClass.code} lang={lang} />
+          </div>
+          {back}
         </div>
         {API_MODE === 'mock' && <p className="mt-3 rounded-lg bg-sun/40 px-2 py-1 text-sm font-bold text-ink">{c.teacherArea.demo}</p>}
       </section>
 
-      <BattleLauncher classId={classId} lang={lang} />
-      <TeacherLeague classId={classId} lang={lang} />
-      <ChapterAssignment lang={lang} />
-      <GuardianAssignmentForm lang={lang} />
-      <ClassAssignmentReports classId={classId} lang={lang} />
+      <nav aria-label={copy.section} className="flex flex-wrap gap-2">
+        {CLASS_SECTIONS.map((item) => (
+          <button key={item} type="button" id={`${id}-button-${item}`} aria-pressed={section === item}
+            aria-controls={`${id}-${item}`} onClick={() => setSection(item)}
+            className={`min-h-11 rounded-xl border-2 border-ink px-3 py-1.5 text-sm font-black text-ink focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand ${section === item ? 'bg-sun' : 'bg-white hover:bg-sky'}`}>
+            {section === item && <span aria-hidden="true">✓ </span>}{copy[item]}
+          </button>
+        ))}
+      </nav>
 
-      <section className={`${CARD} ${rec ? 'border-rose-700 bg-rose-50' : fewAnswers ? 'bg-cream' : 'bg-emerald-50'}`} aria-live="polite">
-        <p className="flex items-start gap-3 text-lg leading-snug font-black text-ink">
-          <span aria-hidden className="text-2xl">{rec ? '⚠️' : fewAnswers ? '⏳' : '✅'}</span>
-          {rec && recSkill
-            ? d.recommendation(Math.round(rec.mistakeRate * 100), rec.round, recSkill.name, recSkill.review)
-            : fewAnswers
-              ? d.fewAnswers
-              : d.noRecommendation}
-        </p>
+      <section id={`${id}-assignments`} aria-labelledby={`${id}-button-assignments`} hidden={section !== 'assignments'}>
+        <div className="grid gap-4">
+          <ClassAssignmentReports classId={classId} lang={lang} />
+          <ChapterAssignment lang={lang} />
+          <GuardianAssignmentForm lang={lang} />
+        </div>
       </section>
-
-      <section className={CARD} aria-labelledby={`${id}-heat`}>
-        <h2 id={`${id}-heat`} className="text-xl font-black text-ink">{d.heatmap}</h2>
-        <p className="mt-1 text-sm font-semibold text-ink/75">{d.heatmapLead}</p>
-        <ul className="mt-2 flex flex-wrap gap-2 text-xs font-bold" aria-hidden>
-          <li className="rounded-lg border-2 border-emerald-700 bg-emerald-100 px-2 py-0.5">{d.legend.low}</li>
-          <li className="rounded-lg border-2 border-amber-600 bg-amber-100 px-2 py-0.5">{d.legend.mid}</li>
-          <li className="rounded-lg border-2 border-rose-700 bg-rose-200 px-2 py-0.5">{d.legend.high}</li>
-        </ul>
-        {topics.length === 0 && <p className="mt-3 font-semibold text-ink/80">{d.noData}</p>}
-        <div className="mt-3 flex flex-col gap-4">
-          {topics.map((topic) => (
-            <div key={topic}>
-              <h3 className="mb-2 font-black text-ink">{c.topics[topic]}</h3>
-              <div className="grid grid-cols-1 gap-2 min-[480px]:grid-cols-3">
-                {[1, 2, 3].map((round) => (
-                  <div key={round} className="min-w-0">
-                    <p className="mb-1 text-xs font-black tracking-wide text-brand-dark uppercase">{d.round(round)}</p>
-                    <HeatmapCell lang={lang} cell={data.heatmap.find((h) => h.topic === topic && h.round === round)} />
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
+      <section id={`${id}-games`} aria-labelledby={`${id}-button-games`} hidden={section !== 'games'}>
+        <div className="grid gap-4">
+          <BattleLauncher classId={classId} lang={lang} />
+          <TeacherLeague classId={classId} lang={lang} />
         </div>
       </section>
 
-      <section className={CARD} aria-labelledby={`${id}-rank`}>
-        <h2 id={`${id}-rank`} className="text-xl font-black text-ink">{d.ranking}</h2>
-        {data.students.length === 0 ? (
-          <p className="mt-2 font-semibold text-ink/80">{d.empty}</p>
-        ) : (
-          <ol className="mt-3 flex flex-col gap-2">
-            {data.students.map((s, i) => (
-              <li key={s.id} className="grid grid-cols-[2.25rem_minmax(0,1fr)] items-center gap-x-3 gap-y-2 rounded-xl border-2 border-ink/70 bg-white p-2 sm:grid-cols-[2.25rem_minmax(0,1fr)_auto]">
-                <span className={`grid size-9 place-items-center rounded-lg border-2 border-ink font-black ${i === 0 ? 'bg-sun' : 'bg-sky'}`}>{i + 1}</span>
-                <div className="min-w-0">
-                  <p className="truncate font-black text-ink">{s.displayName}</p>
-                  <p className="truncate font-mono text-xs text-ink/70">{s.login}</p>
-                </div>
-                <dl className="col-span-2 flex flex-wrap gap-1.5 text-xs font-bold sm:col-span-1 sm:justify-end">
-                  <div className="rounded-lg border-2 border-ink/60 bg-sun/50 px-2 py-0.5"><dt className="sr-only">{d.columns.stars}</dt><dd><span aria-hidden>★ </span>{s.stars}</dd></div>
-                  <div className="rounded-lg border-2 border-ink/60 bg-white px-2 py-0.5"><dt className="inline">{d.columns.coins}: </dt><dd className="inline">{s.coins}</dd></div>
-                  <div className="rounded-lg border-2 border-ink/60 bg-white px-2 py-0.5"><dt className="inline">{d.columns.bosses}: </dt><dd className="inline">{s.bossesBeaten}</dd></div>
-                  <div className={`rounded-lg border-2 border-ink/60 px-2 py-0.5 ${s.misses > 3 ? 'bg-rose-100' : 'bg-white'}`}><dt className="inline">{d.columns.misses}: </dt><dd className="inline">{s.misses}</dd></div>
-                  <div className="rounded-lg border-2 border-ink/60 bg-white px-2 py-0.5"><dt className="inline">{d.columns.combo}: </dt><dd className="inline">{s.bestCombo}</dd></div>
-                  {Object.entries(s.topics).map(([topic, t]) => (
-                    <div key={topic} className="rounded-lg border-2 border-ink/60 bg-emerald-50 px-2 py-0.5">
-                      <dt className="inline">{c.topics[topic as Topic] ?? topic}: </dt>
-                      <dd className="inline"><span className="text-amber-600">{'★'.repeat(t.bestStars)}</span><span className="text-ink/25">{'★'.repeat(3 - t.bestStars)}</span></dd>
-                    </div>
-                  ))}
-                </dl>
-              </li>
-            ))}
-          </ol>
+      <section id={`${id}-overview`} aria-labelledby={`${id}-button-overview`} hidden={section !== 'overview'}>
+      <div className="grid gap-4">
+        <dl className="grid grid-cols-2 gap-3">
+          {[[copy.students, data.students.length], [copy.finished, finished]].map(([label, count]) => (
+            <div key={label} className="min-w-0 rounded-2xl border-2 border-ink bg-white p-3">
+              <dt className="break-words text-sm font-bold text-ink/80">{label}</dt>
+              <dd className="text-2xl font-black text-ink">{count}</dd>
+            </div>
+          ))}
+        </dl>
+        {data.heatmap.length > 0 && (rec || fewAnswers) && (
+          <section className={`${CARD} ${rec ? 'border-rose-700 bg-rose-50' : 'bg-cream'}`} aria-labelledby={`${id}-review`}>
+            <h2 id={`${id}-review`} className="text-lg font-black text-ink">{copy.first}</h2>
+            <p className="mt-1 font-semibold text-ink">
+              {rec && recSkill ? d.recommendation(Math.round(rec.mistakeRate * 100), rec.round, recSkill.name, recSkill.review) : d.fewAnswers}
+            </p>
+          </section>
         )}
+
+        <section className={CARD} aria-labelledby={`${id}-heat`}>
+          <h2 id={`${id}-heat`} className="text-xl font-black text-ink">{d.heatmap}</h2>
+          <p className="mt-1 text-sm font-semibold text-ink/75">{d.heatmapLead}</p>
+          {topics.length === 0 ? <p className="mt-3 font-semibold text-ink/80">{copy.empty}</p> : <ul className="mt-2 flex flex-wrap gap-2 text-xs font-bold" aria-hidden>
+            <li className="rounded-lg border-2 border-emerald-700 bg-emerald-100 px-2 py-0.5">{d.legend.low}</li>
+            <li className="rounded-lg border-2 border-amber-600 bg-amber-100 px-2 py-0.5">{d.legend.mid}</li>
+            <li className="rounded-lg border-2 border-rose-700 bg-rose-200 px-2 py-0.5">{d.legend.high}</li>
+          </ul>}
+          <div className="mt-3 flex flex-col gap-4">
+            {topics.map((topic) => (
+              <div key={topic}>
+                <h3 className="mb-2 font-black text-ink">{c.topics[topic]}</h3>
+                <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                  {data.heatmap.filter((cell) => cell.topic === topic).map((cell) => (
+                    <HeatmapCell key={`${cell.round}-${cell.skill ?? 'general'}`} lang={lang} cell={cell} />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className={CARD} aria-labelledby={`${id}-rank`}>
+          <h2 id={`${id}-rank`} className="text-xl font-black text-ink">{d.ranking}</h2>
+          {data.students.length === 0 ? (
+            <p className="mt-2 font-semibold text-ink/80">{d.empty}</p>
+          ) : (
+            <ol className="mt-3 flex flex-col gap-2">
+              {data.students.map((s, i) => (
+                <li key={s.id} className="grid grid-cols-[2.25rem_minmax(0,1fr)] items-center gap-x-3 gap-y-2 rounded-xl border-2 border-ink/70 bg-white p-2 sm:grid-cols-[2.25rem_minmax(0,1fr)_auto]">
+                  <span className={`grid size-9 place-items-center rounded-lg border-2 border-ink font-black ${i === 0 ? 'bg-sun' : 'bg-sky'}`}>{i + 1}</span>
+                  <div className="min-w-0">
+                    <p className="truncate font-black text-ink">{s.displayName}</p>
+                    <p className="truncate font-mono text-xs text-ink/70">{s.login}</p>
+                  </div>
+                  <dl className="col-span-2 flex flex-wrap gap-1.5 text-xs font-bold sm:col-span-1 sm:justify-end">
+                    <div className="rounded-lg border-2 border-ink/60 bg-sun/50 px-2 py-0.5"><dt className="sr-only">{d.columns.stars}</dt><dd><span aria-hidden>★ </span>{s.stars}</dd></div>
+                    <div className="rounded-lg border-2 border-ink/60 bg-white px-2 py-0.5"><dt className="inline">{d.columns.coins}: </dt><dd className="inline">{s.coins}</dd></div>
+                    <div className="rounded-lg border-2 border-ink/60 bg-white px-2 py-0.5"><dt className="inline">{d.columns.bosses}: </dt><dd className="inline">{s.bossesBeaten}</dd></div>
+                    <div className={`rounded-lg border-2 border-ink/60 px-2 py-0.5 ${s.misses > 3 ? 'bg-rose-100' : 'bg-white'}`}><dt className="inline">{d.columns.misses}: </dt><dd className="inline">{s.misses}</dd></div>
+                    <div className="rounded-lg border-2 border-ink/60 bg-white px-2 py-0.5"><dt className="inline">{d.columns.combo}: </dt><dd className="inline">{s.bestCombo}</dd></div>
+                    {Object.entries(s.topics).map(([topic, t]) => (
+                      <div key={topic} className="rounded-lg border-2 border-ink/60 bg-emerald-50 px-2 py-0.5">
+                        <dt className="inline">{c.topics[topic as Topic] ?? topic}: </dt>
+                        <dd className="inline"><span className="text-amber-600">{'★'.repeat(t.bestStars)}</span><span className="text-ink/25">{'★'.repeat(3 - t.bestStars)}</span></dd>
+                      </div>
+                    ))}
+                  </dl>
+                </li>
+              ))}
+            </ol>
+          )}
+        </section>
+      </div>
       </section>
     </div>
   )
 }
-import { TeacherWorkshop } from './TeacherWorkshop'
-import { ClassAssignmentReports } from './ClassAssignments'

@@ -73,7 +73,7 @@ export function StudentAssignments({ lang }: { lang: Lang }) {
 
 export function ClassAssignmentReports({ lang, classId }: { lang: Lang; classId: number }) {
   const copy = ASSIGNMENT_COPY[lang]
-  const [reports, setReports] = useState<AssignmentReport[]>([])
+  const [reports, setReports] = useState<AssignmentReport[] | null>(null)
   const [error, setError] = useState(false)
   useEffect(() => {
     const api = classroomApi
@@ -94,17 +94,22 @@ export function ClassAssignmentReports({ lang, classId }: { lang: Lang; classId:
     const interval = window.setInterval(refresh, 5000)
     return () => { inFlight?.abort(); window.clearInterval(interval) }
   }, [classId, lang])
-  if (error) return <p role="alert">{copy.error}</p>
-  if (!reports.length) return null
+  if (!classroomApi) return null
   return (
     <section className={CARD} aria-label={copy.report}>
       <h2 className="text-xl font-black">{copy.report}</h2>
+      {error && <p role="alert" className="mt-2 font-semibold text-rose-800">{copy.error}</p>}
+      {!error && reports === null && <p role="status" className="mt-2 font-semibold">{copy.loading}</p>}
+      {!error && reports?.length === 0 && <p className="mt-2 font-semibold">{copy.noAssignments}</p>}
       <div className="mt-3 grid gap-4">
-        {reports.map((report) => (
+        {reports?.map((report) => (
           <article key={report.id} className="rounded-2xl border-2 border-ink p-3">
             <h3 className="break-words text-lg font-black">{report.title}</h3>
             {report.dueDate && <time dateTime={report.dueDate} className="text-sm">{copy.dueShort} · {formattedDate(report.dueDate, lang)}</time>}
             {!report.students.length && <p>{copy.noStudents}</p>}
+            {report.students.length > 0 && (
+              <p className="mt-1 font-bold">{copy.reportCount(report.students.filter((student) => student.completed).length, report.students.length)}</p>
+            )}
             <ul className="mt-2 grid gap-2">
               {report.students.map((student) => (
                 <li key={student.id} className="grid gap-1 rounded-xl border-2 border-ink/20 p-2 sm:grid-cols-[1fr_auto]">
