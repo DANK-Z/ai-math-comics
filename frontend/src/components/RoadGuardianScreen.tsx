@@ -4,6 +4,11 @@ import { PORTRAITS } from '../art/sheet'
 import { STRINGS } from '../i18n'
 import { MOTION_COPY } from '../motionLeague'
 import { ROAD_COPY, ROAD_DAMAGE, ROAD_MAX_HP, ROAD_ROUNDS, type RoadPhase, type useRoadGuardian } from '../roadGuardian'
+import gate1 from '../assets/roads/gate-1.webp'
+import gate2 from '../assets/roads/gate-2.webp'
+import gate3 from '../assets/roads/gate-3.webp'
+import gate4 from '../assets/roads/gate-4.webp'
+import { findOperation, operationHref } from '../operations'
 import { SECTION_HREFS } from '../route'
 import { RichText } from './RichText'
 import { SheetCrop } from './SheetCrop'
@@ -13,6 +18,35 @@ const CARD = 'rounded-[28px] border-[3px] border-ink p-4 shadow-[0_6px_0_var(--c
 const CHIP = 'rounded-full border-2 border-ink bg-white px-2 py-0.5 text-[11px] font-black whitespace-nowrap text-ink sm:text-xs'
 
 type Challenge = ReturnType<typeof useRoadGuardian>
+
+/** The finish gates: one lamp lights up per cleared phase, and the gates open on victory. */
+const GATES = [gate1, gate2, gate3, gate4]
+const GATE_COPY = {
+  ru: (lit: number) => lit >= 3 ? 'Все три фонаря горят — ворота открыты!' : `Фонари на воротах: ${lit} из 3`,
+  kk: (lit: number) => lit >= 3 ? 'Үш шам да жанып тұр — қақпа ашық!' : `Қақпадағы шамдар: ${lit} / 3`,
+}
+
+function FinishGates({ lit, lang }: { lit: number; lang: Lang }) {
+  const caption = GATE_COPY[lang](lit)
+  return (
+    <figure className="mt-3 overflow-hidden rounded-2xl border-[3px] border-ink bg-ink">
+      <div className="relative" style={{ aspectRatio: '827 / 463' }}>
+        {GATES.map((src, i) => (
+          <img
+            key={src}
+            src={src}
+            alt={i === Math.min(lit, 3) ? caption : ''}
+            aria-hidden={i !== Math.min(lit, 3)}
+            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${i === Math.min(lit, 3) ? 'opacity-100' : 'opacity-0'}`}
+          />
+        ))}
+      </div>
+      <figcaption aria-live="polite" className="bg-sun px-3 py-1.5 text-center text-sm font-black text-ink">
+        <span aria-hidden>{'💡'.repeat(Math.min(lit, 3))}{'⚪'.repeat(3 - Math.min(lit, 3))} </span>{caption}
+      </figcaption>
+    </figure>
+  )
+}
 
 /** The Guardian: a clockwork robot on wheels. */
 function BossIcon({ className = '' }: { className?: string }) {
@@ -169,7 +203,10 @@ export function RoadGuardianScreen({ lang, challenge }: { lang: Lang; challenge:
     }
   }, [run.cleared])
 
-  const catalog = <a href={SECTION_HREFS.comics} className={`${BUTTON} bg-white`}>{t.backToCatalog}</a>
+  const season = findOperation('roads')
+  const catalog = season
+    ? <a href={operationHref(season.id)} className={`${BUTTON} bg-white`}><span aria-hidden>←&nbsp;</span>{season.title[lang]}</a>
+    : <a href={SECTION_HREFS.comics} className={`${BUTTON} bg-white`}>{t.backToCatalog}</a>
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-5">
@@ -181,6 +218,8 @@ export function RoadGuardianScreen({ lang, challenge }: { lang: Lang; challenge:
           <BossIcon className="size-16 text-4xl sm:size-20" />
           <p className="min-w-0 text-sm font-semibold sm:text-base">{copy.intro}</p>
         </div>
+
+        <FinishGates lit={run.cleared} lang={lang} />
 
         <p id={hpId} aria-live="polite" className="mt-3 font-black">{copy.hp(hp, ROAD_MAX_HP)}</p>
         <progress aria-labelledby={hpId} max={ROAD_MAX_HP} value={hp} className="mt-1 block h-3 w-full accent-rose-600" />

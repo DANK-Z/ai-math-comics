@@ -1,11 +1,23 @@
-import chase from '../assets/roads/chase.webp'
-import lanes from '../assets/roads/lanes.webp'
-import river from '../assets/roads/river.webp'
+import bridge1 from '../assets/roads/bridge-1.webp'
+import bridge2 from '../assets/roads/bridge-2.webp'
+import bridge3 from '../assets/roads/bridge-3.webp'
+import bridge4 from '../assets/roads/bridge-4.webp'
+import flag1 from '../assets/roads/flag-1.webp'
+import flag2 from '../assets/roads/flag-2.webp'
+import flag3 from '../assets/roads/flag-3.webp'
+import flag4 from '../assets/roads/flag-4.webp'
+import hill1 from '../assets/roads/hill-1.webp'
+import hill2 from '../assets/roads/hill-2.webp'
+import hill3 from '../assets/roads/hill-3.webp'
+import hill4 from '../assets/roads/hill-4.webp'
+import river1 from '../assets/roads/river-1.webp'
+import river2 from '../assets/roads/river-2.webp'
+import river3 from '../assets/roads/river-3.webp'
+import river4 from '../assets/roads/river-4.webp'
 import type { LocalComicDef } from './localComics'
 
 // Chapters 1–4 of “Operation: Fair Roads” (motion problems). The finale is the Road
-// Guardian fight (#/road-guardian). Panels without `image` show a placeholder scene until
-// their artwork is ready; the supplied sheet covers the chase, the two lanes and the river.
+// Guardian fight (#/road-guardian). Panels are cropped from the supplied 2×2 sheets.
 // Panel 3 holds the exercise; panel 4 is the ending, unlocked by a correct answer.
 
 export const ROADS_FLAG_ID = 'roads-flag'
@@ -13,20 +25,19 @@ export const ROADS_BRIDGE_ID = 'roads-bridge'
 export const ROADS_RIVER_ID = 'roads-river'
 export const ROADS_HILL_ID = 'roads-hill'
 
-/** Sheet crops are 822×455. */
-const ASPECT = 822 / 455
+/** Sheet crops are ~827×462. */
+const ASPECT = 827 / 462
 
 export const ROADS_FLAG: LocalComicDef = {
   id: ROADS_FLAG_ID,
   exerciseId: 'roads-chase',
   panels: [
-    { image: chase, speaker: 'Аруна' },
-    { speaker: 'Пифик' },
-    { speaker: 'Аруна' },
-    { speaker: 'Алдияр' },
+    { image: flag1, speaker: 'Алдияр' },
+    { image: flag2, speaker: 'Пифик' },
+    { image: flag3, speaker: 'Аруна' },
+    { image: flag4, speaker: 'Алдияр' },
   ],
   imageAspect: ASPECT,
-  placeholder: 'forest',
   exercisePanelId: 3,
   // Gap 400 m, closing speed 250 − 150 = 100 m/min → 4 min.
   answer: 4,
@@ -35,8 +46,8 @@ export const ROADS_FLAG: LocalComicDef = {
       title: 'Флажок на колёсах',
       hook: 'Алдияр умчался с флажком. Когда Аруна его догонит?',
       dialogue: [
-        'Алдияр, стой! Флажок для отметки маршрута у тебя!',
-        'Он не слышит. Алдияр едет 150 м в минуту, ты — 250 м в минуту. Между вами 400 м.',
+        'Флажок для отметки маршрута у меня! Кто первым доедет до контрольной точки?',
+        'Алдияр стартовал раньше и уже на 400 м впереди. Он едет 150 м в минуту, Аруна — 250 м в минуту.',
         'Он едет в ту же сторону. Через сколько минут я его догоню?',
         'Ты догнала меня за 4 минуты! Держи флажок — первая отметка маршрута твоя.',
       ],
@@ -61,8 +72,8 @@ export const ROADS_FLAG: LocalComicDef = {
       title: 'Дөңгелектегі жалауша',
       hook: 'Алдияр жалаушамен алға кетіп қалды. Аруна оны қашан қуып жетеді?',
       dialogue: [
-        'Алдияр, тоқта! Бағытты белгілейтін жалауша сенде ғой!',
-        'Ол естімей тұр. Алдияр минутына 150 м жүреді, сен — минутына 250 м. Араларыңда 400 м.',
+        'Бағытты белгілейтін жалауша менде! Бақылау нүктесіне кім бірінші жетеді?',
+        'Алдияр ертерек шығып, 400 м алда кетті. Ол минутына 150 м жүреді, Аруна — минутына 250 м.',
         'Ол да осы бағытта жүріп барады. Неше минуттан кейін оны қуып жетемін?',
         'Сен мені 4 минутта қуып жеттің! Мә, жалауша — бағыттың алғашқы белгісі сенікі.',
       ],
@@ -90,13 +101,12 @@ export const ROADS_BRIDGE: LocalComicDef = {
   id: ROADS_BRIDGE_ID,
   exerciseId: 'roads-meeting',
   panels: [
-    { image: lanes, speaker: 'Пифик' },
-    { speaker: 'Алдияр' },
-    { speaker: 'Пифик' },
-    { speaker: 'Аруна' },
+    { image: bridge1, speaker: 'Пифик' },
+    { image: bridge2, speaker: 'Алдияр' },
+    { image: bridge3, speaker: 'Пифик' },
+    { image: bridge4, speaker: 'Аруна' },
   ],
   imageAspect: ASPECT,
-  placeholder: 'forest',
   exercisePanelId: 3,
   // Track 2000 m, closing speed 180 + 220 = 400 m/min → 5 min (Aruna rides 900 m).
   answer: 5,
@@ -160,13 +170,12 @@ export const ROADS_RIVER: LocalComicDef = {
   id: ROADS_RIVER_ID,
   exerciseId: 'roads-current',
   panels: [
-    { image: river, speaker: 'Алдияр' },
-    { speaker: 'Пифик' },
-    { speaker: 'Аруна' },
-    { speaker: 'Пифик' },
+    { image: river1, speaker: 'Алдияр' },
+    { image: river2, speaker: 'Пифик' },
+    { image: river3, speaker: 'Аруна' },
+    { image: river4, speaker: 'Пифик' },
   ],
   imageAspect: ASPECT,
-  placeholder: 'forest',
   exercisePanelId: 3,
   // Downstream 24 km in 2 h → 12 km/h; own speed 12 − 3 = 9; upstream 9 − 3 = 6 km/h → 4 h.
   answer: 4,
@@ -175,10 +184,10 @@ export const ROADS_RIVER: LocalComicDef = {
       title: 'Река с характером',
       hook: 'По течению лодка летит. Успеет ли она обратно до закрытия причала?',
       dialogue: [
-        'Призы на острове! По течению мы доплыли за 2 часа — легко!',
-        'До острова 24 км, а течение реки — 3 км/ч. Обратно придётся грести против него.',
-        'Причал закрывается через 4,5 часа. Сколько часов займёт обратный путь?',
-        'Против течения — 4 часа. Успеваем, и ещё полчаса в запасе!',
+        'Сундук с призами — на борт! Покажем его на острове и вернём к причалу ярмарки.',
+        'По течению до острова 24 км — вы дошли за 2 часа! Течение — 3 км/ч, а обратно придётся идти против него.',
+        'Причал ярмарки закрывается через 4,5 часа. Сколько часов займёт обратный путь?',
+        'Против течения — 4 часа. Сундук на причале, и ещё полчаса в запасе!',
       ],
       prompt:
         'Лодка прошла 24 км по течению за 2 часа. Скорость течения — 3 км/ч. Сколько часов займёт обратный путь против течения? Запиши ответ числом в часах.',
@@ -201,10 +210,10 @@ export const ROADS_RIVER: LocalComicDef = {
       title: 'Мінезді өзен',
       hook: 'Ағыспен қайық зымырайды. Айлақ жабылғанша кері қайтып үлгере ме?',
       dialogue: [
-        'Сыйлықтар аралда! Ағыспен 2 сағатта жеттік — оп-оңай!',
-        'Аралға дейін 24 км, ал өзен ағысы — 3 км/сағ. Кері қайтқанда ағысқа қарсы есуге тура келеді.',
-        'Айлақ 4,5 сағаттан кейін жабылады. Кері жол неше сағатқа созылады?',
-        'Ағысқа қарсы — 4 сағат. Үлгереміз, тағы жарты сағат қалады!',
+        'Сыйлық сандығын қайыққа саламыз! Аралда көрсетіп, жәрмеңке айлағына қайтарамыз.',
+        'Ағыспен аралға дейін 24 км — 2 сағатта жеттіңдер! Ағыс — 3 км/сағ, ал кері жол ағысқа қарсы болады.',
+        'Жәрмеңке айлағы 4,5 сағаттан кейін жабылады. Кері жол неше сағатқа созылады?',
+        'Ағысқа қарсы — 4 сағат. Сандық айлақта, тағы жарты сағат қалды!',
       ],
       prompt:
         'Қайық ағыспен 24 км-ді 2 сағатта жүзіп өтті. Ағыстың жылдамдығы — 3 км/сағ. Ағысқа қарсы кері жол неше сағатқа созылады? Жауапты сағатпен, санмен жаз.',
@@ -230,13 +239,12 @@ export const ROADS_HILL: LocalComicDef = {
   id: ROADS_HILL_ID,
   exerciseId: 'roads-average',
   panels: [
-    { speaker: 'Алдияр' },
-    { speaker: 'Аруна' },
-    { speaker: 'Пифик' },
-    { speaker: 'Аруна' },
+    { image: hill1, speaker: 'Алдияр' },
+    { image: hill2, speaker: 'Аруна' },
+    { image: hill3, speaker: 'Пифик' },
+    { image: hill4, speaker: 'Аруна' },
   ],
   imageAspect: ASPECT,
-  placeholder: 'forest',
   exercisePanelId: 3,
   // Up 6 km at 6 km/h = 60 min, down 6 km at 18 km/h = 20 min; 12 km in 80 min → 9 km/h.
   answer: 9,
@@ -245,10 +253,10 @@ export const ROADS_HILL: LocalComicDef = {
       title: 'Быстро только с горки',
       hook: 'Алдияр уверен, что побил рекорд. Но был ведь ещё подъём…',
       dialogue: [
-        'С горки я летел 18 км/ч! А вверх ехал 6 км/ч. В среднем — 12 км/ч, рекорд!',
-        'Подожди. Вверх ты ехал целый час, а вниз — всего 20 минут. Так нечестно считать.',
-        'Подъём и спуск — по 6 км. Средняя скорость: весь путь делим на всё время.',
-        'Всего 9 км/ч… Зато теперь мы знаем, как считать честно!',
+        'Вверх поеду 6 км/ч, а вниз полечу 18 км/ч. В среднем — 12 км/ч, это рекорд!',
+        'Подъём длиной 6 км — это целый час в гору. А спуск займёт всего 20 минут.',
+        'Вниз — 18 км/ч! Но средняя скорость — это весь путь, делённый на всё время. Сколько получится?',
+        'Не 12, а 9 км/ч! Рекорд не побит, зато теперь мы считаем честно.',
       ],
       prompt:
         'Алдияр поднялся на горку длиной 6 км со скоростью 6 км/ч и спустился по той же дороге со скоростью 18 км/ч. Какова его средняя скорость на всём пути? Запиши ответ числом в километрах в час.',
@@ -271,10 +279,10 @@ export const ROADS_HILL: LocalComicDef = {
       title: 'Тек төбеден ғана жылдам',
       hook: 'Алдияр рекорд жаңарттым деп ойлайды. Бірақ өрге шығу да болды ғой…',
       dialogue: [
-        'Төбеден 18 км/сағ жылдамдықпен зымырадым! Өрге 6 км/сағ жүрдім. Орташа — 12 км/сағ, рекорд!',
-        'Тоқта. Өрге бір сағат жүрдің, ал төмен — небәрі 20 минут. Былай есептеу әділ емес.',
-        'Өрге де, төмен де — 6 км-ден. Орташа жылдамдық: бүкіл жолды бүкіл уақытқа бөлеміз.',
-        'Небәрі 9 км/сағ… Есесіне, енді әділ есептеуді білеміз!',
+        'Өрге 6 км/сағ жүремін, ал төмен 18 км/сағ зымыраймын. Орташа — 12 км/сағ, бұл рекорд!',
+        'Ұзындығы 6 км өрлеу — тауға қарай тұтас бір сағат. Ал түсу небәрі 20 минут алады.',
+        'Төмен — 18 км/сағ! Бірақ орташа жылдамдық — бүкіл жолдың бүкіл уақытқа бөліндісі. Қанша шығады?',
+        '12 емес, 9 км/сағ! Рекорд жаңармады, есесіне енді әділ есептейміз.',
       ],
       prompt:
         'Алдияр ұзындығы 6 км төбеге 6 км/сағ жылдамдықпен шығып, сол жолмен 18 км/сағ жылдамдықпен түсті. Бүкіл жолдағы орташа жылдамдығы қандай? Жауапты км/сағ бірлігімен, санмен жаз.',
