@@ -1,10 +1,43 @@
-# Local services for development (credentials are for local use only):
-#   db    — PostgreSQL 16 with pgvector: accounts, progress, coins, analytics, semantic story cache
-#   redis — Redis 7: exact-match story cache for Express comics
-# Start: docker compose up -d   (data persists in named volumes)
-# backend/.env:
+# Local stack for development (credentials are for local use only).
+#
+#   docker compose up -d --build        everything: site, API, comic generator, database, cache
+#   docker compose up -d db redis       only the database and cache (run API/worker/vite yourself)
+#
+#   db       — PostgreSQL 16 with pgvector: accounts, progress, coins, analytics, semantic story cache
+#   redis    — Redis 7: exact-match story cache for Express comics
+#   api      — FastAPI on http://127.0.0.1:8000 (also used by `npm run dev:live`)
+#   worker   — the comic generator; starts with the stack and picks up queued jobs
+#   frontend — the built site behind Caddy on http://localhost:8090 (proxies /api to the API)
+#
+# API and worker read provider keys and models from backend/.env; the database, cache, data
+# directory and public URL below override the values there for the containers. Generated
+# comics stay in backend/data, shared with a non-Docker run. Account tables are created on
+# start (create_all); the pilot stack in deploy/ runs Alembic migrations instead.
+#
+# For a run outside Docker, backend/.env uses the published ports:
 #   DATABASE_URL=postgresql+asyncpg://amc:amc-dev-password@127.0.0.1:5433/amc
 #   REDIS_URL=redis://127.0.0.1:6380/0
+
+x-backend: &backend
+  build:
+    context: .
+    dockerfile: backend/Dockerfile
+  image: ai-math-comics-backend:dev
+  env_file:
+    - backend/.env
+  environment:
+    DATABASE_URL: postgresql+asyncpg://amc:amc-dev-password@db:5432/amc
+    REDIS_URL: redis://redis:6379/0
+    COMIC_DATA_DIR: /app/data
+    PUBLIC_BASE_URL: http://localhost:8090
+  volumes:
+    - ./backend/data:/app/data
+  depends_on:
+    db:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
 services:
   db:
     image: pgvector/pgvector:pg16
@@ -37,6 +70,42 @@ services:
       interval: 3s
       timeout: 3s
       retries: 20
+
+  api:
+    <<: *backend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8000/api/comics/pizza-fractions?lang=ru', timeout=2).close()"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 20s
+
+  worker:
+    <<: *backend
+    restart: unless-stopped
+    command: ["python", "-m", "app.worker"]
+    depends_on:
+      api:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        COMIC_ART_MODE: ${COMIC_ART_MODE:-prepared}
+    restart: unless-stopped
+    environment:
+      AMC_SITE: ":80"
+    ports:
+      - "127.0.0.1:8090:80"
+    depends_on:
+      api:
+        condition: service_healthy
 
 volumes:
   amc-postgres:

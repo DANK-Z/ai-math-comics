@@ -39,8 +39,12 @@ python -m venv .venv                      # already exists; recreate if missing
 # Create backend/.env from .env.example only if it is missing. Keep provider keys in .env.
 # Use COMIC_PROVIDER=openai or gemini. Select prepared or live with COMIC_ART_MODE.
 
-# PostgreSQL (+pgvector) and Redis in Docker (from the repo root; Docker Desktop must be running)
-docker compose up -d
+# Everything in Docker (from the repo root; Docker Desktop must be running): PostgreSQL
+# (+pgvector, 5433), Redis (6380), the API (8000), the comic generator (worker) and the built
+# site on http://localhost:8090. API and worker read provider keys from backend/.env.
+docker compose up -d --build
+# Only the database and cache, to run the API, worker and vite yourself:
+docker compose up -d db redis
 # backend/.env has DATABASE_URL (port 5433) and JWT_SECRET; without DATABASE_URL the API uses
 # backend/data/accounts.sqlite3 instead
 
@@ -140,8 +144,9 @@ cards, and hint reports are implemented. The authoring workflow was checked in E
 a deterministic provider. The backend suite with PostgreSQL finished with 341 passed and
 2 skipped, and the frontend build passed.
 
-Before working: start Docker Desktop, then `docker compose up -d` (PostgreSQL with pgvector on
-5433, Redis on 6380). Tests against the real services:
+Before working: start Docker Desktop, then `docker compose up -d db redis` (PostgreSQL with
+pgvector on 5433, Redis on 6380), or `docker compose up -d --build` to also run the API, the
+comic generator and the site on http://localhost:8090. Tests against the real services:
 `$env:TEST_REDIS_URL="redis://127.0.0.1:6380/15"; $env:TEST_DATABASE_URL="postgresql+asyncpg://amc:amc-dev-password@127.0.0.1:5433/amc_test"`.
 
 Known gaps / good next steps (see `docs/ROADMAP.md` for the full list):

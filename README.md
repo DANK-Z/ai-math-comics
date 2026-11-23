@@ -11,6 +11,9 @@ that teachers can write and publish.
 - For real generation and classroom accounts, follow the [backend setup](backend/README.md) to
   configure a provider and start FastAPI and its standalone worker. Then run `npm run dev:live`
   from `frontend/`. Open [the app](http://localhost:5173).
+- To run everything in Docker (site, API, comic generator, database and cache), add provider
+  keys to `backend/.env` and run `docker compose up -d --build` from the repository root. Open
+  [the app](http://localhost:8090). The generator starts with the containers.
 - For a pilot deployment, see the [deployment guide](docs/pilot-deployment.md) and
   [account migrations](docs/account-migrations.md).
 
