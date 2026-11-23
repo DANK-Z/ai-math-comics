@@ -1,19 +1,21 @@
 # AI Math Comics backend
 
 FastAPI backend implementing [the API contract](../docs/api-contract.md), with the original
-Pizza for Everyone demo and real AI generation. Requires Python 3.10+. Commands run from `backend/`.
+Pizza for Everyone demo, real AI generation, and teacher-authored assignments. The project
+container uses Python 3.13. Commands run from `backend/` unless specified otherwise.
 
 ## Install and configure
 
 ```powershell
 python -m venv .venv
 .venv\Scripts\python -m pip install -r requirements-dev.txt
-Copy-Item .env.example .env
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 ```
 
 Set `COMIC_PROVIDER=gemini` and `GEMINI_API_KEY` in `backend/.env` to use Gemini for both
 story and images. For OpenAI, keep the default `COMIC_PROVIDER=openai` and set
-`OPENAI_API_KEY`. API responses and image URLs contain no credentials.
+`OPENAI_API_KEY`. Provider keys stay on the server. Draft and assignment responses can include
+signed artwork URLs for the browser.
 `.env` and local data are ignored by Git. Existing process environment
 variables override `.env`. On macOS/Linux use `.venv/bin/python`; use `cp` to copy the example.
 For a runtime-only installation, install `requirements.txt`.
@@ -23,7 +25,8 @@ The static pizza comic works without credentials or a worker and still uses fron
 
 ### Accounts database (PostgreSQL)
 
-Accounts, classes, progress, coins and answer analytics live in PostgreSQL (SQLAlchemy async).
+Accounts, classes, progress, coins, assignments and answer analytics live in PostgreSQL
+(SQLAlchemy async).
 From the repository root:
 
 ```powershell
@@ -37,9 +40,11 @@ DATABASE_URL=postgresql+asyncpg://amc:amc-dev-password@127.0.0.1:5433/amc
 JWT_SECRET=<a long random string>
 ```
 
-Without `DATABASE_URL` the API falls back to `data/accounts.sqlite3`, so tests and a quick demo
-need no server. Without `JWT_SECRET` it uses a random secret per process (sign-ins stop working
-after a restart). Tables are created on first use; add Alembic migrations before a real pilot.
+Without `DATABASE_URL` the API falls back to `accounts.sqlite3` in `COMIC_DATA_DIR`, so tests
+and a quick demo need no PostgreSQL server. Set a stable `JWT_SECRET` to preserve sign-ins
+across API restarts. A disposable demo can create tables on first use. For an existing or pilot
+database, follow the [Alembic migration guide](../docs/account-migrations.md). Revision `0003`
+adds `assigned_comics` and `assignment_hints`.
 Run the account tests on PostgreSQL too with
 `$env:TEST_DATABASE_URL="postgresql+asyncpg://amc:amc-dev-password@127.0.0.1:5433/amc_test"`.
 They drop and recreate that database's tables, so never point it at `amc`. Create it once with
@@ -48,8 +53,8 @@ They drop and recreate that database's tables, so never point it at `amc`. Creat
 ### Story cache (Redis + pgvector)
 
 The worker reuses stories to save model calls and time (`app/story_cache.py`). It reuses the
-**story and pictures only**: the new job's exercise, hints and boss rounds replace the cached ones,
-and the result is validated again, so classmates never share answers.
+**story and pictures only**. The exercise, hints and boss rounds are rebuilt from the new
+job's math and validated again. Teacher drafts bypass this cache.
 
 * Express comics: exact key topic + grade + difficulty + art mode in Redis (`REDIS_URL`), up to
   `CACHE_VARIANTS` stories per key (default 1); a different language is the same story.
@@ -83,6 +88,9 @@ responses. Both processes must use the same `COMIC_DATA_DIR`. The separate worke
 generation independently of HTTP connections and API restarts. Without a worker, accepted
 jobs remain `queued`.
 `python -m app.worker --once` processes at most one job and exits.
+For a different port, update the API bind port, `PUBLIC_BASE_URL` and the frontend's
+`VITE_API_BASE_URL` together. Match the frontend's `VITE_COMIC_ART_MODE` to the backend's
+`COMIC_ART_MODE`.
 
 ## Generate and read a comic
 
@@ -110,8 +118,9 @@ The exercise ID in each generated comic is unique. Reuse:
 
 These also retain the static `pizza-share` exercise, whose expected answer remains `3/4`.
 `lang` defaults to `ru` on read/check endpoints. Hints default to step 1. Answers are strings
-of at most 256 characters in integer fraction form (`a/b`); surrounding whitespace, spaces
-around `/`, signs, and equivalent fractions are accepted with exact `Fraction` arithmetic.
+of at most 256 characters. Standard fraction exercises use integer fraction form (`a/b`)
+and accept whitespace, signs, and equivalent fractions with exact `Fraction` arithmetic.
+Equation exercises use the exact value parser described below.
 Unequal fractions return `incorrect`; malformed input and zero denominators return `invalid`.
 These outcomes use HTTP 200 with localized feedback; numeric JSON answers return HTTP 422.
 
@@ -133,21 +142,33 @@ heroes, style, setting, premise; see the contract). The logic lives in `app/my_s
 
 ### Chapter 3 continuation jobs
 
-In the library-key preview, live mode sends `POST /api/continuation-jobs` with
-`{"sourceChapterId":"school-quest-map","choiceId":"library-cabinet-key","locale":"kk"}`.
-The response is the same HTTP 202 job shape used by regular comics. Poll
-`GET /api/comic-jobs/{jobId}` and open the ready comic using the normal reader API.
-The server rejects other IDs and resolves the story context itself.
+The frontend sends `POST /api/continuation-jobs` for `sourceChapterId: "school-quest-map"`.
+The available choices are `library-cabinet-key`, `new-route-note`, `fair-attraction-ticket`,
+and `free-premise`. The free choice requires a moderated premise. The response uses the
+regular 202 job shape and the same status and reader APIs.
 
-The worker makes one bilingual text request with the configured story provider (Gemini
-when `COMIC_PROVIDER=gemini`). It always reuses the four bundled library panels,
-even if the regular Create Comic flow uses live image generation. The server keeps
-the six pictured loose books and three boxes fixed, chooses the total, and owns the
-equation, Pifik's question on panel 3, and the answer. The model writes the other
-dialogue and Pifik's clues. The server adds the two mathematical steps to the clues
-and validates the model's text before publication.
-The comic response identifies the continuation and its prepared panel keys. Its
-exercise uses the existing check and hint endpoints with a whole-number answer.
+The configured text provider writes a bilingual episode around a server-owned problem.
+The library episode keeps the six pictured loose books and three boxes fixed and renders
+Pifik's equation directly from server-owned values. All continuations use four prepared
+panels and require no image-provider calls. Panel 3 uses the check and hint endpoints with
+a whole-number answer.
+
+### Teacher drafts and assignments
+
+The teacher starts a private My Story job and polls it through the usual status endpoint.
+The SQLite comic store links the job to its author and keeps the generated draft. On
+publication the API creates an assignment snapshot in the accounts database, with six
+edited panels, one boss round on panel 4, localized hints, and an optional due date.
+Class membership gates access to the snapshot and its exercise.
+
+Teacher-entered expected answers use the exact parser in `app/answers.py`. For an equation
+boss the parsed value must be an integer. The teacher checks that the expected answer
+matches the editable problem text. AI task assistance selects from server-generated
+problems and drafts hints. The bundled problem bank contains demonstration equations.
+
+Assignment answers use the existing analytics logs. The accounts database records the
+first opening of each hint per student and assignment. See the
+[assignment endpoints](../docs/api-contract.md#teacher-authored-class-assignments).
 
 ## Provider configuration
 
@@ -230,7 +251,7 @@ Student text is matched against a strict ASCII-digit pattern first and is never 
 `sympify`/`parse_expr` (they use `eval`). Equation scenes show a chest sealed by a riddle lock,
 with no digits in the pictures.
 
-Each published comic also stores two extra boss rounds (same topic, grade and difficulty) in the
+Each standalone generated comic also stores two extra boss rounds (same topic, grade and difficulty) in the
 `boss_rounds` table; the reader's panel-four boss fight checks them through the usual exercise
 endpoints.
 
@@ -257,17 +278,18 @@ of accidental lettering still depend on the image model; deterministic checks ca
 real artwork. Returned files are decoded, validated, normalized to PNG, and stripped of metadata.
 
 `data/comics.sqlite3` holds queued requests, statuses, bilingual comics, hints, and **private
-answers**. `data/images/` holds generated files. Only images belonging to a published comic
-are accessible through `/api/comic-images/{comicId}/{panelId}.png`; never statically expose
-the entire data directory. Publication of the comic, exercise, and `ready` status is one SQLite
-transaction, after all six PNGs are saved. Failed attempts clean up their files.
+answers**. `data/images/` holds generated files. The API serves artwork from finished comics or
+drafts with signed artwork URLs. Publication of a standalone comic, exercise, and `ready`
+status is one SQLite transaction after all live panels are saved. Resumable image failures
+keep the validated storyboard and completed panels.
 
 Workers atomically claim jobs with SQLite transactions, preventing duplicate consumption even
 with multiple local worker processes. A lease lasts the job timeout plus 30 seconds. Graceful
 shutdown marks the current job `worker_interrupted`; after a crash, a worker marks expired
 running jobs failed on its next claim/poll. They are not reissued automatically. Abrupt crashes
 can leave unreferenced image files on disk, but these are not served. This is a single-host
-demo queue using local storage, without user authentication or per-user quotas.
+demo queue using local storage. Standalone generation supports guests. The teacher draft
+routes require an authenticated teacher. The queue has no per-user generation quotas.
 
 Safe failure codes are `provider_not_configured`, `provider_authentication`,
 `provider_rate_limited`, `provider_timeout`, `provider_unavailable`, `invalid_provider_output`,

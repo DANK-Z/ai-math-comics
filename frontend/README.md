@@ -1,13 +1,13 @@
-# AI Math Comics — frontend demo
+# AI Math Comics frontend
 
-React + TypeScript + Tailwind (Vite) client for the "pizza fractions" comic described in
-[`../docs/api-contract.md`](../docs/api-contract.md).
+React + TypeScript + Tailwind (Vite) client for the School Fair season, generated comics, and
+classroom assignments. See the [API contract](../docs/api-contract.md).
 
 ## Start
 
 ```sh
 cd frontend
-npm install
+npm ci
 npm run dev        # http://localhost:5173, uses built-in mocks (no backend needed)
 npm run dev:live   # http://localhost:5173, talks to the FastAPI backend at http://127.0.0.1:8000
 ```
@@ -20,15 +20,14 @@ Other scripts: `npm run build` (type-check + production build to `dist/`), `npm 
 | ------------------- | ------------------------ | ------------------------------------------- |
 | `VITE_API_MODE`     | `mock`                   | `mock` = in-browser mocks, `live` = HTTP    |
 | `VITE_API_BASE_URL` | `http://127.0.0.1:8000`  | Backend origin used in `live` mode          |
+| `VITE_COMIC_ART_MODE` | `prepared` | Sets the generation copy. Match the backend's `COMIC_ART_MODE`. |
 
 `.env` sets mock mode; `.env.live` (loaded by `npm run dev:live`) sets live mode. Override
 locally with `.env.local` / `.env.live.local` (git-ignored). Live mode needs the backend to allow
 the `http://localhost:5173` or `http://127.0.0.1:5173` origin in CORS.
 
-The mocks (`src/api/mockApi.ts`, `src/api/mockData.ts`) follow the contract: six panels, exercise
-on panel 4, exact fraction checking (`3/4` and equivalents are correct, zero denominator is
-`invalid`), localized feedback, and two hint steps with `hasMore`. The mock only parses `a/b` and
-integers; the backend is the source of truth for what else counts as valid input.
+The mocks simulate six-panel comics with an exercise on panel 4, exact fraction and equation
+answers, localized feedback, and two hints. Classroom publishing and reports use the live API.
 
 ## Screens
 
@@ -37,7 +36,10 @@ integers; the backend is the source of truth for what else counts as valid input
 - `#/backpack` — chapter collectibles and bonus stickers.
 - `#/guardian` — the Final Challenge, unlocked after all six chapters.
 - `#/create` — the Create Comic form.
-- `#/comic/{comicId}` — the reader for a catalog comic or a generated episode.
+- `#/my-comics` — browser history for generated comics, with open and replay actions.
+- `#/comic/{comicId}` — the reader for catalog comics, generated stories and class assignments.
+- `#/login` — sign in or register as a teacher or student.
+- `#/teacher` and `#/teacher/class/{classId}` — teacher workspace and class analytics.
 
 Catalog chapters are independent of the generation worker. Chapters 2–6 bundle their
 panels and exercises in the frontend and work in both API modes.
@@ -58,6 +60,8 @@ panels and exercises in the frontend and work in both API modes.
    in the same tab and only sends status GETs. Polling also waits while the tab is hidden.
 4. Terminal failures show a localized message with *Try again* / *Change settings*; the technical detail
    (HTTP status + FastAPI `detail`, or the job's `errorCode`) is under *Details*.
+   A resumable live-art failure also offers *Resume generation*. This continues the same job
+   and draws only missing panels. *Check status* only resumes polling.
 
 Generated panels carry `imageUrl`. Absolute URLs are used as-is; relative ones are resolved
 against `VITE_API_BASE_URL` in live mode. The dialogue is shown in a bubble under the image
@@ -73,12 +77,32 @@ their parameters, so the mock is stateless and survives reloads. Failure paths:
 
 ## Chapter 3 continuations
 
-Solve Chapter 3 and open its ending. The library-key preview offers a Create my episode
-action in live mode. It uses the same queue status endpoint and polling controls as regular
-generation, with a separate saved job ID. You can reopen the preview to resume checking or
-read a finished episode. A failed job leaves the preview available and offers an explicit retry.
-The reader reuses the existing library illustrations with localized dialogue and an equation.
-The episode links to Chapter 3 and canonical Chapter 4 and never changes season progress.
+Solve Chapter 3 and open its ending. In live mode the key, route note, fair ticket, and
+student-written premise can become generated continuations. The prepared previews stay
+available for the three preset choices. The flow saves a separate job ID so you can reopen
+it to resume checking or read the finished episode. Continuations reuse local artwork.
+Their reader links lead back to Chapter 3 and onward to the canonical Chapter 4. They are
+outside season progress.
+
+## Classroom assignments
+
+1. Start the live frontend and backend. In [the sign-in screen](http://localhost:5173/#/login),
+   register as a teacher or use your existing teacher login. Create a class in the teacher
+   dashboard and copy its class code.
+2. Open **Создать авторский комикс / Авторлық комикс жасау**, select the cast, style and setting,
+   and generate the draft. The draft uses the configured worker and artwork mode.
+3. In the editor, review the title and dialogue for each of the six panels in both languages.
+   On panel 4 choose the boss and fill the problem, expected answer, and both Pifik hints.
+   Enter your own task, select a demonstration equation, or ask AI to pick a server-generated
+   problem and write hints. For example, use `2x + 5 = 15` with the expected answer `x = 5`.
+4. Select the class, optionally set a due date, and publish. The assignment ID identifies a
+   published copy of the draft. The due date is displayed on the map.
+5. As a student, register with that class code or join from your profile. The map checks for
+   new assignments every five seconds while visible. Open **Задание от учителя / Мұғалімнің
+   тапсырмасы**, solve the boss round on panel 4 and read the ending.
+6. In the class dashboard, review the assignment report. Each student is shown as pending,
+   solved independently, or solved with hints. A completed entry counts hints opened before
+   the first correct submission.
 
 ## Features
 

@@ -130,12 +130,17 @@ The Guardian final challenge exists (`9dc0af2`): three rounds (fractions, percen
 | Power-ups for boss fights | Done for the School Fair Guardian. Students get one worked example and one solution plan per run. |
 | Story cache: Redis for Express, pgvector + local embeddings for «Моя история» (fresh math every time) | Done |
 | Shareable chapter assignments | Done. A teacher can choose a chapter and copy its direct student link from the class dashboard. |
+| Authoring and publishing class comics | Done. A teacher generates a private six-panel draft, edits it in RU/KK, chooses the panel-four boss and publishes a snapshot to one class with an optional due date. |
+| Manual problems, AI task assistance and a problem bank | Done for manual answers, curated AI selection and a demonstration bank. Adding the teaching team's problem collection remains planned. |
+| Class assignment map and hint report | Done. Students see assignments on the map. The teacher can distinguish independent solutions from solutions with hints. |
 | Configurable Guardian rounds for review or assessment | Done. Teachers choose topics, a number set, and whether to allow boosts, then share a link. The season unlock rule still applies. |
 | Password reset, teacher-managed student accounts | Planned |
 | Rate limiting of sign-in | Done. Shared counters cap attempts per IP and per login/IP. |
 | Database migrations (Alembic) before a pilot | Done for the accounts database. See [migration instructions](account-migrations.md). |
 
 Accounts are optional: guests still play with progress saved only in the browser.
+Authoring and completing class assignments requires the live API and the corresponding teacher
+or student account. See the [classroom walkthrough](../frontend/README.md#classroom-assignments).
 
 ### 11. New comics and exercise templates — Planned
 

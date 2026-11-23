@@ -1,6 +1,9 @@
 # Account database migrations
 
-Alembic manages accounts, classes, rewards, analytics and sign-in counters. Comic jobs and panel files stay in `COMIC_DATA_DIR`. The semantic story cache manages its own disposable table.
+Alembic manages accounts, classes, rewards, analytics and sign-in counters. Revision `0003`
+adds published class snapshots (`assigned_comics`) and per-student hint usage
+(`assignment_hints`). Comic jobs, draft ownership, and panel files stay in `COMIC_DATA_DIR`.
+The semantic story cache manages its own disposable table.
 
 Run commands from `backend/` in the backend virtual environment. Alembic uses the same `DATABASE_URL` as FastAPI. With an empty `DATABASE_URL`, it uses `accounts.sqlite3` in `COMIC_DATA_DIR`.
 

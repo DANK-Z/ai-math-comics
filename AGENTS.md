@@ -12,8 +12,9 @@ comics («Математический экспресс» and «Моя исто�
 
 - `frontend/` — React 19 + TypeScript + Tailwind v4 (Vite). Hash routes (`#/`, `#/comics`,
   `#/my-comics`, `#/create`, `#/comic/{id}`, `#/guardian`, `#/road-guardian`, `#/backpack`).
-- `backend/` — FastAPI API (`app/main.py`) + separate generation worker (`app/worker.py`),
-  SQLite in `backend/data/` (git-ignored, holds private answers).
+- `backend/` — FastAPI API (`app/main.py`) and separate generation worker (`app/worker.py`).
+  SQLite stores comic jobs and drafts in `COMIC_DATA_DIR`. PostgreSQL stores accounts and
+  published assignments, with a SQLite fallback for local demos.
 - `docs/api-contract.md` — the API contract; keep frontend types, mocks and backend in sync with it.
 - `docs/ROADMAP.md` — what is done / in progress / planned. Update it when you finish an item.
 
@@ -35,8 +36,8 @@ when the owner asks; never force-push `main`.
 cd backend
 python -m venv .venv                      # already exists; recreate if missing
 .venv\Scripts\python -m pip install -r requirements-dev.txt
-# backend/.env already holds the owner's keys (COMIC_PROVIDER=gemini, prepared art). Never print,
-# copy or commit it. Template: backend/.env.example
+# Create backend/.env from .env.example only if it is missing. Keep provider keys in .env.
+# Use COMIC_PROVIDER=openai or gemini. Select prepared or live with COMIC_ART_MODE.
 
 # PostgreSQL (+pgvector) and Redis in Docker (from the repo root; Docker Desktop must be running)
 docker compose up -d
@@ -62,6 +63,8 @@ npm run dev:live     # uses .env.live (+ git-ignored .env.live.local overrides)
 ```
 
 CORS allows only `http://localhost:5173` and `http://127.0.0.1:5173`.
+Both backend processes must share `COMIC_DATA_DIR`. Keep the frontend art setting in sync.
+Classroom authoring and assignments require the live frontend and API.
 Real generation costs money (Gemini/OpenAI). Ask the owner before running a real provider job.
 
 ## Checks (run before saying something is done)
@@ -82,9 +85,11 @@ For UI changes also open the app (mock mode is enough) and check desktop 1440 px
 
 1. **Russian + Kazakh everywhere.** Every user-facing string has `ru` and `kk` (see
    `frontend/src/i18n.ts`, `myStory.ts`, `boss.ts`, backend problem templates).
-2. **The server owns the math.** Operands, exercise text, hints and answers come from
-   `backend/app/problems.py` (fractions, equations) and `library_episode.py`. The text model only
-   writes narrative. It never chooses numbers, and answers never go to the model or the client.
+2. **The server owns generated math.** Trusted operands and answers come from
+   `backend/app/problems.py` (fractions, equations) and the continuation problem modules.
+   The model can choose among vetted resources or problems and write narrative or hints.
+   Keep expected answers out of prompts and student responses. A signed-in teacher can
+   view and edit the expected answer for their own unpublished draft.
 3. **Narrative validation** (`backend/app/story.py`, `validate_narrative`): titles and dialogue
    outside panel 4 must be Cyrillic and have no digits, math symbols or number words
    (RU/KK, including collective numerals like «двое», «трое»). Panel 4 text is exactly the
@@ -112,7 +117,7 @@ For UI changes also open the app (mock mode is enough) and check desktop 1440 px
 | Job queue, publish, boss_rounds table | `app/storage.py` | `jobs.ts`, `components/GenerateCard.tsx` |
 | Worker: storyboard retries (`TEXT_ATTEMPTS`), images, boss block | `app/worker.py` | `components/GenerationProgress.tsx` |
 | Answer check (fraction `a/b`; equations via SymPy: `x=3`, `3`, `3.0`, `3,0`) | `app/main.py`, `app/answers.py` | `hooks.ts`, mock mirror `api/answers.ts` |
-| Panel-4 boss fight (90 HP, 3 rounds × 30), draft pad, victory screen | `schemas.Boss` | `components/BossFight.tsx`, `components/TriumphModal.tsx`, `boss.ts`, `components/ComicReader.tsx` |
+| Panel-4 boss fight (90 HP, three standalone rounds or one class round), draft pad, victory screen | `schemas.Boss` | `components/BossFight.tsx`, `components/TriumphModal.tsx`, `boss.ts`, `components/ComicReader.tsx` |
 | Road Guardian (motion problems) | — | `roadGuardian.ts`, `components/RoadGuardianScreen.tsx` |
 | Season, catalog, backpack, Guardian | — | `schoolFair.ts`, `guardian.ts`, `components/*` |
 | My Comics history (localStorage `amc.myComics`) | — | `myComics.ts`, `components/MyComicsScreen.tsx` |
@@ -121,29 +126,30 @@ For UI changes also open the app (mock mode is enough) and check desktop 1440 px
 | Fair shop, Pifik skins | `app/shop.py` | `components/FairShop.tsx`, `components/PifikSprite.tsx` (skin overlay in sheet coordinates) |
 | Story cache (Redis exact, pgvector semantic; fresh math) | `app/story_cache.py`, `Worker.cached_story` | — |
 | Classes, codes, progress, coins, analytics, dashboard | `app/accounts.py` | `components/TeacherScreen.tsx`, `components/ProfileScreen.tsx`, `bossProgress.ts`, `accountCopy.ts`, mock `api/mockAccounts.ts` |
+| Private teacher drafts, class assignments and hint reports | `app/assignments.py`, `app/storage.py`, `app/db.py` | `components/TeacherWorkshop.tsx`, `components/ClassAssignments.tsx`, `assignmentCopy.ts` |
 
-## Current state (2026-11-22, `main` at `86b6800`, pushed to GitHub)
+## Current state (2026-11-23)
 
 Done: «Моя история»; topics «Дроби» and «Уравнения» (SymPy answer parsing: `x=3`, `3`, `3.0`,
 `3,0`); storyboard retries (verified live with Gemini); panel-4 boss fight with victory screen and
 draft pad; Road Guardian; accounts (students by login, teachers by e-mail, JWT roles), class codes,
 server-side coins/stars, teacher dashboard with error heatmap; fair shop with Pifik skins;
 story cache (Redis for Express, pgvector + local multilingual embeddings for «Моя история»; the
-math is always new). 314 backend tests pass with the real services, the frontend builds.
+math is generated for each job). Classroom authoring, publishing to a class, student map
+cards, and hint reports are implemented. The authoring workflow was checked in Edge with
+a deterministic provider. The backend suite with PostgreSQL finished with 341 passed and
+2 skipped, and the frontend build passed.
 
 Before working: start Docker Desktop, then `docker compose up -d` (PostgreSQL with pgvector on
 5433, Redis on 6380). Tests against the real services:
 `$env:TEST_REDIS_URL="redis://127.0.0.1:6380/15"; $env:TEST_DATABASE_URL="postgresql+asyncpg://amc:amc-dev-password@127.0.0.1:5433/amc_test"`.
 
 Known gaps / good next steps (see `docs/ROADMAP.md` for the full list):
-- Power-ups (potions) for boss fights: the boss uses typed answers, so «remove a wrong answer»
-  needs a new design first.
-- Alembic migrations before a pilot (tables are created with `create_all`), sign-in rate limiting,
-  password reset.
-- Sprint 5: Docker images for API/worker/frontend, HTTPS, deployment, backups.
-- In mock mode the teacher dashboard shows fixed demo statistics.
+- Password reset and teacher-managed student accounts.
+- External pilot deployment and public certificate validation.
+- The classroom problem bank contains demonstration tasks. The teaching team's material is pending.
+- In mock mode the teacher dashboard shows fixed demo statistics. Classroom publishing uses live mode.
 - With prepared art, style/setting choices do not change pictures; custom heroes are never drawn.
 - Live image generation with the real provider has not been re-checked since the equations/boss work.
 - Moderation of student text is rule- and prompt-based only.
-- `backend/README.md` has a small uncommitted doc edit (library episode paragraph) — keep it.
 - Branch `feat/frontend-redesign` is an old, superseded redesign; do not merge it.
