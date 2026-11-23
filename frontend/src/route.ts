@@ -14,6 +14,7 @@ export const SECTION_HREFS = {
   login: '#/login',
   profile: '#/profile',
   teacher: '#/teacher',
+  battle: '#/battle',
 } as const
 
 export type Section = keyof typeof SECTION_HREFS
@@ -22,6 +23,7 @@ export type Route =
   | { name: Section }
   | { name: 'comic'; comicId: string; ending: boolean; replay: string | null }
   | { name: 'teacherClass'; classId: number }
+  | { name: 'teacherBattle'; battleId: string }
   | { name: 'operation'; id: string }
   | { name: 'operationFinale'; id: string }
   | { name: 'guardianAssignment'; assignment: GuardianAssignment }
@@ -44,6 +46,8 @@ export function parseRoute(hash: string): Route {
   if (finale) return { name: 'operationFinale', id: finale[1] }
   const operation = /^#\/operation\/([a-z0-9-]{1,40})$/.exec(hash)
   if (operation) return { name: 'operation', id: operation[1] }
+  const teacherBattle = /^#\/teacher\/battle\/([a-z0-9-]{1,40})$/.exec(hash)
+  if (teacherBattle) return { name: 'teacherBattle', battleId: teacherBattle[1] }
   const teacherClass = /^#\/teacher\/class\/([0-9]{1,9})$/.exec(hash)
   if (teacherClass) return { name: 'teacherClass', classId: Number(teacherClass[1]) }
   const m = /^#\/comic\/([^/?#]+)/.exec(hash)
@@ -61,6 +65,11 @@ export function parseRoute(hash: string): Route {
 
 export function teacherClassHref(classId: number) {
   return `#/teacher/class/${classId}`
+}
+
+/** The class board of a class battle (teacher). */
+export function battleBoardHref(battleId: string) {
+  return `#/teacher/battle/${battleId}`
 }
 
 export function comicHref(comicId: string, ending = false) {

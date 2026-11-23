@@ -32,14 +32,14 @@ function SlimeArt() {
   )
 }
 
-function BossAvatar({ kind, shielded, hitKey }: { kind: BossKind; shielded: boolean; hitKey: number }) {
+export function BossAvatar({ kind, shielded, hitKey, big = false }: { kind: BossKind; shielded: boolean; hitKey: number; big?: boolean }) {
   return (
     <span
       key={hitKey}
       data-idle={hitKey === 0 || undefined}
       aria-hidden
-      className={`boss-hit relative grid size-20 shrink-0 place-items-center rounded-2xl border-[3px] border-ink sm:size-24 ${
-        kind === 'x-master' ? 'bg-violet-200 text-5xl sm:text-6xl' : 'bg-lime-100 p-1.5'
+      className={`boss-hit relative grid shrink-0 place-items-center rounded-2xl border-[3px] border-ink ${big ? 'size-32 sm:size-44' : 'size-20 sm:size-24'} ${
+        kind === 'x-master' ? (big ? 'bg-violet-200 text-7xl sm:text-8xl' : 'bg-violet-200 text-5xl sm:text-6xl') : 'bg-lime-100 p-1.5'
       } ${shielded ? 'boss-shield' : ''}`}
     >
       {kind === 'x-master' ? '🧙' : <SlimeArt />}

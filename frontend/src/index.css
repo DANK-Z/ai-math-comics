@@ -492,3 +492,23 @@ html {
   50% { transform: translateX(5px); }
   75% { transform: translateX(-3px); }
 }
+
+/* Night reading in the comic reader (system dark mode or the 🌙 toggle): a deep navy page,
+   softer pictures and light text in the speech bubbles. */
+.reader-card[data-night] {
+  background: #121838;
+  border-color: #2b3572;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.35);
+  transition: background-color 400ms ease;
+}
+.reader-card[data-night] img { filter: brightness(0.8) contrast(1.1); }
+.reader-card[data-night] .reader-band { background: #0c1129; }
+.reader-card[data-night] .reader-muted { color: #c9d2ff; }
+.reader-card[data-night] .comic-bubble {
+  --bubble-fill: #1c2452;
+  border-color: #8fa3ff;
+}
+.reader-card[data-night] .comic-bubble p,
+.reader-card[data-night] p.comic-bubble { color: #fff3b0; }
+.reader-card[data-night] .comic-bubble svg .stroke-ink { stroke: #8fa3ff; }
+.reader-card[data-night] figure { border-color: #8fa3ff; }

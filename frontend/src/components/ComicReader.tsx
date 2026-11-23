@@ -71,6 +71,37 @@ function RewardNotes({ comicId, lang }: { comicId: string; lang: Lang }) {
   )
 }
 
+const NIGHT_LABEL = { ru: 'Ночное чтение', kk: 'Түнгі оқу' }
+const NIGHT_KEY = 'amc.reader.night'
+const DARK_QUERY = '(prefers-color-scheme: dark)'
+
+/** Night reading: follows the system's dark mode until the reader picks a side with the toggle. */
+function useNightReading() {
+  const [choice, setChoice] = useState<'on' | 'off' | null>(() => {
+    try {
+      const saved = localStorage.getItem(NIGHT_KEY)
+      return saved === 'on' || saved === 'off' ? saved : null
+    } catch {
+      return null
+    }
+  })
+  const [systemDark, setSystemDark] = useState(() => typeof matchMedia === 'function' && matchMedia(DARK_QUERY).matches)
+  useEffect(() => {
+    if (typeof matchMedia !== 'function') return
+    const query = matchMedia(DARK_QUERY)
+    const onChange = () => setSystemDark(query.matches)
+    query.addEventListener('change', onChange)
+    return () => query.removeEventListener('change', onChange)
+  }, [])
+  const on = choice ? choice === 'on' : systemDark
+  const toggle = useCallback(() => {
+    const next = on ? 'off' : 'on'
+    setChoice(next)
+    try { localStorage.setItem(NIGHT_KEY, next) } catch { /* this visit only */ }
+  }, [on])
+  return { on, toggle }
+}
+
 const GREETING = {
   ru: (name: string | null, title: string) => `Салем${name ? `, ${name}` : ''}! Нам нужна твоя помощь в главе «${title}» — без тебя не справимся!`,
   kk: (name: string | null, title: string) => `Сәлем${name ? `, ${name}` : ''}! «${title}» тарауында бізге сенің көмегің керек — сенсіз болмайды!`,
@@ -196,6 +227,7 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
   const justUnlocked = exerciseSolved && isExercisePanel && current < total - 1
   const ending = solved && current === total - 1 ? chapterEnding(comic.id) : undefined
   const bonusSticker = ending ? chapterBonus(comicId) : undefined
+  const night = useNightReading()
   const effect = panelEffectFor(comicId)
   const secret = secretFor(comicId, panel.id)
 
@@ -213,15 +245,23 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
     <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_17rem]">
       <section
         aria-label={comic.title}
-        className="min-w-0 rounded-[28px] border-[3px] border-ink/10 bg-white p-3 shadow-[0_10px_30px_rgb(36_57_159/0.15)] sm:p-4 xl:col-start-1 xl:row-start-1"
+        data-night={night.on || undefined}
+        className="reader-card min-w-0 rounded-[28px] border-[3px] border-ink/10 bg-white p-3 shadow-[0_10px_30px_rgb(36_57_159/0.15)] sm:p-4 xl:col-start-1 xl:row-start-1"
       >
         <div className="mb-3 flex items-center justify-between gap-3 px-1">
           <h2 className="rounded-full bg-brand px-4 py-1 text-sm font-black text-white shadow-[inset_0_-3px_0_rgb(0_0_0/0.15)] sm:text-base">
             {comic.title}
           </h2>
-          <p className="shrink-0 text-sm font-extrabold text-ink/70" aria-live="polite">
-            {t.panelOf(current + 1, total)}
-          </p>
+          <div className="flex shrink-0 items-center gap-2">
+            <p className="reader-muted text-sm font-extrabold text-ink/70" aria-live="polite">
+              {t.panelOf(current + 1, total)}
+            </p>
+            <button type="button" aria-pressed={night.on} onClick={night.toggle} title={NIGHT_LABEL[lang]}
+              className="grid size-9 place-items-center rounded-full border-2 border-ink bg-white text-base shadow-[0_2px_0_var(--color-ink)] hover:bg-sky focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun aria-pressed:bg-ink aria-pressed:text-white">
+              <span aria-hidden>{night.on ? '🌙' : '☀️'}</span>
+              <span className="sr-only">{NIGHT_LABEL[lang]}</span>
+            </button>
+          </div>
         </div>
         {current === 0 && <ReaderGreeting lang={lang} title={comic.title} />}
         {comic.artwork === 'prepared' && (

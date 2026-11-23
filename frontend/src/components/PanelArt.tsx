@@ -215,7 +215,7 @@ function DialogueBand({ speaker, text, tag, emotion, animate }: {
   speaker: string; text: string; tag?: string; emotion: Emotion; animate: boolean
 }) {
   return (
-    <div className="border-t-[5px] border-ink bg-white px-3 pt-5 pb-3 sm:px-4">
+    <div className="reader-band border-t-[5px] border-ink bg-white px-3 pt-5 pb-3 sm:px-4">
       <div data-dialogue-emotion={emotion} className="comic-bubble relative rounded-[22px] border-[3px] border-ink bg-cream px-4 pt-4 pb-3 text-center text-ink shadow-[0_3px_0_rgb(29_39_102/0.25)]">
         <svg aria-hidden viewBox="0 0 22 26" className="absolute -top-[23px] left-[14%] h-[26px] w-[22px]">
           <path d="M0,26 L6,0 L18,26 Z" className="comic-bubble-fill" />

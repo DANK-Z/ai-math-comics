@@ -1,3 +1,4 @@
+import { BattleBoardScreen, BattleScreen } from './components/ClassBattle'
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { API_MODE, type ComicJobRequest, type Lang } from './api'
 import logoUrl from './assets/logo.webp'
@@ -74,10 +75,10 @@ function AccountChip({ lang }: { lang: Lang }) {
 
 /** Teachers see only their dashboard; students and guests only the game. */
 function screenFor(route: Route, role: 'student' | 'teacher' | null): Route | null {
-  const teacherRoute = route.name === 'teacher' || route.name === 'teacherClass'
+  const teacherRoute = route.name === 'teacher' || route.name === 'teacherClass' || route.name === 'teacherBattle'
   if (role === 'teacher') return teacherRoute ? null : { name: 'teacher' }
   if (role === 'student') return teacherRoute || route.name === 'login' ? { name: 'map' } : null
-  return teacherRoute || route.name === 'profile' ? { name: 'login' } : null
+  return teacherRoute || route.name === 'profile' || route.name === 'battle' ? { name: 'login' } : null
 }
 
 export default function App() {
@@ -163,7 +164,7 @@ function AppShell() {
   // A saved generated comic belongs to My Comics; everything else to the catalog.
   const readerSection = route.name === 'comic' && myComics.some((c) => c.comicId === route.comicId) ? 'myComics' as const : 'comics' as const
   const readerNav = route.name === 'comic' && operationChapter(route.comicId) ? 'operations' as const : readerSection === 'comics' ? 'map' as const : readerSection
-  const activeSection = route.name === 'comic' ? readerNav : route.name === 'operation' || route.name === 'operationFinale' ? 'operations' : route.name === 'teacherClass' ? 'teacher' : route.name === 'motionLeague' || route.name === 'roadGuardian' ? 'operations' : route.name === 'guardianAssignment' || route.name === 'guardian' || route.name === 'comics' ? 'map' : route.name
+  const activeSection = route.name === 'comic' ? readerNav : route.name === 'operation' || route.name === 'operationFinale' ? 'operations' : route.name === 'teacherClass' || route.name === 'teacherBattle' ? 'teacher' : route.name === 'battle' ? 'map' : route.name === 'motionLeague' || route.name === 'roadGuardian' ? 'operations' : route.name === 'guardianAssignment' || route.name === 'guardian' || route.name === 'comics' ? 'map' : route.name
   const navigation = { t, active: activeSection, completed: completedChapters.size, remaining, myComics: myComics.length, guardianWon: guardian.run.won, operationsDone: operations.completed.size, lang }
 
   const openGenerated = useCallback(
@@ -195,6 +196,7 @@ function AppShell() {
         <main className="mx-auto max-w-[90rem] min-w-0 px-3 py-4 sm:px-6 sm:py-6">
           {route.name === 'teacher' && <TeacherHome lang={lang} />}
           {route.name === 'teacherClass' && <ClassDashboard key={route.classId} lang={lang} classId={route.classId} />}
+          {route.name === 'teacherBattle' && <BattleBoardScreen key={route.battleId} lang={lang} battleId={route.battleId} />}
         </main>
       ) : (
       <>
@@ -206,6 +208,7 @@ function AppShell() {
         <main className="min-w-0">
           {route.name === 'login' && <AuthScreen lang={lang} />}
           {route.name === 'profile' && role === 'student' && <ProfileScreen lang={lang} />}
+          {route.name === 'battle' && role === 'student' && <BattleScreen lang={lang} />}
           {route.name === 'map' && (
             <HomeScreen lang={lang} completedChapters={completedChapters} remaining={remaining} guardianWon={guardian.run.won}
               lastComicId={lastComicId} />

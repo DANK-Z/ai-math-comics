@@ -244,6 +244,67 @@ export interface Shop {
   items: { id: SkinKey; type: 'skin'; price: number; owned: boolean; equipped: boolean; backpackItemId: number | null }[]
 }
 
+/** GET /api/me/leaderboard: this week's class table (stars, then coins earned). */
+export interface LeaderRow {
+  rank: number
+  name: string
+  stars: number
+  coins: number
+  cleanWins: number
+  me: boolean
+}
+
+export interface Leaderboard {
+  className: string
+  weekStart: string
+  rows: LeaderRow[]
+  classSize: number
+}
+
+export type BattleTopic = 'fractions' | 'equations'
+export type BattleDifficulty = 'basic' | 'intermediate' | 'advanced'
+export type BattleStatus = 'active' | 'won' | 'stopped'
+
+/** The class board of a class battle (teacher). */
+export interface BattleBoard {
+  id: string
+  classId: number
+  className: string
+  classCode: string
+  topic: BattleTopic
+  difficulty: BattleDifficulty
+  maxHp: number
+  hp: number
+  damagePerHit: number
+  status: BattleStatus
+  hits: number
+  fighters: number
+  top: { name: string; hits: number }[]
+  recent: { name: string; at: string }[]
+  startedAt: string
+  finishedAt?: string | null
+}
+
+/** A student's view of the class battle, with their current problem. */
+export interface StudentBattle {
+  id: string
+  topic: BattleTopic
+  maxHp: number
+  hp: number
+  damagePerHit: number
+  status: BattleStatus
+  myHits: number
+  classHits: number
+  task?: { id: string; prompt: string; answerFormat: 'fraction' | 'whole-number' } | null
+}
+
+export interface BattleAnswerResult {
+  status: CheckStatus
+  message: string
+  damage: number
+  battle: StudentBattle
+}
+
 export interface AccountApi {
   signUpStudent(body: { login: string; password: string; displayName: string; classCode?: string }): Promise<AuthResponse>
   signUpTeacher(body: { email: string; password: string; displayName: string }): Promise<AuthResponse>
@@ -259,6 +320,14 @@ export interface AccountApi {
   buy(itemId: SkinKey): Promise<Shop>
   /** A backpack item id, or null to take the skin off. */
   equip(backpackItemId: number | null): Promise<Shop>
+  leaderboard(signal?: AbortSignal): Promise<Leaderboard>
+  classLeaderboard(classId: number, signal?: AbortSignal): Promise<Leaderboard>
+  startBattle(classId: number, body: { topic: BattleTopic; difficulty: BattleDifficulty; hp: number }): Promise<BattleBoard>
+  currentClassBattle(classId: number, signal?: AbortSignal): Promise<BattleBoard | null>
+  battleBoard(battleId: string, signal?: AbortSignal): Promise<BattleBoard>
+  stopBattle(battleId: string): Promise<BattleBoard>
+  myBattle(lang: Lang, signal?: AbortSignal): Promise<StudentBattle | null>
+  answerBattle(battleId: string, body: { taskId: string; answer: string; lang: Lang }): Promise<BattleAnswerResult>
 }
 export interface TeacherTask {
   boss: BossKind

@@ -16,6 +16,8 @@ import { SCHOOL_FAIR_STOPS, schoolFairChapter } from '../schoolFair'
 import { PifikSprite } from './PifikSprite'
 import { SchoolFairRoute } from './SchoolFairRoute'
 import { StudentAssignments } from './ClassAssignments'
+import { BattleAlert } from './ClassBattle'
+import { ClassLeague } from './ClassLeague'
 
 /** How a cover is cropped in its card: box aspect ratio + CSS object-position focal point. */
 interface Framing {
@@ -207,7 +209,9 @@ export function HomeScreen({ lang, completedChapters, remaining, guardianWon, la
       <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,48rem)_minmax(15rem,20rem)]">
         <aside className="flex max-w-3xl flex-col gap-4 xl:sticky xl:top-5 xl:col-start-2 xl:row-start-1">
           <ContinueCard lang={lang} completedChapters={completedChapters} guardianWon={guardianWon} lastComicId={lastComicId} />
+          <BattleAlert lang={lang} />
           <StudentAssignments lang={lang} />
+          <ClassLeague lang={lang} />
           <a href={SECTION_HREFS.operations} className="flex items-center gap-3 rounded-2xl border-[3px] border-ink bg-[linear-gradient(120deg,#d9f2e6,#dbe8ff)] p-3 font-black text-ink shadow-[0_4px_0_var(--color-ink)] hover:bg-sky focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand">
             <span aria-hidden className="text-3xl">🧭</span>
             <span className="min-w-0 flex-1">

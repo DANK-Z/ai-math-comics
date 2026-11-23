@@ -65,3 +65,18 @@ def parse_equation_answer(answer: str) -> Fraction | None:
         if value is None:
             return None
     return Fraction(int(value.p), int(value.q))
+
+
+FRACTION_PATTERN = re.compile(r"([+-]?[0-9]+)\s*/\s*([+-]?[0-9]+)")
+
+
+def parse_answer(answer: str, topic: str) -> Fraction | None:
+    """Fractions accept a/b; equations accept x = 3, 3, 3.0 … (see answers.py). Exact math."""
+    answer = answer.strip()
+    if topic == "equations":
+        return parse_equation_answer(answer)
+    match = FRACTION_PATTERN.fullmatch(answer)
+    if match is None:
+        return None
+    numerator, denominator = map(int, match.groups())
+    return None if denominator == 0 else Fraction(numerator, denominator)

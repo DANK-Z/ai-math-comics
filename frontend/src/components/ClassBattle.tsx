@@ -1,0 +1,348 @@
+import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react'
+import { accounts, isAbortError, type BattleBoard, type BattleDifficulty, type BattleTopic, type Lang, type StudentBattle } from '../api'
+import { useAccount } from '../account'
+import { BOSS_COPY } from '../boss'
+import { BATTLE_BOSS, CLASSROOM_COPY } from '../classroomCopy'
+import { battleBoardHref, SECTION_HREFS, teacherClassHref } from '../route'
+import { CARD, PRIMARY, SECONDARY } from './AuthScreen'
+import { BossAvatar } from './BossFight'
+import { RichText } from './RichText'
+
+// Class battle. The teacher puts a giant boss on the class board; students fight it from their
+// phones. The server chooses every problem and keeps the answers; the screens poll it.
+
+const STUDENT_POLL_MS = 3000
+const BOARD_POLL_MS = 2000
+const HOME_POLL_MS = 20000
+
+/** Polls a loader while `active`; returns the latest value (undefined until the first load). */
+function usePolled<T>(load: (signal: AbortSignal) => Promise<T>, ms: number, active = true) {
+  const [value, setValue] = useState<T | undefined>(undefined)
+  const [failed, setFailed] = useState(false)
+  const [tick, setTick] = useState(0)
+  useEffect(() => {
+    if (!active) return
+    const ctrl = new AbortController()
+    load(ctrl.signal).then(
+      (v) => { setValue(v); setFailed(false) },
+      (err) => { if (!isAbortError(err)) setFailed(true) },
+    )
+    const timer = setTimeout(() => setTick((n) => n + 1), ms)
+    return () => { ctrl.abort(); clearTimeout(timer) }
+  }, [load, ms, active, tick])
+  return { value, setValue, failed, refresh: () => setTick((n) => n + 1) }
+}
+
+function HpBar({ hp, max, big = false }: { hp: number; max: number; big?: boolean }) {
+  const share = max ? hp / max : 0
+  return (
+    <div className={`overflow-hidden rounded-full border-[3px] border-ink bg-white ${big ? 'h-9' : 'h-5'}`}
+      role="meter" aria-valuemin={0} aria-valuemax={max} aria-valuenow={hp} aria-label="HP">
+      <div
+        className={`h-full transition-[width] duration-500 ${share > 0.5 ? 'bg-rose-500' : share > 0.2 ? 'bg-amber-500' : 'bg-rose-700'}`}
+        style={{ width: `${Math.max(0, Math.min(100, share * 100))}%` }}
+      />
+    </div>
+  )
+}
+
+/** Home page: a bright card while the class has a battle going. */
+export function BattleAlert({ lang }: { lang: Lang }) {
+  const copy = CLASSROOM_COPY[lang].battle
+  const user = useAccount().user
+  const inClass = user?.role === 'student' && !!user.schoolClass
+  const load = useCallback((signal: AbortSignal) => accounts.myBattle(lang, signal), [lang])
+  const { value: battle } = usePolled(load, HOME_POLL_MS, inClass)
+  if (!inClass || !battle || battle.status !== 'active') return null
+  return (
+    <a href={SECTION_HREFS.battle} className="boss-arena flex items-center gap-3 rounded-2xl border-[3px] border-ink bg-[linear-gradient(135deg,#2a1f6b,#e11d48)] p-3 text-white shadow-[0_4px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun">
+      <span aria-hidden className="text-3xl">⚔️</span>
+      <span className="min-w-0 flex-1">
+        <span className="block font-black leading-tight">{copy.alertTitle}</span>
+        <span className="mt-0.5 block text-sm font-semibold text-white/90">{copy.alertText(battle.hp, battle.maxHp)}</span>
+      </span>
+      <span className="shrink-0 rounded-xl border-2 border-ink bg-sun px-3 py-1.5 font-black text-ink">{copy.join} →</span>
+    </a>
+  )
+}
+
+/** The student's battle screen (#/battle). */
+export function BattleScreen({ lang }: { lang: Lang }) {
+  const copy = CLASSROOM_COPY[lang].battle
+  const user = useAccount().user
+  const inClass = user?.role === 'student' && !!user.schoolClass
+  const load = useCallback((signal: AbortSignal) => accounts.myBattle(lang, signal), [lang])
+  const { value: battle, setValue, failed } = usePolled(load, STUDENT_POLL_MS, inClass)
+  const id = useId()
+  // Kept here: a hit brings a new problem (a fresh form), but "Hit!" should stay visible.
+  const [feedback, setFeedback] = useState<Feedback | null>(null)
+
+  const header = (
+    <div>
+      <h1 className="text-3xl font-black text-ink">{copy.title}</h1>
+      <p className="mt-1 font-semibold text-ink/80">{copy.lead}</p>
+    </div>
+  )
+  if (!inClass) return <div className="flex max-w-2xl flex-col gap-4">{header}<p className={CARD}>{copy.noClass}</p></div>
+  if (battle === undefined) return <div className="flex max-w-2xl flex-col gap-4">{header}{failed && <p role="alert" className="font-bold text-rose-700">{copy.error}</p>}</div>
+  if (battle === null) {
+    return (
+      <div className="flex max-w-2xl flex-col gap-4">
+        {header}
+        <p className={`${CARD} font-bold`}>{copy.none}</p>
+        <a href={SECTION_HREFS.map} className={`${SECONDARY} self-start`}>{copy.back}</a>
+      </div>
+    )
+  }
+  const kind = BATTLE_BOSS[battle.topic]
+  return (
+    <div className="flex max-w-2xl flex-col gap-4">
+      {header}
+      <section aria-labelledby={`${id}-boss`} className="overflow-hidden rounded-2xl border-[3px] border-ink bg-white shadow-[0_6px_0_var(--color-ink)]">
+        <div className={`flex items-center gap-4 p-4 ${kind === 'x-master' ? 'bg-[linear-gradient(160deg,#2a1f6b,#5b3cc4)]' : 'bg-[linear-gradient(160deg,#1f5132,#3f9a4d)]'}`}>
+          <BossAvatar kind={kind} shielded={false} hitKey={battle.classHits} />
+          <div className="min-w-0 flex-1">
+            <h2 id={`${id}-boss`} className="text-2xl font-black text-white">{BOSS_COPY[lang].names[kind]}</h2>
+            <p className="mt-1 mb-2 text-sm font-black text-white tabular-nums" aria-live="polite">{copy.hp(battle.hp, battle.maxHp)}</p>
+            <HpBar hp={battle.hp} max={battle.maxHp} />
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2 px-4 pt-3 text-sm font-black">
+          <span className="rounded-lg border-2 border-ink bg-sun px-2 py-0.5">{copy.myHits(battle.myHits)}</span>
+          <span className="rounded-lg border-2 border-ink bg-sky-100 px-2 py-0.5">{copy.classHits(battle.classHits)}</span>
+        </div>
+        <div className="p-4">
+          {battle.status === 'won' ? (
+            <p className="rounded-xl bg-emerald-100 p-3 text-lg font-black text-emerald-900"><span aria-hidden>🏆 </span>{copy.won}</p>
+          ) : battle.status === 'stopped' ? (
+            <p className="rounded-xl bg-sky-100 p-3 font-black">{copy.stopped}</p>
+          ) : battle.task && (
+            <BattleTaskForm key={battle.task.id} battle={battle} lang={lang} onResult={setValue} feedback={feedback} onFeedback={setFeedback} />
+          )}
+        </div>
+      </section>
+      <a href={SECTION_HREFS.map} className={`${SECONDARY} self-start`}>{copy.back}</a>
+    </div>
+  )
+}
+
+type Feedback = { status: string; message: string }
+
+function BattleTaskForm({ battle, lang, onResult, feedback, onFeedback: setFeedback }: {
+  battle: StudentBattle
+  lang: Lang
+  onResult: (b: StudentBattle) => void
+  feedback: Feedback | null
+  onFeedback: (f: Feedback) => void
+}) {
+  const copy = CLASSROOM_COPY[lang].battle
+  const task = battle.task!
+  const [answer, setAnswer] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [flash, setFlash] = useState(0)
+  const input = useRef<HTMLInputElement>(null)
+  const inputId = useId()
+
+  async function submit(e: FormEvent) {
+    e.preventDefault()
+    if (busy || !answer.trim()) return
+    setBusy(true)
+    try {
+      const result = await accounts.answerBattle(battle.id, { taskId: task.id, answer, lang })
+      setFeedback({ status: result.status, message: result.message })
+      if (result.status === 'incorrect') setFlash((n) => n + 1)
+      if (result.status !== 'invalid') setAnswer('')
+      onResult(result.battle)
+    } catch {
+      setFeedback({ status: 'invalid', message: copy.error })
+    } finally {
+      setBusy(false)
+      input.current?.focus()
+    }
+  }
+
+  return (
+    <form onSubmit={submit} className="relative flex flex-col gap-3">
+      {flash > 0 && <span key={flash} aria-hidden className="boss-miss-flash pointer-events-none absolute -inset-2 rounded-xl bg-rose-600/25 opacity-0" />}
+      <p className="text-lg leading-snug font-extrabold text-ink"><RichText text={task.prompt} /></p>
+      <label htmlFor={inputId} className="text-sm font-black text-ink/80">{copy.answer}</label>
+      <div className="flex gap-2">
+        <input
+          ref={input}
+          id={inputId}
+          autoFocus
+          value={answer}
+          onChange={(e) => setAnswer(e.target.value)}
+          inputMode={task.answerFormat === 'fraction' ? 'text' : 'numeric'}
+          autoComplete="off"
+          placeholder={task.answerFormat === 'fraction' ? copy.fractionHint : copy.wholeHint}
+          aria-invalid={feedback?.status === 'incorrect' || undefined}
+          className="min-h-12 w-full min-w-0 flex-1 rounded-xl border-[3px] border-ink bg-white px-3 font-mono text-2xl font-bold tabular-nums outline-none placeholder:font-sans placeholder:text-base placeholder:font-semibold focus-visible:ring-4 focus-visible:ring-sun aria-invalid:border-rose-600 aria-invalid:bg-rose-50"
+        />
+        <button type="submit" disabled={busy || !answer.trim()} className={`${PRIMARY} shrink-0`}>
+          {busy ? copy.checking : <><span aria-hidden>⚔️ </span>{copy.hit}</>}
+        </button>
+      </div>
+      <p aria-live="polite" className={`min-h-6 text-base font-black ${feedback?.status === 'correct' ? 'text-emerald-700' : 'text-rose-700'}`}>
+        {feedback?.message}
+      </p>
+    </form>
+  )
+}
+
+/** Class page: start a battle on the board, or reopen the current one. */
+export function BattleLauncher({ classId, lang }: { classId: number; lang: Lang }) {
+  const copy = CLASSROOM_COPY[lang].board
+  const id = useId()
+  const [topic, setTopic] = useState<BattleTopic>('equations')
+  const [difficulty, setDifficulty] = useState<BattleDifficulty>('basic')
+  const [hp, setHp] = useState(600)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState(false)
+  const load = useCallback((signal: AbortSignal) => accounts.currentClassBattle(classId, signal), [classId])
+  const { value: current } = usePolled(load, 15000)
+
+  async function launch() {
+    setBusy(true)
+    setError(false)
+    try {
+      const board = await accounts.startBattle(classId, { topic, difficulty, hp })
+      window.location.hash = battleBoardHref(board.id)
+    } catch {
+      setError(true)
+      setBusy(false)
+    }
+  }
+
+  const choice = (selected: boolean) =>
+    `min-h-11 rounded-xl border-[3px] border-ink px-3 text-sm font-black shadow-[0_3px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand ${selected ? 'translate-y-[2px] bg-sun shadow-[0_1px_0_var(--color-ink)]' : 'bg-white hover:bg-sky'}`
+  return (
+    <section className={CARD} aria-labelledby={`${id}-title`}>
+      <h2 id={`${id}-title`} className="flex items-center gap-2 text-xl font-black text-ink"><span aria-hidden>⚔️</span>{copy.start}</h2>
+      <p className="mt-1 text-sm font-semibold text-ink/80">{copy.startLead}</p>
+      {current?.status === 'active' && (
+        <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl bg-rose-50 p-3">
+          <p className="flex-1 font-bold text-ink">{copy.current(current.hp, current.maxHp)}</p>
+          <a href={battleBoardHref(current.id)} className={PRIMARY}>{copy.open} →</a>
+        </div>
+      )}
+      <div className="mt-3 flex flex-col gap-3">
+        <fieldset>
+          <legend className="mb-1.5 text-sm font-black text-ink/80">{copy.topic}</legend>
+          <div className="flex flex-wrap gap-2">
+            {(['equations', 'fractions'] as const).map((t) => (
+              <button key={t} type="button" aria-pressed={topic === t} onClick={() => setTopic(t)} className={choice(topic === t)}>{copy.topics[t]}</button>
+            ))}
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend className="mb-1.5 text-sm font-black text-ink/80">{copy.difficulty}</legend>
+          <div className="flex flex-wrap gap-2">
+            {(['basic', 'intermediate', 'advanced'] as const).map((d) => (
+              <button key={d} type="button" aria-pressed={difficulty === d} onClick={() => setDifficulty(d)} className={choice(difficulty === d)}>{copy.difficulties[d]}</button>
+            ))}
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend className="mb-1.5 text-sm font-black text-ink/80">{copy.hp}</legend>
+          <div className="flex flex-wrap gap-2">
+            {[300, 600, 1000].map((value) => (
+              <button key={value} type="button" aria-pressed={hp === value} onClick={() => setHp(value)} className={choice(hp === value)}>
+                {value} HP <span className="font-semibold text-ink/70">· {copy.hpHint(value)}</span>
+              </button>
+            ))}
+          </div>
+        </fieldset>
+        <button type="button" onClick={launch} disabled={busy} className={`${PRIMARY} self-start`}>
+          <span aria-hidden>⚔️ </span>{copy.launch}
+        </button>
+        {error && <p role="alert" className="font-bold text-rose-700">{copy.error}</p>}
+      </div>
+    </section>
+  )
+}
+
+/** The class board (#/teacher/battle/{id}): big boss, HP, join instructions, live hits. */
+export function BattleBoardScreen({ battleId, lang }: { battleId: string; lang: Lang }) {
+  const copy = CLASSROOM_COPY[lang].board
+  const load = useCallback((signal: AbortSignal) => accounts.battleBoard(battleId, signal), [battleId])
+  const [finished, setFinished] = useState(false)
+  const { value: board, setValue, failed } = usePolled<BattleBoard>(load, BOARD_POLL_MS, !finished)
+  const root = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (board && board.status !== 'active') setFinished(true)
+  }, [board])
+
+  if (!board) return failed ? <p role="alert" className="font-bold text-rose-700">{copy.error}</p> : null
+  const kind = BATTLE_BOSS[board.topic]
+  return (
+    <div ref={root} className="flex flex-col gap-4 bg-[var(--color-sky,#eef4ff)] p-1">
+      <section className={`overflow-hidden rounded-3xl border-[4px] border-ink text-white shadow-[0_8px_0_var(--color-ink)] ${kind === 'x-master' ? 'bg-[linear-gradient(160deg,#1d1450,#5b3cc4)]' : 'bg-[linear-gradient(160deg,#14361f,#3f9a4d)]'} ${board.status === 'active' ? 'boss-arena' : ''}`}>
+        <div className="flex flex-col items-center gap-5 p-5 sm:flex-row sm:p-8">
+          <BossAvatar kind={kind} shielded={false} hitKey={board.hits} big />
+          <div className="w-full min-w-0 flex-1">
+            <p className="text-sm font-black tracking-wide text-sun uppercase">{board.className} · {copy.topics[board.topic]}</p>
+            <h1 className="text-4xl font-black sm:text-6xl">{BOSS_COPY[lang].names[kind]}</h1>
+            <p className="mt-2 mb-2 text-2xl font-black tabular-nums sm:text-4xl" aria-live="polite">{board.hp} / {board.maxHp} HP</p>
+            <HpBar hp={board.hp} max={board.maxHp} big />
+            <p className="mt-3 flex flex-wrap gap-2 text-base font-black sm:text-xl">
+              <span className="rounded-xl bg-white/15 px-3 py-1">⚔️ {copy.hits(board.hits)}</span>
+              <span className="rounded-xl bg-white/15 px-3 py-1">👥 {copy.fighters(board.fighters)}</span>
+            </p>
+          </div>
+        </div>
+        {board.status === 'won' && (
+          <p className="border-t-4 border-ink bg-sun p-4 text-center text-3xl font-black text-ink sm:text-5xl"><span aria-hidden>🏆 </span>{copy.won}</p>
+        )}
+        {board.status === 'stopped' && <p className="border-t-4 border-ink bg-white p-3 text-center text-xl font-black text-ink">{copy.stopped}</p>}
+      </section>
+
+      {board.status === 'active' && (
+        <p className="rounded-2xl border-[3px] border-ink bg-sun p-3 text-center text-lg font-black text-ink sm:text-2xl">{copy.join(board.classCode)}</p>
+      )}
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <section className={CARD}>
+          <h2 className="text-xl font-black">{copy.top}</h2>
+          {board.top.length === 0 ? <p className="mt-2 font-bold text-ink/70">{copy.noHits}</p> : (
+            <ol className="mt-2 flex flex-col gap-1.5">
+              {board.top.map((f, i) => (
+                <li key={f.name} className="flex items-center gap-2 text-lg font-black">
+                  <span aria-hidden className="w-8 text-center">{['🥇', '🥈', '🥉'][i] ?? i + 1}</span>
+                  <span className="flex-1 truncate">{f.name}</span>
+                  <span className="tabular-nums">{copy.hits(f.hits)}</span>
+                </li>
+              ))}
+            </ol>
+          )}
+        </section>
+        <section className={CARD}>
+          <h2 className="text-xl font-black">{copy.recent}</h2>
+          {board.recent.length === 0 ? <p className="mt-2 font-bold text-ink/70">{copy.noHits}</p> : (
+            <ul className="mt-2 flex flex-col gap-1.5">
+              {board.recent.map((h, i) => (
+                <li key={`${h.at}-${h.name}`} className={`flex items-center gap-2 text-lg font-bold ${i === 0 ? 'boss-enter' : ''}`}>
+                  <span aria-hidden>💥</span><span className="flex-1 truncate">{h.name}</span>
+                  <span className="font-black text-rose-600">−{board.damagePerHit} HP</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {board.status === 'active' ? (
+          <button type="button" className={SECONDARY} onClick={() => accounts.stopBattle(board.id).then(setValue, () => {})}>{copy.stop}</button>
+        ) : null}
+        <a href={teacherClassHref(board.classId)} className={SECONDARY}>{copy.back}</a>
+        {document.fullscreenEnabled && (
+          <button type="button" className={SECONDARY} onClick={() => (document.fullscreenElement ? document.exitFullscreen() : root.current?.requestFullscreen())?.catch(() => {})}>
+            {copy.fullscreen}
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}

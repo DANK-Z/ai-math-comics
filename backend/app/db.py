@@ -152,6 +152,38 @@ class ProgressReward(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
+class ClassBattle(Base):
+    """A class battle: the whole class fights one giant boss, each correct answer deals damage."""
+
+    __tablename__ = "class_battles"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    class_id: Mapped[int] = mapped_column(ForeignKey("classes.id", ondelete="CASCADE"), index=True)
+    topic: Mapped[str] = mapped_column(String(20))  # fractions | equations
+    difficulty: Mapped[str] = mapped_column(String(20))
+    max_hp: Mapped[int] = mapped_column(Integer)
+    damage: Mapped[int] = mapped_column(Integer, default=0)
+    status: Mapped[str] = mapped_column(String(10), default="active")  # active | won | stopped
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class BattleTask(Base):
+    """One server-chosen problem a student solves in a class battle (the answer stays here)."""
+
+    __tablename__ = "battle_tasks"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    battle_id: Mapped[str] = mapped_column(
+        ForeignKey("class_battles.id", ondelete="CASCADE"), index=True
+    )
+    student_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    problem: Mapped[dict] = mapped_column(JSON)
+    misses: Mapped[int] = mapped_column(Integer, default=0)
+    solved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
 class SignInWindow(Base):
     """Shared sign-in counters. Keys contain a digest, with no stored login or IP."""
 

@@ -2,7 +2,6 @@
 
 import hmac
 import logging
-import re
 import secrets
 from contextlib import asynccontextmanager
 from fractions import Fraction
@@ -14,7 +13,7 @@ from fastapi.responses import FileResponse
 
 from .accounts import record_attempt
 from .accounts import router as accounts_router
-from .answers import parse_equation_answer
+from .answers import parse_answer, parse_equation_answer
 from .assignments import (
     absolute_art,
     accessible_assignment,
@@ -25,6 +24,7 @@ from .assignments import (
 )
 from .assignments import router as assignments_router
 from .auth import Session, lenient_user
+from .classroom import router as classroom_router
 from .config import Settings
 from .content import FEEDBACK, HINTS, get_comic
 from .db import Database, Role, User, default_database_url
@@ -49,7 +49,6 @@ from .storage import Store
 
 # Restrict input to an integer numerator and denominator, allowing spaces and signs.
 # No decimal conversion or floating-point comparison is involved.
-FRACTION_PATTERN = re.compile(r"([+-]?[0-9]+)\s*/\s*([+-]?[0-9]+)")
 EXPECTED_ANSWER = Fraction(3, 4)
 EQUATION_FEEDBACK = {
     "ru": {
@@ -75,18 +74,6 @@ INCORRECT = {
         "Қажет болса, кеңесті пайдалан.",
     },
 }
-
-
-def parse_answer(answer: str, topic: str) -> Fraction | None:
-    """Fractions accept a/b; equations accept x = 3, 3, 3.0 … (see answers.py). Exact math."""
-    answer = answer.strip()
-    if topic == "equations":
-        return parse_equation_answer(answer)
-    match = FRACTION_PATTERN.fullmatch(answer)
-    if match is None:
-        return None
-    numerator, denominator = map(int, match.groups())
-    return None if denominator == 0 else Fraction(numerator, denominator)
 
 
 def get_store(request: Request) -> Store:
@@ -136,6 +123,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(accounts_router)
     app.include_router(shop_router)
     app.include_router(assignments_router)
+    app.include_router(classroom_router)
 
     @app.post("/api/comic-jobs", status_code=202, response_model=JobAccepted)
     def create_job(body: JobRequest, request: Request, user: Viewer) -> JobAccepted:

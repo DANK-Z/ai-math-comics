@@ -7,6 +7,8 @@ import { GUIDE_COPY } from '../guideCopy'
 import { STRINGS } from '../i18n'
 import { comicHref, teacherClassHref, SECTION_HREFS } from '../route'
 import { SCHOOL_FAIR_STOPS } from '../schoolFair'
+import { BattleLauncher } from './ClassBattle'
+import { TeacherLeague } from './ClassLeague'
 import { CARD, errorKey, FieldError, INPUT, PRIMARY, SECONDARY } from './AuthScreen'
 
 // Teacher area: classes with join codes, and a class dashboard (ranking + error heatmap).
@@ -355,6 +357,8 @@ export function ClassDashboard({ lang, classId }: { lang: Lang; classId: number 
         {API_MODE === 'mock' && <p className="mt-3 rounded-lg bg-sun/40 px-2 py-1 text-sm font-bold text-ink">{c.teacherArea.demo}</p>}
       </section>
 
+      <BattleLauncher classId={classId} lang={lang} />
+      <TeacherLeague classId={classId} lang={lang} />
       <ChapterAssignment lang={lang} />
       <GuardianAssignmentForm lang={lang} />
       <ClassAssignmentReports classId={classId} lang={lang} />

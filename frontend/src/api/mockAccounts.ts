@@ -2,6 +2,7 @@ import { authToken } from './authToken'
 import { PROGRESS_REWARDS } from '../rewards'
 import { ApiError } from './errors'
 import type { AccountApi, ClassInfo, Dashboard, Grade, Me, Shop, SkinKey } from './types'
+import { BATTLE_HP, boardOf, checkMockAnswer, demoLeaderboard, latestBattle, MOCK_BATTLE_COPY, settle, shortName, studentView, type MockBattle } from './mockClassroom'
 
 // In-browser stand-in for the accounts API (demo mode, no backend): accounts and classes live
 // in localStorage, passwords are not secured, and a class dashboard shows fixed demo statistics.
@@ -26,6 +27,7 @@ interface MockUser {
 interface MockState {
   users: MockUser[]
   classes: (ClassInfo & { teacherId: number })[]
+  battles?: MockBattle[]
 }
 
 const KEY = 'amc.mock.accounts'
@@ -326,4 +328,113 @@ export const mockAccounts: AccountApi = {
       return demoDashboard(schoolClass, state.users.filter((u) => u.classId === classId).length)
     })
   },
+  leaderboard() {
+    return later(() => {
+      const state = load()
+      const user = student(state)
+      const schoolClass = state.classes.find((c) => c.id === user.classId)
+      if (!schoolClass) throw fail(404, 'no_class')
+      return demoLeaderboard(state.users.filter((u) => u.role === 'student'), schoolClass, user.id)
+    })
+  },
+  classLeaderboard(classId) {
+    return later(() => {
+      const state = load()
+      const schoolClass = ownClass(state, classId)
+      return demoLeaderboard(state.users.filter((u) => u.role === 'student'), schoolClass, null)
+    })
+  },
+  startBattle(classId, body) {
+    return later(() => {
+      const state = load()
+      const schoolClass = ownClass(state, classId)
+      if (!BATTLE_HP.includes(body.hp)) throw fail(422, 'hp_not_allowed')
+      const battles = (state.battles ??= [])
+      for (const b of battles) if (b.classId === classId && b.status === 'active') Object.assign(b, { status: 'stopped', finishedAt: Date.now() })
+      const battle: MockBattle = { id: `battle-${Date.now()}`, classId, topic: body.topic, difficulty: body.difficulty, maxHp: body.hp, status: 'active', startedAt: Date.now(), hits: [], tasks: {} }
+      battles.push(battle)
+      save(state)
+      return boardOf(schoolClass, battle)
+    })
+  },
+  currentClassBattle(classId) {
+    return later(() => {
+      const state = load()
+      const schoolClass = ownClass(state, classId)
+      const battle = latestBattle(state.battles ?? [], classId)
+      save(state)
+      return battle ? boardOf(schoolClass, battle) : null
+    })
+  },
+  battleBoard(battleId) {
+    return later(() => {
+      const state = load()
+      const { battle, schoolClass } = teacherBattle(state, battleId)
+      const board = boardOf(schoolClass, battle)
+      save(state)
+      return board
+    })
+  },
+  stopBattle(battleId) {
+    return later(() => {
+      const state = load()
+      const { battle, schoolClass } = teacherBattle(state, battleId)
+      settle(battle)
+      if (battle.status === 'active') Object.assign(battle, { status: 'stopped', finishedAt: Date.now() })
+      save(state)
+      return boardOf(schoolClass, battle)
+    })
+  },
+  myBattle(lang) {
+    return later(() => {
+      const state = load()
+      const user = student(state)
+      if (!state.classes.some((c) => c.id === user.classId)) throw fail(404, 'no_class')
+      const battle = latestBattle(state.battles ?? [], user.classId!)
+      if (!battle) return null
+      const view = studentView(battle, user.id, lang)
+      save(state)
+      return view
+    })
+  },
+  answerBattle(battleId, body) {
+    return later(() => {
+      const state = load()
+      const user = student(state)
+      const battle = state.battles?.find((b) => b.id === battleId && b.classId === user.classId)
+      if (!battle) throw fail(404, 'battle_not_found')
+      settle(battle)
+      const task = battle.tasks[user.id]
+      if (!task || task.id !== body.taskId) throw fail(404, 'task_not_found')
+      if (battle.status !== 'active') return { status: 'invalid' as const, message: '', damage: 0, battle: studentView(battle, user.id, body.lang) }
+      const copy = MOCK_BATTLE_COPY[body.lang]
+      const status = checkMockAnswer(body.answer, task.answer)
+      let message: string = copy[status]
+      let damage = 0
+      if (status === 'correct') {
+        damage = 10
+        battle.hits.push({ userId: user.id, name: shortName(user.displayName), at: Date.now() })
+        delete battle.tasks[user.id]
+      } else if (status === 'incorrect' && ++task.misses >= 3) {
+        delete battle.tasks[user.id]
+        message = copy.swap
+      }
+      const view = studentView(battle, user.id, body.lang)
+      save(state)
+      return { status, message, damage, battle: view }
+    })
+  },
+}
+
+function ownClass(state: MockState, classId: number) {
+  const user = currentUser(state)
+  const schoolClass = state.classes.find((c) => c.id === classId && c.teacherId === user.id)
+  if (!schoolClass) throw fail(404, 'class_not_found')
+  return schoolClass
+}
+
+function teacherBattle(state: MockState, battleId: string) {
+  const battle = state.battles?.find((b) => b.id === battleId)
+  if (!battle) throw fail(404, 'battle_not_found')
+  return { battle, schoolClass: ownClass(state, battle.classId) }
 }

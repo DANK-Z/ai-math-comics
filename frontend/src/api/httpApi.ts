@@ -1,5 +1,6 @@
 import { authToken } from './authToken'
 import { ApiError } from './errors'
+import type { BattleAnswerResult, BattleBoard, Leaderboard, StudentBattle } from './types'
 import type { AssignmentReport, ClassAssignment, ComicJobRequest, Lang, TeacherDraft, TeacherDraftJob, TeacherPublication, TeacherTask } from './types'
 import type { AccountApi, Api, AuthResponse, BossState, CheckResponse, ClassInfo, Comic, ComicJob, ComicJobCreated, ContinuationJobRequest, Dashboard, HintResponse, Me, Shop } from './types'
 
@@ -149,6 +150,30 @@ export function createHttpApi(baseUrl: string): Api & AccountApi & {
     },
     equip(backpackItemId) {
       return request<Shop>('/api/v1/backpack/equip', { method: 'POST', body: JSON.stringify({ itemId: backpackItemId }) })
+    },
+    leaderboard(signal) {
+      return request<Leaderboard>('/api/me/leaderboard', { signal })
+    },
+    classLeaderboard(classId, signal) {
+      return request<Leaderboard>(`/api/teacher/classes/${classId}/leaderboard`, { signal })
+    },
+    startBattle(classId, body) {
+      return request<BattleBoard>(`/api/teacher/classes/${classId}/battles`, { method: 'POST', body: JSON.stringify(body) })
+    },
+    currentClassBattle(classId, signal) {
+      return request<BattleBoard | null>(`/api/teacher/classes/${classId}/battles/current`, { signal })
+    },
+    battleBoard(battleId, signal) {
+      return request<BattleBoard>(`/api/teacher/battles/${encodeURIComponent(battleId)}`, { signal })
+    },
+    stopBattle(battleId) {
+      return request<BattleBoard>(`/api/teacher/battles/${encodeURIComponent(battleId)}/stop`, { method: 'POST' })
+    },
+    myBattle(lang, signal) {
+      return request<StudentBattle | null>(`/api/me/battle?lang=${lang}`, { signal })
+    },
+    answerBattle(battleId, body) {
+      return request<BattleAnswerResult>(`/api/me/battle/${encodeURIComponent(battleId)}/answer`, { method: 'POST', body: JSON.stringify(body) })
     },
   }
 }
