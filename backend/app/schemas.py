@@ -48,6 +48,14 @@ class BossRound(BaseModel):
     answerFormat: Literal["whole-number"] | None = None
 
 
+class BossCharacter(BaseModel):
+    model_config = {"extra": "forbid", "strict": True}
+
+    name: str = Field(min_length=1, max_length=48)
+    introduction: str = Field(min_length=1, max_length=140)
+    farewell: str = Field(min_length=1, max_length=140)
+
+
 class Boss(BaseModel):
     """Panel-four boss fight: each correct round deals maxHp / len(rounds) damage.
 
@@ -57,6 +65,7 @@ class Boss(BaseModel):
     kind: BossKind
     maxHp: int = BOSS_MAX_HP
     rounds: list[BossRound]
+    character: BossCharacter | None = None
 
 
 ContinuationChoice = Literal[

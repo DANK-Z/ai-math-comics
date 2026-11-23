@@ -263,7 +263,7 @@ def test_a_broken_cache_entry_falls_back_to_generation(env):
     cache = StoryCache(exact)
     text = DeterministicText()
     run_job(settings, client, EQUATIONS, text, cache)
-    key = "amc:story:v1:express:equations:6:advanced:live"
+    key = "amc:story:v3:express:equations:6:advanced:live"
     value = json.loads((asyncio.run(exact.get(key)))[0])
     value["story"]["ru"]["panels"][0]["text"] = "Нас тут трое!"  # breaks the number rule
     with __import__("sqlite3").connect(db) as conn:

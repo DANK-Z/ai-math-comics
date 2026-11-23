@@ -6,9 +6,16 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from .fraction_context import (
+    CONTEXTS,
+    PIZZA_WORD,
+    RESOURCE_IMAGE_RULE,
+    ContextId,
+    contextual_actions,
+)
 from .prepared_art import PREPARED_PANELS
 from .problems import Problem
-from .schemas import JobRequest
+from .schemas import BossCharacter, JobRequest
 
 SCENES = (
     "welcome",
@@ -129,12 +136,44 @@ class LocalizedPreparedStory(StoryText):
     panels: list[StoryPanel] = Field(min_length=6, max_length=6)
 
 
-class Story(StrictModel):
+BOSS_FORMS = {
+    "clockwork-owl": "a round clockwork owl with brass wings and a friendly expression",
+    "crystal-dragon": "a friendly little crystalline dragon with translucent wings",
+    "ribbon-robot": "a friendly compact robot with flowing cloth ribbons and a broad silhouette",
+    "book-golem": "a gentle wide book golem with rounded paper edges and smiling eyes",
+    "cloud-moth": "a smiling fluffy cloud moth with soft layered wings",
+    "lantern-fox": "a friendly magical fox with a softly glowing lantern-shaped tail",
+}
+BOSS_PALETTES = {
+    "mint-copper": "mint green and warm copper",
+    "violet-gold": "violet and pale gold",
+    "coral-blue": "coral and ocean blue",
+    "indigo-silver": "indigo and silver",
+}
+
+
+class BossDesign(StrictModel):
+    form: Literal[
+        "clockwork-owl", "crystal-dragon", "ribbon-robot", "book-golem", "cloud-moth", "lantern-fox"
+    ]
+    palette: Literal["mint-copper", "violet-gold", "coral-blue", "indigo-silver"]
+    ru: BossCharacter
+    kk: BossCharacter
+
+    def visual(self) -> str:
+        return f"{BOSS_FORMS[self.form]}, colored {BOSS_PALETTES[self.palette]}"
+
+
+class BossStoryboard(StrictModel):
+    boss_design: BossDesign | None = None  # old checkpoints can omit generated metadata
+
+
+class Story(BossStoryboard):
     ru: LocalizedStory
     kk: LocalizedStory
 
 
-class PreparedStory(StrictModel):
+class PreparedStory(BossStoryboard):
     ru: LocalizedPreparedStory
     kk: LocalizedPreparedStory
 
@@ -163,17 +202,74 @@ NUMBER_WORDS = re.compile(
 )
 
 
-def validate_narrative(text: str, path: str):
+def validate_narrative(text: str, path: str, *, context: ContextId | None = None):
     if not re.search(r"[А-Яа-яӘәҒғҚқҢңӨөҰұҮүҺһІі]", text) or re.search(r"[A-Za-z]", text):
         raise StoryRuleError(path, "cyrillic_narrative")
     if any(c.isnumeric() or c in "/=⁄¼½¾⅓⅔%" for c in text):
         raise StoryRuleError(path, "no_numeric_characters_or_math_symbols")
     if NUMBER_WORDS.search(text):
         raise StoryRuleError(path, "no_number_words")
+    if context and context != "pizza" and PIZZA_WORD.search(text):
+        raise StoryRuleError(path, "use_selected_resource")
 
 
-def validate_story(raw: dict, problem: Problem, *, prepared: bool = False) -> Story | PreparedStory:
+def boss_story_prompt(prompt: str) -> str:
+    data = json.loads(prompt)
+    data["task"] = data["task"].replace("No other fields.", "Use only the fields in the schema.")
+    data["boss_design"] = {
+        "instructions": (
+            "Invent a friendly fantasy challenger who fits the setting and the problem. "
+            "Choose a form distinct from the protagonists, especially any student heroes. "
+            "Choose the same form and palette for both languages. Write a short localized name, "
+            "an introduction for the challenge and a friendly farewell after it. Use Cyrillic, "
+            "with no numbers, calculations, solutions or threats in those fields. "
+            "The challenger first appears in the exercise scene. Panels before the exercise "
+            "are set-up only. When prepared portraits are used, do not describe the challenger "
+            "as visible in the artwork."
+        ),
+        "forms": BOSS_FORMS,
+        "palettes": BOSS_PALETTES,
+    }
+    return json.dumps(data, ensure_ascii=False)
+
+
+def boss_story_schema(model: type[BossStoryboard]) -> dict:
+    schema = model.model_json_schema()
+    schema["properties"]["boss_design"] = {"$ref": "#/$defs/BossDesign"}
+    schema["required"].append("boss_design")
+    return schema
+
+
+def validate_boss_design(story: BossStoryboard, *, required: bool = False):
+    design = story.boss_design
+    if design is None:
+        if required:
+            raise StoryRuleError("boss_design", "required_generated_challenger")
+        return
+    for lang in ("ru", "kk"):
+        for field, line in getattr(design, lang).model_dump().items():
+            validate_narrative(line, f"boss_design.{lang}.{field}")
+    for field in ("introduction", "farewell"):
+        if getattr(design.ru, field).casefold() == getattr(design.kk, field).casefold():
+            raise StoryRuleError(f"boss_design.kk.{field}", "distinct_translation")
+
+
+def boss_art_direction(scene: str, design: BossDesign | None) -> str:
+    if design is None:
+        return ""
+    if scene == "question":
+        return (
+            f" Also show the story challenger, {design.visual()}, "
+            "facing the heroes in a friendly math challenge."
+        )
+    return " Keep this scene to the hero cast only. The story challenger is absent."
+
+
+def validate_story(
+    raw: dict, problem: Problem, *, prepared: bool = False, require_boss: bool = False
+) -> Story | PreparedStory:
     story = (PreparedStory if prepared else Story).model_validate(raw)
+    validate_boss_design(story, required=require_boss)
     scenes = SCENES if prepared else LIVE_SCENES
     for lang in ("ru", "kk"):
         localized = getattr(story, lang)
@@ -197,7 +293,7 @@ def validate_story(raw: dict, problem: Problem, *, prepared: bool = False) -> St
             if p.id != 4
         ]
         for path, text in narrative:
-            validate_narrative(text, path)
+            validate_narrative(text, path, context=getattr(problem, "context", None))
     for index, (ru, kk) in enumerate(zip(story.ru.panels, story.kk.panels, strict=True)):
         if ru.speaker != kk.speaker:
             raise StoryRuleError(f"kk.panels[{index}].speaker", "same_speaker_across_translations")
@@ -209,10 +305,15 @@ def validate_story(raw: dict, problem: Problem, *, prepared: bool = False) -> St
 
 
 def text_prompt(request: JobRequest, problem: Problem, *, prepared: bool = False) -> str:
+    context = getattr(problem, "context", None)
     art_direction = (
         " Use only the named cast and align the dialogue with the listed actions. "
         "Before and during the exercise, the friends are still planning. "
-        + TOPIC_RESOLUTION[problem.topic]
+        + (
+            "In the last two scenes the friends can use the shared resource in their activity."
+            if context
+            else TOPIC_RESOLUTION[problem.topic]
+        )
         + " The resolution may "
         "celebrate the learner's success without stating the answer or any quantity."
     )
@@ -220,7 +321,11 @@ def text_prompt(request: JobRequest, problem: Problem, *, prepared: bool = False
         art_direction = (
             " Use the exact scene and speaker IDs in prepared_panels, in order. "
             "These fixed pictures show the cast outside school, without food or math props. "
-            + TOPIC_IMAGINED[problem.topic]
+            + (
+                "Discuss the supplied resource-sharing problem as an imagined situation."
+                if context
+                else TOPIC_IMAGINED[problem.topic]
+            )
             + " Never describe an action, "
             "setting, or object as visible unless the fixed picture description shows it. "
             "Do not claim that the problem is solved."
@@ -238,12 +343,20 @@ def text_prompt(request: JobRequest, problem: Problem, *, prepared: bool = False
                 "teamwork, thinking and encouragement. "
                 "Copy exercise and both hints VERBATIM from trusted_content, and use exercise "
                 "verbatim as panel four text. IDs must be ordered from 1 to 6. "
-                "Use the listed scene sequence exactly. No other fields." + art_direction
+                "Use the listed scene sequence exactly. No other fields."
+                + art_direction
+                + (
+                    " Invent a reason to share the resource in fraction_context. "
+                    "Use the same named resource in both languages and do not replace it."
+                    if context
+                    else ""
+                )
             ),
             "grade": request.grade,
             "difficulty": request.difficulty,
             "requested_language": request.lang,
             "fixed_problem_inputs": problem.to_dict(),
+            **({"fraction_context": CONTEXTS[context].art} if context else {}),
             **(
                 {
                     "prepared_panels": [
@@ -257,7 +370,9 @@ def text_prompt(request: JobRequest, problem: Problem, *, prepared: bool = False
                 else {
                     "characters": CHARACTERS,
                     "speaker_ids": ["aldiyar", "aruna", "pifik"],
-                    "scene_actions": TOPIC_SCENES[problem.topic],
+                    "scene_actions": contextual_actions(context)
+                    if context
+                    else TOPIC_SCENES[problem.topic],
                 }
             ),
             "scenes": SCENES if prepared else LIVE_SCENES,
@@ -270,15 +385,23 @@ def text_prompt(request: JobRequest, problem: Problem, *, prepared: bool = False
     )
 
 
-def image_prompt(scene: str, topic: str = "fractions") -> str:
+def image_prompt(
+    scene: str,
+    topic: str = "fractions",
+    *,
+    context: ContextId | None = None,
+    boss: BossDesign | None = None,
+) -> str:
     # No model-authored text, operands, expected answer, or dialogue reaches image generation.
+    actions = contextual_actions(context) if context else TOPIC_SCENES[topic]
+    props = RESOURCE_IMAGE_RULE if context else TOPIC_LIVE_PROPS[topic]
     return (
-        f"{CHARACTERS}\n{TOPIC_LIVE_PROPS[topic]}\n{TOPIC_SCENES[topic][scene]}\n"
+        f"{CHARACTERS}\n{props}\n{actions[scene]}\n"
         "Create a new single full-scene comic illustration showing all three characters. "
         "The reference strip shows Aldiyar on the left, Aruna in the middle and Pifik "
         "on the right. Keep their exact faces, hairstyles, outfits and colors. "
         "Use the strip only for character design. Do not copy its layout or background. "
         "No embedded text, speech bubbles, captions, lettering, logos, digits or symbols. "
-        "Do not show slices, portions, food distribution or mathematical diagrams. "
-        "Do not illustrate an answer."
+        "Do not show portions, visible quantities, distribution or mathematical diagrams. "
+        "Do not illustrate an answer." + boss_art_direction(scene, boss)
     )

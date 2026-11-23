@@ -56,8 +56,9 @@ These items are not on the request list, but the planned work builds on them.
 | Panel-by-panel progress | Done | `29e3d7c` (job `progress`, `GenerationProgress.tsx`) |
 | Resume missing panels after a failed live-art job | Done | `b7fd4fe` (`POST /api/comic-jobs/{jobId}/resume`) |
 | Consistent characters | In progress | Each live panel gets fixed character descriptions and the cast reference strip. There is no automated consistency check yet. |
-| Consistent props | In progress | Every live panel receives the same description and state rules for the pizza box or chest. Visual consistency across completed images still needs verification. |
+| Consistent props | In progress | Every live panel receives the same description for the model-selected fraction resource or equation chest. Visual consistency across completed images still needs verification. |
 | Clear story resolution | Done | The final panel includes a bilingual server-authored consequence of solving the story's problem. The illustration prompt does not receive this text or the answer. |
+| Story-specific boss | Done | The model chooses the look and writes bilingual dialogue. The boss is drawn on the exercise panel in live artwork, with server-owned rounds. |
 
 ### 4. My Comics — Done
 

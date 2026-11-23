@@ -7,6 +7,7 @@ import json
 import logging
 from collections.abc import AsyncIterator, Callable, Sequence
 from contextlib import asynccontextmanager
+from dataclasses import replace
 from typing import TypeVar
 from uuid import uuid4
 
@@ -15,6 +16,7 @@ from PIL import Image
 from pydantic import TypeAdapter, ValidationError
 
 from .config import Settings
+from .fraction_context import CONTEXTS, CONTEXTUAL_ENDING, ContextSelection, context_prompt
 from .gemini import gemini_providers
 from .library_episode import (
     LibraryProblem,
@@ -64,6 +66,8 @@ from .story import (
     ScenePanel,
     Story,
     StoryRuleError,
+    boss_story_prompt,
+    boss_story_schema,
     image_prompt,
     text_prompt,
     validate_story,
@@ -214,35 +218,57 @@ class Worker:
         if prepared and not all((ART_DIR / file).is_file() for _, file, _ in PREPARED_PANELS):
             raise ProviderError("generation_failed", stage="prepared_art_missing")
         custom_art = bool(options and options.customHeroes and not prepared)
-        cache_allowed = checkpoint is None
+        cache_allowed = checkpoint is None and self.store.draft_author(job_id=claim["id"]) is None
         cached = await self.cached_story(request, problem, prepared) if cache_allowed else None
         if cached is not None:
-            story, hit = cached
+            story, hit, problem = cached
             # Nothing to write or draw: the story and pictures are reused, the math is new.
-            self.store.begin_panels(claim, len(story.ru.panels))
+            self.store.begin_panels(
+                claim,
+                len(story.ru.panels),
+                problem_inputs=problem.stored_inputs() if isinstance(problem, Problem) else None,
+            )
         elif checkpoint is None:
+            if isinstance(problem, Problem) and problem.context is None:
+                prompt = context_prompt(request)
+                available = json.loads(prompt)["available_contexts"]
+
+                def validate_context(raw):
+                    selection = ContextSelection.model_validate(raw)
+                    if selection.context not in available:
+                        raise StoryRuleError("context", "offered_resource")
+                    return selection
+
+                schema = ContextSelection.model_json_schema()
+                schema["properties"]["context"]["enum"] = list(available)
+                selection = await self.generate_story(prompt, schema, validate_context)
+                problem = replace(problem, context=selection.context)
             if options is not None:
                 story = await self.generate_story(
-                    my_story_prompt(request, problem, prepared=prepared),
-                    MyStory.model_json_schema(),
-                    lambda raw: validate_my_story(raw, problem, options),
+                    boss_story_prompt(my_story_prompt(request, problem, prepared=prepared)),
+                    boss_story_schema(MyStory),
+                    lambda raw: validate_my_story(raw, problem, options, require_boss=True),
                 )
             else:
                 story = await self.generate_story(
-                    text_prompt(request, problem, prepared=prepared),
-                    (PreparedStory if prepared else Story).model_json_schema(),
-                    lambda raw: validate_story(raw, problem, prepared=prepared),
+                    boss_story_prompt(text_prompt(request, problem, prepared=prepared)),
+                    boss_story_schema(PreparedStory if prepared else Story),
+                    lambda raw: validate_story(raw, problem, prepared=prepared, require_boss=True),
                 )
             self.store.begin_panels(
                 claim,
                 len(story.ru.panels),
-                live_storyboard=None if prepared else (comic_id, story.model_dump_json()),
+                live_storyboard=None
+                if prepared
+                else (comic_id, story.model_dump_json(exclude_none=True)),
+                problem_inputs=problem.stored_inputs() if isinstance(problem, Problem) else None,
             )
         elif options is not None:
             story = validate_my_story(json.loads(checkpoint), problem, options)
         else:
             story = validate_story(json.loads(checkpoint), problem)
         topic = problem.topic
+        context = problem.context if isinstance(problem, Problem) else None
         directory = self.store.images_dir / comic_id
         # Jobs drawn by an older worker have no private cast reference file. Their already
         # saved panels still determine the visual style of the remainder.
@@ -258,8 +284,15 @@ class Worker:
 
         def scene_prompt(scene: str) -> str:
             if options is None:
-                return image_prompt(scene, topic)
-            return my_story_image_prompt(scene, options, topic, custom_reference=not legacy_art)
+                return image_prompt(scene, topic, context=context, boss=story.boss_design)
+            return my_story_image_prompt(
+                scene,
+                options,
+                topic,
+                custom_reference=not legacy_art,
+                context=context,
+                boss=story.boss_design,
+            )
 
         if cached is not None:
             aspects = hit.aspects
@@ -308,7 +341,7 @@ class Worker:
                 )
             # Close the story with the consequence of solving its problem. The last panel
             # is gated by the reader and the ending never reaches the image provider.
-            conclusion = TOPIC_ENDING[topic][lang]
+            conclusion = CONTEXTUAL_ENDING[lang] if context else TOPIC_ENDING[topic][lang]
             if conclusion.casefold() not in panels[-1].text.casefold():
                 panels[-1].text = f"{panels[-1].text} {conclusion}"
             comic = Comic(
@@ -322,6 +355,7 @@ class Worker:
                 ),
                 boss=Boss(
                     kind=BOSS_KIND[topic],
+                    character=getattr(story.boss_design, lang) if story.boss_design else None,
                     rounds=[
                         BossRound(
                             exerciseId=exercise_id,
@@ -361,6 +395,7 @@ class Worker:
                     source_comic_id=comic_id,
                     aspects=aspects,
                     kind="new",
+                    fraction_context=context,
                 ),
             )
 
@@ -371,6 +406,10 @@ class Worker:
         hit = await self.cache.lookup(request, self.settings.art_mode)
         if hit is None:
             return None
+        if isinstance(problem, Problem):
+            if not isinstance(hit.fraction_context, str) or hit.fraction_context not in CONTEXTS:
+                return None  # legacy cache entries were written around pizza props
+            problem = replace(problem, context=hit.fraction_context)
         raw = json.loads(json.dumps(hit.story))
         for lang in LANGS:
             raw[lang]["exercise"] = problem.prompt(lang)
@@ -378,16 +417,16 @@ class Worker:
             raw[lang]["panels"][3]["text"] = problem.prompt(lang)
         try:
             if request.story is not None:
-                story = validate_my_story(raw, problem, request.story)
+                story = validate_my_story(raw, problem, request.story, require_boss=True)
             else:
-                story = validate_story(raw, problem, prepared=prepared)
+                story = validate_story(raw, problem, prepared=prepared, require_boss=True)
         except (StoryRuleError, ValidationError):
             logger.info("Cached story no longer valid; generating a new one")
             return None
         if not prepared and self.store.comic(hit.source_comic_id) is None:
             return None  # its pictures are gone
         logger.info("Reused a cached story (%s, similarity %.2f)", hit.kind, hit.similarity)
-        return story, hit
+        return story, hit, problem
 
     async def generate_story(
         self, prompt: str, schema: dict, validate: Callable[[dict], StoryType]
@@ -439,6 +478,13 @@ class Worker:
                 "speaker",
                 "text",
                 "scene",
+                "context",
+                "boss_design",
+                "form",
+                "palette",
+                "name",
+                "introduction",
+                "farewell",
                 *LibraryText.model_fields,
             }
             path = ".".join(

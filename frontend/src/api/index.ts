@@ -18,6 +18,7 @@ export const ART_MODE: 'prepared' | 'live' = import.meta.env.VITE_COMIC_ART_MODE
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000').replace(/\/+$/, '')
 
 const httpApi = createHttpApi(BASE_URL)
+export const classroomApi = API_MODE === 'live' ? httpApi : undefined
 const configuredApi = API_MODE === 'live' ? httpApi : mockApi
 /** Sign-up/sign-in, class codes, saved progress and the teacher dashboard. */
 export const accounts: AccountApi = API_MODE === 'live' ? httpApi : mockAccounts

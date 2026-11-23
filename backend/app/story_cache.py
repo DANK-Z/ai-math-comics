@@ -32,7 +32,7 @@ from typing import Protocol
 from .schemas import JobRequest
 
 logger = logging.getLogger(__name__)
-KEY_VERSION = "v1"
+KEY_VERSION = "v3"
 EMBEDDING_DIM = 384
 EXPRESS_TTL_SECONDS = 60 * 60 * 24 * 60
 
@@ -44,6 +44,7 @@ class CachedStory:
     aspects: dict[int, float]
     kind: str  # "express" | "my-story-exact" | "my-story-semantic"
     similarity: float = 1.0
+    fraction_context: str | None = None
 
     def to_json(self) -> str:
         return json.dumps(
@@ -51,6 +52,7 @@ class CachedStory:
                 "story": self.story,
                 "source": self.source_comic_id,
                 "aspects": {str(k): v for k, v in self.aspects.items()},
+                "fraction_context": self.fraction_context,
             },
             ensure_ascii=False,
         )
@@ -64,6 +66,7 @@ class CachedStory:
             aspects={int(k): float(v) for k, v in data["aspects"].items()},
             kind=kind,
             similarity=similarity,
+            fraction_context=data.get("fraction_context"),
         )
 
 
@@ -84,6 +87,8 @@ def my_story_key(request: JobRequest, art_mode: str) -> str:
     exact = options.model_dump(exclude={"premise"})
     exact.update(topic=request.topic, grade=request.grade, difficulty=request.difficulty)
     exact["art"] = art_mode
+    if request.topic == "fractions":
+        exact["fraction_context_version"] = 1
     if art_mode == "live" and options.customHeroes:
         exact["custom_art_version"] = 1
     digest = hashlib.sha256(json.dumps(exact, sort_keys=True, ensure_ascii=False).encode())

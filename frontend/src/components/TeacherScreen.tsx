@@ -227,6 +227,7 @@ export function TeacherHome({ lang }: { lang: Lang }) {
         {API_MODE === 'mock' && <p className="mt-2 rounded-lg bg-sun/40 px-2 py-1 text-sm font-bold text-ink">{c.teacherArea.demo}</p>}
       </section>
 
+      {user && <TeacherWorkshop key={user.id} lang={lang} classes={classes ?? []} teacherId={user.id} />}
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <section className={CARD} aria-labelledby={`${id}-classes`}>
           <h2 id={`${id}-classes`} className="text-xl font-black text-ink">{c.teacherArea.classes}</h2>
@@ -314,6 +315,7 @@ export function ClassDashboard({ lang, classId }: { lang: Lang; classId: number 
 
       <ChapterAssignment lang={lang} />
       <GuardianAssignmentForm lang={lang} />
+      <ClassAssignmentReports classId={classId} lang={lang} />
 
       <section className={`${CARD} ${rec ? 'border-rose-700 bg-rose-50' : fewAnswers ? 'bg-cream' : 'bg-emerald-50'}`} aria-live="polite">
         <p className="flex items-start gap-3 text-lg leading-snug font-black text-ink">
@@ -386,3 +388,5 @@ export function ClassDashboard({ lang, classId }: { lang: Lang; classId: number 
     </div>
   )
 }
+import { TeacherWorkshop } from './TeacherWorkshop'
+import { ClassAssignmentReports } from './ClassAssignments'

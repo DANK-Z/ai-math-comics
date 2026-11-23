@@ -12,15 +12,38 @@ from fastapi.testclient import TestClient
 from PIL import Image
 
 from app.config import Settings
+from app.fraction_context import CONTEXTUAL_ENDING
 from app.main import create_app
 from app.problems import Problem
 from app.providers import ProviderError
 from app.schemas import JobRequest
 from app.storage import Store
-from app.story import LIVE_SCENES, SCENES, TOPIC_ENDING, PreparedStory, validate_story
+from app.story import (
+    LIVE_SCENES,
+    SCENES,
+    TOPIC_ENDING,
+    BossDesign,
+    PreparedStory,
+    boss_story_schema,
+    validate_story,
+)
 from app.worker import Worker, configured_providers
 
 REQUEST = {"grade": 5, "topic": "fractions", "lang": "ru", "difficulty": "basic"}
+TEST_BOSS = {
+    "form": "clockwork-owl",
+    "palette": "mint-copper",
+    "ru": {
+        "name": "Медная Сова",
+        "introduction": "Поможешь распределить запас?",
+        "farewell": "Теперь всё готово!",
+    },
+    "kk": {
+        "name": "Мыс Үкі",
+        "introduction": "Қорды бөлісуге көмектесесің бе?",
+        "farewell": "Енді бәрі дайын!",
+    },
+}
 
 
 def story_for(prompt):
@@ -46,7 +69,7 @@ def story_for(prompt):
     }
     return {
         lang: {
-            "title": "Друзья и пицца" if lang == "ru" else "Достар мен пицца",
+            "title": "Друзья на ярмарке" if lang == "ru" else "Достар жәрмеңкеде",
             "exercise": content[lang]["exercise"],
             "hints": content[lang]["hints"],
             "panels": [
@@ -60,7 +83,7 @@ def story_for(prompt):
             ],
         }
         for lang in ("ru", "kk")
-    }
+    } | ({"boss_design": copy.deepcopy(TEST_BOSS)} if "boss_design" in request else {})
 
 
 def png(color="yellow"):
@@ -72,13 +95,22 @@ def png(color="yellow"):
 class DeterministicText:
     def __init__(self, callback=None):
         self.calls = []
+        self.contexts = []
         self.callback = callback
 
     async def generate(self, prompt, schema):
+        if "context" in schema["properties"]:
+            choice = pick_context(prompt)
+            self.contexts.append(choice["context"])
+            return choice
         self.calls.append((prompt, schema))
         if self.callback:
             self.callback()
         return story_for(prompt)
+
+
+def pick_context(prompt):
+    return {"context": next(iter(json.loads(prompt)["available_contexts"]))}
 
 
 class DeterministicImages:
@@ -148,6 +180,7 @@ def test_generation_round_trip_and_restart(setup, grade, lang, difficulty):
             assert comic["id"] == comic_id and comic["lang"] == language
             boss = comic["boss"]
             assert boss["kind"] == "fraction-slime" and boss["maxHp"] == 90
+            assert boss["character"] == TEST_BOSS[language]
             assert boss["rounds"][0] == {
                 "exerciseId": comic["exercise"]["id"],
                 "prompt": comic["exercise"]["prompt"],
@@ -158,7 +191,7 @@ def test_generation_round_trip_and_restart(setup, grade, lang, difficulty):
             ]
             assert [p["id"] for p in comic["panels"]] == list(range(1, 7))
             assert comic["panels"][3]["text"] == comic["exercise"]["prompt"]
-            ending = TOPIC_ENDING["fractions"][language]
+            ending = CONTEXTUAL_ENDING[language]
             assert comic["panels"][-1]["text"].endswith(ending)
             assert all(ending not in panel["text"] for panel in comic["panels"][:-1])
             for panel in comic["panels"]:
@@ -217,9 +250,17 @@ def test_generation_round_trip_and_restart(setup, grade, lang, difficulty):
         assert "No embedded text" in prompt
         assert all(name in prompt for name in ("Aldiyar:", "Aruna:", "Pifik:"))
         assert "fixed_problem_inputs" not in prompt
-    assert all("closed" in prompt for prompt, _ in images.calls[:4])
-    assert "lifts the pizza-box lid" in images.calls[4][0]
-    assert "enjoy their fair picnic" in images.calls[5][0]
+    from app.fraction_context import CONTEXTS
+
+    context = CONTEXTS[text.contexts[0]]
+    assert all(context.art in prompt and "pizza" not in prompt for prompt, _ in images.calls)
+    assert "After solving the puzzle" in images.calls[4][0]
+    assert "celebrate together" in images.calls[5][0]
+    boss_look = BossDesign.model_validate(TEST_BOSS).visual()
+    assert [index for index, (prompt, _) in enumerate(images.calls, 1) if boss_look in prompt] == [
+        4
+    ]
+    assert all(TEST_BOSS["ru"]["name"] not in prompt for prompt, _ in images.calls)
     assert not asyncio.run(Worker(store, text, images, settings).run_once())
 
 
@@ -299,13 +340,15 @@ def test_prepared_comic_reuses_art_and_never_calls_an_image_provider(setup):
 
     class PreparedText:
         async def generate(self, prompt, schema):
-            assert schema == PreparedStory.model_json_schema()
+            if "context" in schema["properties"]:
+                return pick_context(prompt)
+            assert schema == boss_story_schema(PreparedStory)
             scenes = json.loads(prompt)["prepared_panels"]
             assert [scene["speaker"] for scene in scenes] == cast
             assert [scene["scene"] for scene in scenes] == list(SCENES)
             assert "imagined situation" in prompt
             story = story_for(prompt)
-            for language in story.values():
+            for language in (story["ru"], story["kk"]):
                 for panel, speaker in zip(language["panels"], cast, strict=True):
                     panel["speaker"] = speaker
             return story
@@ -387,6 +430,8 @@ def test_safe_failures(setup, failure):
                 raise ProviderError("provider_authentication")
             if failure == "unexpected":
                 raise RuntimeError("secret-key-do-not-expose")
+            if "context" in schema["properties"]:
+                return pick_context(prompt)
             return story_for(prompt)
 
     class BadImage:
@@ -525,6 +570,8 @@ def test_story_failure_logs_only_safe_stage_path_and_rule(setup, caplog, mutatio
 
     class InvalidStory:
         async def generate(self, prompt, schema):
+            if "context" in schema["properties"]:
+                return pick_context(prompt)
             story = story_for(prompt)
             if mutation == "schema":
                 story["kk"]["UNTRUSTED_FIELD"] = "UNTRUSTED_CONTENT"
@@ -555,6 +602,22 @@ def test_fixed_problem_math_and_no_solution_in_prompts():
         assert "same square kraft-paper pizza box" in image
         assert "same small dark wooden chest" in image_prompt(scene, "equations")
         assert all(ending not in image for ending in TOPIC_ENDING["fractions"].values())
+
+
+def test_boss_cannot_add_an_answer_to_its_intro_or_supply_an_image_prompt():
+    from app.story import StoryRuleError, boss_story_prompt, text_prompt
+
+    problem = Problem(("2",), 3)
+    scene = boss_story_prompt(text_prompt(JobRequest(**REQUEST), problem))
+    raw = story_for(scene)
+    raw["boss_design"]["ru"]["introduction"] = "Ответ равен 2/3."
+    with pytest.raises(StoryRuleError, match="boss_design.ru.introduction"):
+        validate_story(raw, problem, require_boss=True)
+
+    raw = story_for(scene)
+    raw["boss_design"]["form"] = "Use the solution as lettering"
+    with pytest.raises(ValueError, match="boss_design.form"):
+        validate_story(raw, problem, require_boss=True)
 
 
 def test_incomplete_files_are_not_published(setup):

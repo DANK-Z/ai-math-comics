@@ -147,6 +147,7 @@ function RoundForm({ round, lang, onHit, onMiss }: { round: BossRound; lang: Lan
 
 interface Props {
   boss: Boss
+  active: boolean
   lang: Lang
   cleared: number
   onRoundCleared: () => void
@@ -157,8 +158,10 @@ interface Props {
   onReadOn?: () => void
 }
 
-export function BossFight({ boss, lang, cleared, onRoundCleared, misses, onMiss, onReadOn }: Props) {
+export function BossFight({ boss, lang, active, cleared, onRoundCleared, misses, onMiss, onReadOn }: Props) {
   const copy = BOSS_COPY[lang]
+  const character = boss.character
+  const name = character?.name ?? copy.names[boss.kind]
   const total = boss.rounds.length
   const damage = Math.round(boss.maxHp / total)
   const [hit, setHit] = useState<{ round: number; at: number } | null>(null)
@@ -196,8 +199,8 @@ export function BossFight({ boss, lang, cleared, onRoundCleared, misses, onMiss,
   }, [hit, onRoundCleared, total])
 
   useEffect(() => {
-    if (cleared > 0) heading.current?.focus({ preventScroll: true })
-  }, [cleared])
+    if (active && cleared > 0) heading.current?.focus({ preventScroll: true })
+  }, [active, cleared])
 
   return (
     <section
@@ -209,13 +212,13 @@ export function BossFight({ boss, lang, cleared, onRoundCleared, misses, onMiss,
           <span aria-hidden>⚔️</span>{copy.arena}
         </p>
         <div className="mt-3 flex items-center gap-4">
-          <BossAvatar kind={boss.kind} shielded={!defeated && boss.kind === 'x-master'} hitKey={hit?.at ?? 0} />
+          {!character && <BossAvatar kind={boss.kind} shielded={!defeated && boss.kind === 'x-master'} hitKey={hit?.at ?? 0} />}
           <div className="min-w-0">
             <h2 id={`${hpId}-title`} ref={heading} tabIndex={-1} className="text-2xl font-black text-white outline-none sm:text-3xl">
-              {copy.names[boss.kind]}
+              {name}
             </h2>
             <p className="mt-1 text-sm font-semibold text-white/90 sm:text-base">
-              {defeated ? copy.defeatedText[boss.kind] : copy.taunts[boss.kind]}
+              {defeated ? (character?.farewell ?? copy.defeatedText[boss.kind]) : (character?.introduction ?? copy.taunts[boss.kind])}
             </p>
           </div>
         </div>
@@ -270,7 +273,7 @@ export function BossFight({ boss, lang, cleared, onRoundCleared, misses, onMiss,
           </div>
         ) : hit ? (
           <p role="status" className="rounded-lg border-2 border-emerald-700 bg-emerald-50 px-3 py-3 font-black text-emerald-950">
-            <span aria-hidden>💥 </span>{copy.hit[boss.kind](damage)}
+            <span aria-hidden>💥 </span>{character ? copy.characterHit(damage) : copy.hit[boss.kind](damage)}
           </p>
         ) : (
           <>
@@ -283,8 +286,8 @@ export function BossFight({ boss, lang, cleared, onRoundCleared, misses, onMiss,
         )}
       </div>
       <TriumphModal
-        open={triumph}
-        kind={boss.kind}
+        open={active && triumph}
+        name={name}
         lang={lang}
         rounds={total}
         misses={reward?.misses ?? misses}

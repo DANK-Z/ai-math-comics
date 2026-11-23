@@ -36,6 +36,11 @@ class Store:
                     created_at REAL NOT NULL
                 );
                 CREATE INDEX IF NOT EXISTS jobs_queue ON jobs(status, created_at);
+                CREATE TABLE IF NOT EXISTS comic_authors (
+                    job_id TEXT PRIMARY KEY REFERENCES jobs(id),
+                    author_id INTEGER NOT NULL,
+                    teacher_draft INTEGER NOT NULL
+                );
                 CREATE TABLE IF NOT EXISTS job_progress (
                     job_id TEXT PRIMARY KEY REFERENCES jobs(id),
                     stage TEXT NOT NULL CHECK(stage IN (
@@ -80,7 +85,13 @@ class Store:
         finally:
             db.close()
 
-    def enqueue(self, request: JobRequest | ContinuationRequest) -> str:
+    def enqueue(
+        self,
+        request: JobRequest | ContinuationRequest,
+        author_id: int | None = None,
+        *,
+        teacher_draft: bool = False,
+    ) -> str:
         job_id = str(uuid4())
         if isinstance(request, ContinuationRequest):
             problem = (
@@ -96,7 +107,34 @@ class Store:
                 (job_id, request.model_dump_json(), json.dumps(problem.to_dict()), time.time()),
             )
             db.execute("INSERT INTO job_progress(job_id,stage) VALUES(?,'queued')", (job_id,))
+            if author_id is not None:
+                db.execute(
+                    "INSERT INTO comic_authors VALUES(?,?,?)",
+                    (job_id, author_id, teacher_draft),
+                )
         return job_id
+
+    def draft_author(self, *, job_id: str = "", comic_id: str = "") -> int | None:
+        with self.connection() as db:
+            row = db.execute(
+                "SELECT author_id FROM comic_authors JOIN jobs ON job_id=jobs.id "
+                "WHERE teacher_draft=1 AND (job_id=? OR comic_id=?)",
+                (job_id, comic_id),
+            ).fetchone()
+        return row["author_id"] if row else None
+
+    def draft_ids(self, author_id: int) -> list[str]:
+        with self.connection() as db:
+            rows = db.execute(
+                "SELECT jobs.id FROM comic_authors JOIN jobs ON job_id=jobs.id "
+                "WHERE teacher_draft=1 AND author_id=? ORDER BY created_at DESC",
+                (author_id,),
+            ).fetchall()
+        return [row["id"] for row in rows]
+
+    def draft_exercise(self, comic_id: str) -> dict | None:
+        exercises = self.comic_exercises(comic_id)
+        return self.exercise(exercises[0]) if exercises else None
 
     def job(self, job_id: str) -> JobStatus | None:
         with self.connection() as db:
@@ -181,7 +219,12 @@ class Store:
             return dict(row) | {"owner": owner}
 
     def begin_panels(
-        self, claim: dict, total: int, *, live_storyboard: tuple[str, str] | None = None
+        self,
+        claim: dict,
+        total: int,
+        *,
+        live_storyboard: tuple[str, str] | None = None,
+        problem_inputs: dict | None = None,
     ):
         if total < 1:
             raise ValueError("A storyboard must contain at least one panel")
@@ -201,6 +244,11 @@ class Store:
             )
             if updated.rowcount != 1:
                 raise RuntimeError("Worker no longer owns this storyboard")
+            if problem_inputs is not None:
+                db.execute(
+                    "UPDATE jobs SET problem=? WHERE id=?",
+                    (json.dumps(problem_inputs), claim["id"]),
+                )
             if live_storyboard is not None:
                 db.execute(
                     "INSERT INTO live_storyboards(job_id,comic_id,storyboard) VALUES(?,?,?)",

@@ -82,12 +82,14 @@ export function useComicJob<Request = ComicJobRequest>(
     resumeJob,
     storageKey = STORAGE_KEY,
     rememberReady = false,
+    saveToHistory = true,
     historyKind = 'generated',
   }: {
     createJob: (request: Request) => Promise<ComicJobCreated>
     resumeJob?: (jobId: string, resumeToken: string) => Promise<ComicJob>
     storageKey?: string
     rememberReady?: boolean
+    saveToHistory?: boolean
     /** How a successful job is listed in My Comics. */
     historyKind?: MyComicKind
   },
@@ -104,8 +106,8 @@ export function useComicJob<Request = ComicJobRequest>(
   // Every successful job ends in 'ready' (freshly polled or restored from this tab's
   // storage); record it once in My Comics. Saving is idempotent per comic ID.
   useEffect(() => {
-    if (readyComicId && readyLang) saveMyComic({ comicId: readyComicId, kind: readyKind, lang: readyLang })
-  }, [readyComicId, readyLang, readyKind])
+    if (saveToHistory && readyComicId && readyLang) saveMyComic({ comicId: readyComicId, kind: readyKind, lang: readyLang })
+  }, [saveToHistory, readyComicId, readyLang, readyKind])
   const busy = useRef(state.phase === 'waiting' || state.phase === 'paused')
   const pollController = useRef<AbortController | null>(null)
   const onReadyRef = useRef(onReady)

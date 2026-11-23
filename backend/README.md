@@ -214,8 +214,11 @@ own artwork source when the setting changes.
 
 ## Math, validation, and persistence
 
-The server chooses and persists fixed operands at enqueue time. Basic problems divide whole
-pizzas among friends, intermediate problems divide a fractional quantity, and advanced problems
+The server chooses and persists fixed operands at enqueue time. For a new fractions story the
+text model first chooses a resource from a vetted shortlist based on the setting or the student's
+premise. The worker uses that choice throughout the dialogue, math prompts, boss rounds, and
+live illustration directions. Basic problems divide whole units among friends, intermediate
+problems divide a fractional quantity, and advanced problems
 add unlike fractions before dividing. Grade 6 uses larger operands/denominators. The expected
 answer is computed with exact server-side fraction arithmetic and stored privately.
 
@@ -224,8 +227,8 @@ unknown addend/minuend (basic), unknown factor/dividend (intermediate) and two-s
 `a · x ± b = c` (advanced). Answers are always positive whole numbers. `app/answers.py` checks
 them exactly with SymPy and accepts `3`, `3.0`, `3,0`, `x = 3`, `х = 3`, `3 = x` or `6/2`.
 Student text is matched against a strict ASCII-digit pattern first and is never passed to
-`sympify`/`parse_expr` (they use `eval`). Live scenes swap the pizza
-box for a chest sealed by a riddle lock, with no digits in the pictures.
+`sympify`/`parse_expr` (they use `eval`). Equation scenes show a chest sealed by a riddle lock,
+with no digits in the pictures.
 
 Each published comic also stores two extra boss rounds (same topic, grade and difficulty) in the
 `boss_rounds` table; the reader's panel-four boss fight checks them through the usual exercise
@@ -246,8 +249,9 @@ fails the job instead of publishing it. Exercise and hints are server-authored t
 math instructions reliable without disclosing the final answer.
 
 Image prompts come from server-owned scene directions and a shared character description.
-They contain no dialogue, problem operands, or solution. The box stays closed through
-panel 4. The last two scenes show the picnic without revealing quantities or servings.
+They contain no dialogue, problem operands, or solution. In fractions stories the same prop
+appears throughout the story. The last two scenes show the friends using it without revealing
+quantities or servings. Resuming live illustration work keeps the selected resource.
 Reference-image editing encourages consistent faces and clothes. Visual consistency and absence
 of accidental lettering still depend on the image model; deterministic checks cannot assess
 real artwork. Returned files are decoded, validated, normalized to PNG, and stripped of metadata.

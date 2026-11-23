@@ -18,6 +18,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .assignments import accessible_assignment, assignment_exercise
 from .auth import (
     DUMMY_HASH,
     Session,
@@ -639,7 +640,12 @@ async def save_progress(body: SeasonUpdate, user: Student, session: Session):
 
 @router.get("/me/boss/{comic_id}", response_model=BossState, response_model_exclude_none=True)
 async def boss_state(comic_id: str, user: Student, session: Session, request: Request):
-    exercises = request.app.state.store.comic_exercises(comic_id)
+    assignment = await accessible_assignment(session, comic_id, user)
+    exercises = (
+        [assignment_exercise(assignment)]
+        if assignment is not None
+        else request.app.state.store.comic_exercises(comic_id)
+    )
     logs = (
         await session.scalars(
             select(AnalyticsLog)

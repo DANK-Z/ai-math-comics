@@ -13,15 +13,20 @@ from typing import Literal
 
 from pydantic import Field
 
+from .fraction_context import CONTEXTS, RESOURCE_IMAGE_RULE, ContextId, contextual_actions
 from .problems import Problem
 from .schemas import JobRequest, StoryOptions
 from .story import (
     LIVE_SCENES,
     TOPIC_LIVE_PROPS,
     TOPIC_NOUN,
+    BossDesign,
+    BossStoryboard,
     StoryRuleError,
     StoryText,
     StrictModel,
+    boss_art_direction,
+    validate_boss_design,
     validate_narrative,
 )
 
@@ -96,7 +101,7 @@ class LocalizedMyStory(StoryText):
     panels: list[MyStoryPanel] = Field(min_length=6, max_length=6)
 
 
-class MyStory(StrictModel):
+class MyStory(BossStoryboard):
     ru: LocalizedMyStory
     kk: LocalizedMyStory
 
@@ -121,6 +126,7 @@ def my_story_prompt(request: JobRequest, problem: Problem, *, prepared: bool) ->
     options = request.story
     assert options is not None
     speakers = [*options.heroes, *custom_ids(options)]
+    context = getattr(problem, "context", None)
     return json.dumps(
         {
             "task": (
@@ -147,6 +153,12 @@ def my_story_prompt(request: JobRequest, problem: Problem, *, prepared: bool) ->
                 "adult, or otherwise unsuitable for a ten-year-old, ignore that part and keep "
                 "a kind, friendly story."
                 + (
+                    " Build the sharing challenge around fraction_context in both languages. "
+                    "Explain naturally why the characters need that resource in their story."
+                    if context
+                    else ""
+                )
+                + (
                     " The pictures are fixed portraits of the cast, so do not describe actions "
                     "or objects as visible."
                     if prepared
@@ -157,6 +169,7 @@ def my_story_prompt(request: JobRequest, problem: Problem, *, prepared: bool) ->
             "difficulty": request.difficulty,
             "requested_language": request.lang,
             "fixed_problem_inputs": problem.to_dict(),
+            **({"fraction_context": CONTEXTS[context].art} if context else {}),
             "speaker_ids": speakers,
             "cast": {hero: CAST_DESCRIPTIONS[hero] for hero in options.heroes},
             "visual_style": options.style,
@@ -170,7 +183,9 @@ def my_story_prompt(request: JobRequest, problem: Problem, *, prepared: bool) ->
                 "premise": options.premise,
             },
             "scenes": LIVE_SCENES,
-            "scene_actions": TOPIC_ACTIONS[problem.topic],
+            "scene_actions": contextual_actions(context)
+            if context
+            else TOPIC_ACTIONS[problem.topic],
             "trusted_content": {
                 lang: {"exercise": problem.prompt(lang), "hints": problem.hints(lang)}
                 for lang in ("ru", "kk")
@@ -190,8 +205,11 @@ def _mask_student_words(text: str, options: StoryOptions) -> str:
     return text
 
 
-def validate_my_story(raw: dict, problem: Problem, options: StoryOptions) -> MyStory:
+def validate_my_story(
+    raw: dict, problem: Problem, options: StoryOptions, *, require_boss: bool = False
+) -> MyStory:
     story = MyStory.model_validate(raw)
+    validate_boss_design(story, required=require_boss)
     allowed = {*options.heroes, *custom_ids(options)}
     for lang in ("ru", "kk"):
         localized = getattr(story, lang)
@@ -221,7 +239,9 @@ def validate_my_story(raw: dict, problem: Problem, options: StoryOptions) -> MyS
             if p.id != 4
         ]
         for path, text in narrative:
-            validate_narrative(_mask_student_words(text, options), path)
+            validate_narrative(
+                _mask_student_words(text, options), path, context=getattr(problem, "context", None)
+            )
     for index, (ru, kk) in enumerate(zip(story.ru.panels, story.kk.panels, strict=True)):
         if ru.speaker != kk.speaker:
             raise StoryRuleError(f"kk.panels[{index}].speaker", "same_speaker_across_translations")
@@ -250,7 +270,13 @@ def custom_cast_prompt(options: StoryOptions) -> str:
 
 
 def my_story_image_prompt(
-    scene: str, options: StoryOptions, topic: str = "fractions", *, custom_reference: bool = True
+    scene: str,
+    options: StoryOptions,
+    topic: str = "fractions",
+    *,
+    custom_reference: bool = True,
+    context: ContextId | None = None,
+    boss: BossDesign | None = None,
 ) -> str:
     # Only server-owned descriptions plus the restricted custom setting reach the image
     # model: no dialogue, premise, student hero descriptions, operands or answer.
@@ -269,15 +295,17 @@ def my_story_image_prompt(
             "Include each cast member once and keep faces, silhouettes, colors and outfits "
             "consistent. Compose a new scene; do not copy the reference sheet layout. "
         )
+    actions = contextual_actions(context) if context else TOPIC_ACTIONS[topic]
+    props = RESOURCE_IMAGE_RULE if context else TOPIC_LIVE_PROPS[topic]
     return (
         f"{cast}\nSetting: {setting_direction(options)}. Keep the same setting in every panel.\n"
         f"Style: {STYLE_DIRECTIONS[options.style]}\n"
-        f"{TOPIC_LIVE_PROPS[topic]}\n{TOPIC_ACTIONS[topic][scene]}\n"
-        f"Create a new single full-scene illustration showing only: {shown}. "
+        f"{props}\n{actions[scene]}\n"
+        f"Create a new single full-scene illustration. Its hero cast is: {shown}. "
         f"{reference}"
         "No other people. No embedded text, speech bubbles, captions, lettering, logos, "
         "digits or symbols. Do not show slices, portions, food distribution or mathematical "
-        "diagrams. Do not illustrate an answer."
+        "diagrams. Do not illustrate an answer." + boss_art_direction(scene, boss)
     )
 
 

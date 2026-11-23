@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import type { BossKind, Lang, Reward } from '../api'
+import type { Lang, Reward } from '../api'
 import { BOSS_COPY } from '../boss'
 
 // Victory screen after the panel-four boss: a chest bursts open with coins, a trophy card
@@ -32,7 +32,7 @@ function Chest() {
 
 interface Props {
   open: boolean
-  kind: BossKind
+  name: string
   lang: Lang
   rounds: number
   misses: number
@@ -42,7 +42,7 @@ interface Props {
   onReadOn?: () => void
 }
 
-export function TriumphModal({ open, kind, lang, rounds, misses, reward, onClose, onReadOn }: Props) {
+export function TriumphModal({ open, name, lang, rounds, misses, reward, onClose, onReadOn }: Props) {
   const copy = BOSS_COPY[lang]
   const t = copy.triumph
   const dialog = useRef<HTMLDialogElement>(null)
@@ -50,7 +50,6 @@ export function TriumphModal({ open, kind, lang, rounds, misses, reward, onClose
   const titleId = useId()
   const [shareState, setShareState] = useState<'idle' | 'copied' | 'shared' | 'failed'>('idle')
   const stars = reward?.stars ?? starsFor(misses)
-  const name = copy.names[kind]
 
   useEffect(() => {
     const el = dialog.current

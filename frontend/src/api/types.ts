@@ -35,6 +35,7 @@ export interface Boss {
   kind: BossKind
   maxHp: number
   rounds: BossRound[]
+  character?: { name: string; introduction: string; farewell: string }
 }
 
 export interface Comic {
@@ -253,4 +254,46 @@ export interface AccountApi {
   buy(itemId: SkinKey): Promise<Shop>
   /** A backpack item id, or null to take the skin off. */
   equip(backpackItemId: number | null): Promise<Shop>
+}
+export interface TeacherTask {
+  boss: BossKind
+  answer: string
+  ru: TeacherTaskText
+  kk: TeacherTaskText
+}
+
+export interface TeacherTaskText {
+  prompt: string
+  hint1: string
+  hint2: string
+}
+
+export interface TeacherDraft {
+  ru: Comic
+  kk: Comic
+  task: TeacherTask
+}
+
+export interface TeacherDraftJob extends ComicJob {
+  publicationStatus: 'draft' | 'published'
+  title: string | null
+}
+
+export interface TeacherPublication {
+  classId: number
+  dueDate: string | null
+  task: TeacherTask
+  ru: { title: string; panels: string[] }
+  kk: { title: string; panels: string[] }
+}
+
+export interface ClassAssignment {
+  id: string
+  title: string
+  dueDate: string | null
+  completed: boolean
+}
+
+export interface AssignmentReport extends ClassAssignment {
+  students: { id: number; name: string; completed: boolean; hints: number[] }[]
 }

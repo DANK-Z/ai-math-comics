@@ -80,7 +80,7 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.target instanceof HTMLInputElement) return
+      if (e.target instanceof Element && e.target.closest('input, textarea, [contenteditable], dialog[open]')) return
       if (e.key === 'ArrowRight' && current < maxIndex) onIndexChange(current + 1)
       if (e.key === 'ArrowLeft' && current > 0) onIndexChange(current - 1)
     }
@@ -236,9 +236,9 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
       </section>
 
       {/* Kept mounted between panels to preserve the typed answer and revealed hints. */}
-      <div hidden={!isExercisePanel} className="min-w-0 xl:col-start-1 xl:row-start-2">
+      <div hidden={!isExercisePanel} inert={!isExercisePanel} className="min-w-0 xl:col-start-1 xl:row-start-2">
         {boss ? (
-          <BossFight boss={boss} lang={lang} cleared={bossCleared} onRoundCleared={onRoundCleared}
+          <BossFight boss={boss} lang={lang} active={isExercisePanel} cleared={bossCleared} onRoundCleared={onRoundCleared}
             misses={bossProgress.misses} onMiss={bossProgress.miss}
             onReadOn={exerciseIndex + 1 < total ? () => onIndexChange(exerciseIndex + 1) : undefined} />
         ) : (

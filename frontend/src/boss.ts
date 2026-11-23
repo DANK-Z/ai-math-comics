@@ -10,6 +10,7 @@ interface BossCopy {
   round: (n: number, total: number) => string
   status: { cleared: string; active: string; upcoming: string }
   hit: Record<BossKind, (damage: number) => string>
+  characterHit: (damage: number) => string
   answerLabel: string
   defeated: string
   defeatedText: Record<BossKind, string>
@@ -51,6 +52,7 @@ export const BOSS_COPY: Record<Lang, BossCopy> = {
       'fraction-slime': (d) => `Точный удар! Слайм теряет ${d} HP.`,
       'x-master': (d) => `Щит треснул! Магистр теряет ${d} HP.`,
     },
+    characterHit: (d) => `Верный ответ! Босс теряет ${d} HP.`,
     answerLabel: 'Твой ответ',
     defeated: 'Босс повержен!',
     defeatedText: {
@@ -94,6 +96,7 @@ export const BOSS_COPY: Record<Lang, BossCopy> = {
       'fraction-slime': (d) => `Дәл соққы! Слайм ${d} HP жоғалтты.`,
       'x-master': (d) => `Қалқан жарылды! Магистр ${d} HP жоғалтты.`,
     },
+    characterHit: (d) => `Дұрыс жауап! Босс ${d} HP жоғалтты.`,
     answerLabel: 'Сенің жауабың',
     defeated: 'Босс жеңілді!',
     defeatedText: {

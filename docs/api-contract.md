@@ -180,7 +180,8 @@ equivalent fractions are checked with exact arithmetic. Unknown exercises return
 
 ### Topics
 
-- `fractions`: share pizza equally between friends; answers are fractions `a/b`.
+- `fractions`: share a resource chosen to fit the story, such as lemonade, ribbon, or water.
+  The server supplies the localized exercise, operands and hints. Answers are fractions `a/b`.
 - `equations`: find `x` in a linear equation chosen by the server (`x + a = b`, `x − a = b`
   for basic; `a · x = b`, `x : a = b` for intermediate; `a · x + b = c`, `a · x − b = c`
   for advanced). The answer is always a positive whole number, so the exercise and every
@@ -192,6 +193,11 @@ equivalent fractions are checked with exact arithmetic. Unknown exercises return
   equations talks about x, never about pizza.
 
 ### Panel-four boss (`boss`)
+
+New generated comics may include `boss.character` with localized `name`, `introduction`,
+and `farewell` for the requested comic language. The live illustration of the exercise panel
+includes the story's challenger. `kind`, HP, exercises, and reward rules keep their existing
+meaning. Older comics can omit `character`.
 
 Every generated comic has a `boss` block for the panel-four fight. `kind` is
 `fraction-slime` for fractions and `x-master` («Магистр Иксов») for equations. `maxHp` is 90
@@ -277,4 +283,27 @@ for the custom and selected characters and applies it to all six panels. An imag
 resume reuses that sheet. Prepared artwork still uses placeholders for custom heroes.
 
 See [backend setup and provider configuration](../backend/README.md).
+
+## Teacher-authored class assignments
+
+| Endpoint | Access | Contract |
+| --- | --- | --- |
+| `POST /api/teacher/comic-drafts` | Teacher | Regular generation input with required `story`. Returns the usual 202 job; the author can use the standard status and image-resume APIs. |
+| `GET /api/teacher/comic-drafts?lang=ru` | Teacher | Author's jobs with localized `title` when ready and `publicationStatus: draft\|published`. |
+| `GET /api/teacher/comic-drafts/{comicId}` | Author | `{ru: Comic, kk: Comic, task: {boss, answer, ru, kk}}`. Each localized task contains `prompt`, `hint1`, and `hint2`. Only the author can read the expected answer. |
+| `GET /api/teacher/problem-bank` | Teacher | Seed demonstration tasks in the same task format. |
+| `POST /api/teacher/comic-task` | Teacher | Regular grade, locale, topic and difficulty. The server computes candidate problems and their answers. The text provider selects a candidate and writes two validated hints per language. |
+| `POST /api/teacher/comic-drafts/{comicId}/publish` | Author and class owner | `{classId, dueDate?, task, ru: {title, panels}, kk: {title, panels}}`. Each `panels` array holds six dialogue strings. Returns 201 and `{id, title, dueDate, completed}`. Retrying for the same class returns the original assignment ID. |
+| `GET /api/me/assigned-comics?lang=ru` | Student | Current class assignments with localized titles and the student's completion state. |
+| `GET /api/teacher/classes/{classId}/assigned-comics?lang=ru` | Class owner | Each assignment plus `students: [{id, name, completed, hints}]`. For completed assignments, hint steps reflect usage through the first correct submission. |
+
+A published assignment is a snapshot with a new ID and one boss round on panel 4.
+Students in the class use that ID with the existing comic, answer, hint and boss-state
+endpoints. The source draft stays private. Manual answers use the exact parser in
+`answers.py`, with an integer required for the equation boss. The teacher is responsible
+for verifying that an authored problem and its answer agree.
+
+The SQLite queue stores author ownership alongside jobs. The accounts database
+(PostgreSQL in a deployed setup) stores the snapshots and hint events.
+Run `alembic upgrade head` before starting a migration-enforced API.
 

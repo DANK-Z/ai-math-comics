@@ -3,12 +3,12 @@ from concurrent.futures import ThreadPoolExecutor
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
-from test_generation import REQUEST, DeterministicImages, DeterministicText
+from test_generation import REQUEST, TEST_BOSS, DeterministicImages, DeterministicText
 
 from app.config import Settings
 from app.main import create_app
 from app.storage import Store
-from app.story import LIVE_SCENES, image_prompt
+from app.story import LIVE_SCENES, BossDesign, image_prompt
 from app.worker import Worker
 
 
@@ -37,7 +37,8 @@ def test_resume_live_job_uses_saved_story_and_only_missing_panels(tmp_path):
     assert failed["status"] == "failed"
     assert failed["progress"] == {"stage": "drawing", "completedPanels": 4, "totalPanels": 6}
     assert [prompt for prompt, _ in first.calls] == [
-        image_prompt(scene) for scene in LIVE_SCENES[:5]
+        image_prompt(scene, context=text.contexts[0], boss=BossDesign.model_validate(TEST_BOSS))
+        for scene in LIVE_SCENES[:5]
     ]
     assert len(text.calls) == 1
     directory = next(store.images_dir.iterdir())
@@ -72,7 +73,8 @@ def test_resume_live_job_uses_saved_story_and_only_missing_panels(tmp_path):
         )
         assert sum(results) == 1
         assert [prompt for prompt, _ in successful.calls + competing.calls] == [
-            image_prompt(scene) for scene in LIVE_SCENES[4:]
+            image_prompt(scene, context=text.contexts[0], boss=BossDesign.model_validate(TEST_BOSS))
+            for scene in LIVE_SCENES[4:]
         ]
 
     asyncio.run(finish())

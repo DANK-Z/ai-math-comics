@@ -1,9 +1,10 @@
 """Trusted fraction templates. The model never chooses operands or the answer."""
 
 import secrets
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from fractions import Fraction
 
+from .fraction_context import CONTEXTS, ContextId
 from .schemas import JobRequest, Language
 
 
@@ -11,6 +12,7 @@ from .schemas import JobRequest, Language
 class Problem:
     portions: tuple[str, ...]
     friends: int
+    context: ContextId | None = None
     topic = "fractions"  # class constant, not a dataclass field
 
     @property
@@ -19,7 +21,7 @@ class Problem:
 
     @property
     def skill(self) -> str:
-        """Analytics label: share whole pizzas, a fractional amount, or a sum of fractions."""
+        """Analytics label: share whole units, a fractional amount, or a sum of fractions."""
         if len(self.portions) > 1:
             return "sum"
         return "part" if "/" in self.portions[0] else "whole"
@@ -28,12 +30,33 @@ class Problem:
         # Only operands, never the computed answer, are sent to the text provider.
         return {"portions": list(self.portions), "friends": self.friends}
 
+    def stored_inputs(self) -> dict:
+        return self.to_dict() | ({"context": self.context} if self.context else {})
+
     @classmethod
     def from_dict(cls, data: dict):
-        return cls(tuple(data["portions"]), data["friends"])
+        context = data.get("context")
+        if context is not None and context not in CONTEXTS:
+            raise ValueError("Unknown fraction context")
+        return cls(tuple(data["portions"]), data["friends"], context)
 
     def prompt(self, lang: Language) -> str:
         amount = " + ".join(self.portions)
+        if self.context:
+            ctx = CONTEXTS[self.context]
+            if lang == "ru":
+                return (
+                    f"Запас для друзей — {ctx.resource_ru}. Его количество: {amount} "
+                    f"(в {ctx.ru_unit_plural}). Весь запас делят поровну. "
+                    f"Друзей: {self.friends}. Какую долю {ctx.ru_unit} получит каждый? "
+                    "Запиши ответ дробью."
+                )
+            return (
+                f"Достарға арналған қор — {ctx.resource_kk}. Мөлшері: {amount} "
+                f"(өлшем бірлігі — {ctx.kk_unit}). Қорды {self.friends} дос тең бөліседі. "
+                f"Әр досқа бір {ctx.kk_unit} мөлшерінің қандай үлесі тиеді? "
+                "Жауабыңды бөлшек түрінде жаз."
+            )
         if lang == "ru":
             return (
                 f"Есть пицца в количестве {amount} (в целых пиццах). "
@@ -47,6 +70,23 @@ class Problem:
         )
 
     def hints(self, lang: Language) -> list[str]:
+        if self.context:
+            if lang == "ru":
+                rule = (
+                    "Дроби складывают после приведения к общему знаменателю."
+                    if len(self.portions) > 1
+                    else "При равном делении общее количество делят на число получателей."
+                )
+                return [
+                    rule,
+                    "Найди общее количество запаса и раздели его на число друзей. Сократи дробь.",
+                ]
+            rule = (
+                "Бөлшектерді қосу үшін оларды ортақ бөлімге келтір."
+                if len(self.portions) > 1
+                else "Тең бөліскенде жалпы мөлшерді адам санына бөледі."
+            )
+            return [rule, "Қордың жалпы мөлшерін тап, оны достар санына бөл. Бөлшекті қысқарт."]
         if lang == "ru":
             first = (
                 "Сначала сложи указанные количества пиццы, приведя дроби к общему знаменателю."
@@ -230,15 +270,20 @@ def boss_rounds(request: JobRequest, main, count: int = 2) -> list:
     """Extra server-owned problems for the boss fight, different from the main one."""
     rounds = []
     seen = {main.prompt("ru")}
+
+    def next_round():
+        candidate = choose_problem(request)
+        return replace(candidate, context=main.context) if isinstance(main, Problem) else candidate
+
     for _ in range(60):
         if len(rounds) == count:
             break
-        candidate = choose_problem(request)
+        candidate = next_round()
         if candidate.prompt("ru") not in seen:
             seen.add(candidate.prompt("ru"))
             rounds.append(candidate)
     while len(rounds) < count:  # tiny template pools: repeat rather than fail the comic
-        rounds.append(choose_problem(request))
+        rounds.append(next_round())
     return rounds
 
 

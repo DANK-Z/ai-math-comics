@@ -7,7 +7,7 @@ from fractions import Fraction
 
 import pytest
 from fastapi.testclient import TestClient
-from test_generation import DeterministicImages
+from test_generation import TEST_BOSS, DeterministicImages, pick_context
 
 from app.config import Settings
 from app.main import create_app
@@ -20,7 +20,7 @@ from app.my_story import (
 from app.problems import Problem
 from app.schemas import JobRequest
 from app.storage import Store
-from app.story import LIVE_SCENES, StoryRuleError
+from app.story import LIVE_SCENES, BossDesign, StoryRuleError
 from app.worker import Worker
 
 STORY = {
@@ -77,18 +77,23 @@ def story_for(prompt: str) -> dict:
             ],
         }
         for lang in ("ru", "kk")
-    }
+    } | ({"boss_design": copy.deepcopy(TEST_BOSS)} if "boss_design" in request else {})
 
 
 class StoryText:
     def __init__(self):
         self.calls = []
         self.moderation_calls = []
+        self.contexts = []
 
     async def generate(self, prompt, schema):
         if "allowed" in schema["properties"]:
             self.moderation_calls.append(json.loads(prompt)["student_data"])
             return {"allowed": True}
+        if "context" in schema["properties"]:
+            choice = pick_context(prompt)
+            self.contexts.append(choice["context"])
+            return choice
         self.calls.append((prompt, schema))
         return story_for(prompt)
 
@@ -259,7 +264,7 @@ def test_prepared_story_uses_cast_portraits_and_placeholders(tmp_path):
 
 def test_live_story_builds_and_shares_custom_cast_reference(tmp_path):
     images = DeterministicImages()
-    api, _, status = run_job(tmp_path, "live", images)
+    api, text, status = run_job(tmp_path, "live", images)
     assert status["status"] == "ready", status
     comic = api.get(f"/api/comics/{status['comicId']}?lang=ru").json()
     assert all(p["imageUrl"].endswith(f"/{p['id']}.png") for p in comic["panels"])
@@ -273,7 +278,9 @@ def test_live_story_builds_and_shares_custom_cast_reference(tmp_path):
     saved_reference = (tmp_path / "images" / status["comicId"] / "_cast.png").read_bytes()
     assert api.get(f"/api/comic-images/{status['comicId']}/_cast.png").status_code == 422
     for (prompt, reference), scene in zip(images.calls[1:], LIVE_SCENES, strict=True):
-        assert prompt == my_story_image_prompt(scene, options())
+        assert prompt == my_story_image_prompt(
+            scene, options(), context=text.contexts[0], boss=BossDesign.model_validate(TEST_BOSS)
+        )
         assert reference == saved_reference
 
 
@@ -282,7 +289,8 @@ def test_live_story_resume_reuses_the_story_and_draws_missing_panels(tmp_path):
     api = TestClient(create_app(settings))
     job_id = api.post("/api/comic-jobs", json=REQUEST).json()["jobId"]
     first = DeterministicImages(fail_at=6)
-    assert asyncio.run(Worker(Store(tmp_path), StoryText(), first, settings).run_once())
+    text = StoryText()
+    assert asyncio.run(Worker(Store(tmp_path), text, first, settings).run_once())
     failed = api.get(f"/api/comic-jobs/{job_id}").json()
     assert failed["status"] == "failed" and failed["progress"]["completedPanels"] == 4
     assert (
@@ -300,7 +308,10 @@ def test_live_story_resume_reuses_the_story_and_draws_missing_panels(tmp_path):
     assert asyncio.run(Worker(Store(tmp_path), UnexpectedText(), second, settings).run_once())
     assert api.get(f"/api/comic-jobs/{job_id}").json()["status"] == "ready"
     assert [prompt for prompt, _ in second.calls] == [
-        my_story_image_prompt(scene, options()) for scene in LIVE_SCENES[4:]
+        my_story_image_prompt(
+            scene, options(), context=text.contexts[0], boss=BossDesign.model_validate(TEST_BOSS)
+        )
+        for scene in LIVE_SCENES[4:]
     ]
     assert second.calls[0][1] == first.calls[1][1]
 

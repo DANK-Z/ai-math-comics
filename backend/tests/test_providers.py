@@ -11,7 +11,7 @@ import httpx
 import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
-from test_generation import REQUEST, png, story_for
+from test_generation import REQUEST, pick_context, png, story_for
 
 from app.config import BACKEND_DIR, Settings
 from app.main import create_app
@@ -35,15 +35,15 @@ def test_full_flow_through_real_adapters_with_mock_http(tmp_path):
             schema = body["response_format"]["json_schema"]
             assert schema["strict"] is True
             assert schema["schema"]["additionalProperties"] is False
+            prompt = body["messages"][1]["content"]
+            build = pick_context if "context" in schema["schema"]["properties"] else story_for
             return httpx.Response(
                 200,
                 json={
                     "choices": [
                         {
                             "finish_reason": "stop",
-                            "message": {
-                                "content": json.dumps(story_for(body["messages"][1]["content"]))
-                            },
+                            "message": {"content": json.dumps(build(prompt))},
                         }
                     ]
                 },
@@ -78,6 +78,7 @@ def test_full_flow_through_real_adapters_with_mock_http(tmp_path):
             assert image.status_code == 200
             Image.open(io.BytesIO(image.content)).verify()
     assert [r.url.path for r in requests] == [
+        "/v1/chat/completions",
         "/v1/chat/completions",
         *["/v1/images/edits"] * 6,
     ]

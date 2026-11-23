@@ -13,6 +13,7 @@ import { STRINGS, type UiStrings } from '../i18n'
 import { comicHref, DEMO_COMIC_ID } from '../route'
 import { schoolFairChapter } from '../schoolFair'
 import { SchoolFairRoute } from './SchoolFairRoute'
+import { StudentAssignments } from './ClassAssignments'
 
 /** How a cover is cropped in its card: box aspect ratio + CSS object-position focal point. */
 interface Framing {
@@ -143,6 +144,7 @@ export function HomeScreen({ lang, completedChapters, remaining, guardianWon, la
         <h1 className="text-3xl leading-tight font-black text-ink sm:text-4xl">{t.schoolFairTitle}</h1>
         <p className="mt-1.5 text-base font-semibold text-ink/85 sm:text-lg">{t.catalogLead}</p>
       </div>
+      <StudentAssignments lang={lang} />
       <SchoolFairRoute t={t} covers={ROUTE_COVERS} completedChapters={completedChapters}
         remaining={remaining} guardianWon={guardianWon} lastComicId={lastComicId} />
     </div>

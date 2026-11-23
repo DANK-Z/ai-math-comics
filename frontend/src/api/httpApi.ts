@@ -1,5 +1,6 @@
 import { authToken } from './authToken'
 import { ApiError } from './errors'
+import type { AssignmentReport, ClassAssignment, ComicJobRequest, Lang, TeacherDraft, TeacherDraftJob, TeacherPublication, TeacherTask } from './types'
 import type { AccountApi, Api, AuthResponse, BossState, CheckResponse, ClassInfo, Comic, ComicJob, ComicJobCreated, ContinuationJobRequest, Dashboard, HintResponse, Me, Shop } from './types'
 
 /** Pulls `detail` / `message` / `errorCode` out of an error body (FastAPI uses `detail`). */
@@ -24,6 +25,14 @@ async function readError(res: Response): Promise<ApiError> {
 export function createHttpApi(baseUrl: string): Api & AccountApi & {
   createContinuationJob(body: ContinuationJobRequest): Promise<ComicJobCreated>
   resumeComicJob(jobId: string, resumeToken: string): Promise<ComicJob>
+  draftJobs(lang: Lang, signal?: AbortSignal): Promise<TeacherDraftJob[]>
+  createDraft(body: ComicJobRequest): Promise<ComicJobCreated>
+  draft(comicId: string, signal?: AbortSignal): Promise<TeacherDraft>
+  problemBank(signal?: AbortSignal): Promise<TeacherTask[]>
+  generateTask(body: ComicJobRequest): Promise<TeacherTask>
+  publishDraft(comicId: string, body: TeacherPublication): Promise<ClassAssignment>
+  assignments(lang: Lang, signal?: AbortSignal): Promise<ClassAssignment[]>
+  assignmentReports(classId: number, lang: Lang, signal?: AbortSignal): Promise<AssignmentReport[]>
 } {
   const base = baseUrl.replace(/\/+$/, '')
 
@@ -105,6 +114,32 @@ export function createHttpApi(baseUrl: string): Api & AccountApi & {
     },
     dashboard(classId, signal) {
       return request<Dashboard>(`/api/teacher/classes/${classId}`, { signal })
+    },
+    draftJobs(lang, signal) {
+      return request(`/api/teacher/comic-drafts?lang=${lang}`, { signal })
+    },
+    createDraft(body) {
+      return request('/api/teacher/comic-drafts', { method: 'POST', body: JSON.stringify(body) })
+    },
+    draft(comicId, signal) {
+      return request(`/api/teacher/comic-drafts/${encodeURIComponent(comicId)}`, { signal })
+    },
+    problemBank(signal) {
+      return request('/api/teacher/problem-bank', { signal })
+    },
+    generateTask(body) {
+      return request('/api/teacher/comic-task', { method: 'POST', body: JSON.stringify(body) })
+    },
+    publishDraft(comicId, body) {
+      return request(`/api/teacher/comic-drafts/${encodeURIComponent(comicId)}/publish`, {
+        method: 'POST', body: JSON.stringify(body),
+      })
+    },
+    assignments(lang, signal) {
+      return request(`/api/me/assigned-comics?lang=${lang}`, { signal })
+    },
+    assignmentReports(classId, lang, signal) {
+      return request(`/api/teacher/classes/${classId}/assigned-comics?lang=${lang}`, { signal })
     },
     shop(signal) {
       return request<Shop>('/api/v1/shop', { signal })

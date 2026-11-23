@@ -11,7 +11,7 @@ requires the account database to be at the current Alembic revision.
 import asyncio
 import enum
 from collections.abc import AsyncIterator
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 from alembic.config import Config
@@ -20,6 +20,7 @@ from alembic.script import ScriptDirectory
 from sqlalchemy import (
     JSON,
     Boolean,
+    Date,
     DateTime,
     Enum,
     ForeignKey,
@@ -142,6 +143,32 @@ class SignInWindow(Base):
     key: Mapped[str] = mapped_column(String(64), primary_key=True)
     expires_at: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     attempts: Mapped[int] = mapped_column(Integer)
+
+
+class AssignedComic(Base):
+    __tablename__ = "assigned_comics"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    class_id: Mapped[int] = mapped_column(ForeignKey("classes.id", ondelete="CASCADE"), index=True)
+    comic_id: Mapped[str] = mapped_column(String(36), unique=True)
+    due_date: Mapped[date | None] = mapped_column(Date)
+    content: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class AssignmentHint(Base):
+    __tablename__ = "assignment_hints"
+
+    assignment_id: Mapped[str] = mapped_column(
+        ForeignKey("assigned_comics.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    student_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    step: Mapped[int] = mapped_column(Integer, primary_key=True)
+    opened_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
 class Database:
