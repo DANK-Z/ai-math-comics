@@ -6,6 +6,7 @@ import { ROADS_BRIDGE_ID, ROADS_FLAG_ID, ROADS_HILL_ID, ROADS_RIVER_ID } from '.
 import type { Lang } from './api/types'
 import { WEATHER_AVERAGE_ID, WEATHER_FROST_ID, WEATHER_RAIN_ID, WEATHER_UNITS_ID } from './api/weatherChapters'
 import type { CharacterId } from './characters'
+import { finaleHref } from './finales'
 
 // Operations after the School Fair: five short seasons of four chapters and a finale.
 // A chapter with `comicId` is playable; the others are announced on the season page until
@@ -110,7 +111,7 @@ export const OPERATIONS: readonly Operation[] = [
       },
       {
         number: 3, comicId: LIGHTS_GARLAND_ID, title: t('Гирлянда с запасом', 'Қоры бар шамтізбе'), story: t('Сцену обводят огнями, оставив свободным вход для музыкантов.', 'Музыканттардың кіретін жерін бос қалдырып, сахнаны шаммен қоршайды.'), math: t('Периметр', 'Периметр'),
-        speaker: 'aldiyar', ending: t('Гирлянда на месте! Не хватает только фонариков — идём к киоскам.', 'Шамтізбе орнында! Тек фонарьлар жетпейді — дүңгіршектерге барайық.'),
+        speaker: 'aldiyar', ending: t('Гирлянда на месте! Не хватает ещё огоньков — идём к киоскам.', 'Шамтізбе орнында! Тағы шамдар жетпейді — дүңгіршектерге барайық.'),
       },
       {
         number: 4, comicId: LIGHTS_KIOSKS_ID, title: t('Два киоска, две скидки', 'Екі дүңгіршек, екі жеңілдік'), story: t('Скидка в процентах или в тенге — бюджета хватит только при удачном выборе.', 'Пайыздық па, теңгелік пе — бюджет тек дұрыс таңдауда жетеді.'), math: t('Проценты', 'Пайыздар'),
@@ -120,7 +121,8 @@ export const OPERATIONS: readonly Operation[] = [
     finale: {
       title: t('Последний свет', 'Соңғы жарық'),
       story: t('С каждым верным ответом загорается часть световой мозаики.', 'Әр дұрыс жауап сайын жарық мозаикасының бір бөлігі жанады.'),
-      math: t('Дроби, проценты и площадь', 'Бөлшектер, пайыздар және аудан'),
+      math: t('Площадь, дроби и проценты', 'Аудан, бөлшектер және пайыздар'),
+      href: finaleHref('lights'),
     },
   },
   {

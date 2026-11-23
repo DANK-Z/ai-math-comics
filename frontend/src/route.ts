@@ -23,6 +23,7 @@ export type Route =
   | { name: 'comic'; comicId: string; ending: boolean; replay: string | null }
   | { name: 'teacherClass'; classId: number }
   | { name: 'operation'; id: string }
+  | { name: 'operationFinale'; id: string }
   | { name: 'guardianAssignment'; assignment: GuardianAssignment }
 export const GUARDIAN_HREF = SECTION_HREFS.guardian
 
@@ -39,6 +40,8 @@ export function parseRoute(hash: string): Route {
   for (const section of Object.keys(SECTION_HREFS) as Section[]) {
     if (hash === SECTION_HREFS[section]) return { name: section }
   }
+  const finale = /^#\/operation\/([a-z0-9-]{1,40})\/finale$/.exec(hash)
+  if (finale) return { name: 'operationFinale', id: finale[1] }
   const operation = /^#\/operation\/([a-z0-9-]{1,40})$/.exec(hash)
   if (operation) return { name: 'operation', id: operation[1] }
   const teacherClass = /^#\/teacher\/class\/([0-9]{1,9})$/.exec(hash)

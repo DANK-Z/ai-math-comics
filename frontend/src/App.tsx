@@ -10,7 +10,9 @@ import { GenerateCard } from './components/GenerateCard'
 import { CatalogScreen, HomeScreen } from './components/HomeScreen'
 import { LanguageSwitcher } from './components/LanguageSwitcher'
 import { ReaderScreen } from './components/ReaderScreen'
+import { FinaleScreen } from './components/FinaleScreen'
 import { OperationScreen, OperationsScreen } from './components/OperationsScreen'
+import { FINALES, finaleWon } from './finales'
 import { RoadGuardianScreen } from './components/RoadGuardianScreen'
 import { DesktopNavigation, MobileNavigation } from './components/SectionNavigation'
 import { useContinuationJob } from './continuation'
@@ -164,7 +166,7 @@ function AppShell() {
   // A saved generated comic belongs to My Comics; everything else to the catalog.
   const readerSection = route.name === 'comic' && myComics.some((c) => c.comicId === route.comicId) ? 'myComics' as const : 'comics' as const
   const readerNav = route.name === 'comic' && operationChapter(route.comicId) ? 'operations' as const : readerSection
-  const activeSection = route.name === 'comic' ? readerNav : route.name === 'operation' ? 'operations' : route.name === 'teacherClass' ? 'teacher' : route.name === 'motionLeague' ? 'roadGuardian' : route.name === 'guardianAssignment' ? 'guardian' : route.name
+  const activeSection = route.name === 'comic' ? readerNav : route.name === 'operation' || route.name === 'operationFinale' ? 'operations' : route.name === 'teacherClass' ? 'teacher' : route.name === 'motionLeague' ? 'roadGuardian' : route.name === 'guardianAssignment' ? 'guardian' : route.name
   const navigation = { t, active: activeSection, completed: completedChapters.size, remaining, myComics: myComics.length, roadOpened: roadGuardian.run.cleared, roadWon: roadGuardian.run.won, operationsDone: operations.completed.size, lang }
 
   const openGenerated = useCallback(
@@ -223,9 +225,12 @@ function AppShell() {
           {route.name === 'operation' && (() => {
             const operation = findOperation(route.id)
             return operation
-              ? <OperationScreen lang={lang} operation={operation} completed={operations.completed} finaleWon={operation.id === 'roads' && roadGuardian.run.won} />
+              ? <OperationScreen lang={lang} operation={operation} completed={operations.completed} finaleWon={operation.id === 'roads' ? roadGuardian.run.won : finaleWon(operation.id)} />
               : <OperationsScreen lang={lang} completed={operations.completed} />
           })()}
+          {route.name === 'operationFinale' && (FINALES[route.id]
+            ? <FinaleScreen key={route.id} lang={lang} def={FINALES[route.id]} />
+            : <OperationsScreen lang={lang} completed={operations.completed} />)}
           {route.name === 'motionLeague' && <Suspense><MotionLeague lang={lang} /></Suspense>}
           {route.name === 'comic' && (
             <ReaderScreen
