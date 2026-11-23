@@ -164,11 +164,12 @@ html {
   }
 }
 
-/* Final School Fair battle. The colours follow the active topic. */
+/* Final School Fair challenge: Pifik lights the three lanterns on the fair arch while the
+   friendly Fair Keeper watches; three lanterns open the arch. Colours follow the active topic. */
 .guardian-arena {
   --guardian-accent: #ffae76;
   overflow: hidden;
-  background: radial-gradient(ellipse at 72% 30%, color-mix(in srgb, var(--guardian-accent) 38%, #202854), transparent 60%), #172044;
+  background: radial-gradient(ellipse at 50% 30%, color-mix(in srgb, var(--guardian-accent) 38%, #202854), transparent 62%), #172044;
 }
 
 .guardian-arena[data-phase="prize"] { --guardian-accent: #f8cd45; }
@@ -177,51 +178,102 @@ html {
 
 .guardian-stage {
   position: relative;
-  display: flex;
-  min-height: clamp(7.5rem, 24vw, 13rem);
-  align-items: center;
-  justify-content: space-between;
-  padding-inline: 12%;
+  display: grid;
+  min-height: clamp(8rem, 26vw, 13rem);
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 4%;
+  padding: 1rem 7% .75rem;
 }
 
 .guardian-stage::before {
   position: absolute;
-  inset: auto 6% 12%;
-  height: 26%;
-  border: 2px solid rgb(255 255 255 / .24);
+  inset: auto 4% 8%;
+  height: 22%;
+  border: 2px solid rgb(255 255 255 / .2);
   border-radius: 50%;
-  background: rgb(255 255 255 / .06);
+  background: rgb(255 255 255 / .05);
   content: '';
 }
 
 .guardian-hero {
   position: relative;
   z-index: 1;
-  width: clamp(3.25rem, 15vw, 6.5rem);
+  width: clamp(3.25rem, 14vw, 6rem);
   border: 3px solid #acf0ff;
   border-radius: 50%;
   background: #c8e9ff;
   box-shadow: 0 0 1.1rem rgb(116 221 255 / .5);
 }
 
-.guardian-foe {
+/* The festival arch with gate doors and a row of lanterns along the top. */
+.guardian-arch {
   position: relative;
+  z-index: 1;
+  width: min(100%, 15rem);
+  aspect-ratio: 5 / 3.4;
+  justify-self: center;
+}
+.guardian-arch::before {
+  position: absolute;
+  inset: 16% 4% 0;
+  border: clamp(.4rem, 1.6vw, .7rem) solid var(--guardian-accent);
+  border-bottom: 0;
+  border-radius: 999px 999px 0 0;
+  background: rgb(255 255 255 / .05);
+  box-shadow: 0 0 1rem color-mix(in srgb, var(--guardian-accent) 50%, transparent);
+  content: '';
+}
+.guardian-gate {
+  position: absolute;
+  inset: 42% 17% 0;
+  display: flex;
+  perspective: 18rem;
+}
+.guardian-gate i {
+  flex: 1;
+  border: 2px solid #2a1a0d;
+  background: repeating-linear-gradient(90deg, #7a4a22 0 .55rem, #6a3d1b .55rem .65rem);
+  transition: transform .9s ease-out;
+}
+.guardian-gate i:first-child { transform-origin: left center; }
+.guardian-gate i:last-child { transform-origin: right center; }
+.guardian-arena[data-phase="won"] .guardian-gate i:first-child { transform: rotateY(72deg); }
+.guardian-arena[data-phase="won"] .guardian-gate i:last-child { transform: rotateY(-72deg); }
+
+.guardian-lanterns {
+  position: absolute;
+  inset: 0 12% auto;
+  display: flex;
+  justify-content: space-between;
+}
+.guardian-lantern {
+  width: clamp(1rem, 3.6vw, 1.7rem);
+  aspect-ratio: 3 / 4;
+  border: 3px solid rgb(253 230 138 / .45);
+  border-radius: 40% 40% 46% 46%;
+  background: #2b3361;
+  transition: background .4s, box-shadow .4s, border-color .4s;
+}
+.guardian-lantern[data-lit="true"] {
+  border-color: #fde68a;
+  background: radial-gradient(circle at 50% 40%, #fffbe6, #fde047 55%, #f59e0b);
+  box-shadow: 0 0 1rem 4px rgb(253 224 71 / .6);
+}
+
+/* The Fair Keeper: a friendly mask with smiling closed eyes. */
+.guardian-keeper {
+  position: relative;
+  z-index: 1;
   display: grid;
-  width: clamp(4rem, 21vw, 8rem);
+  width: clamp(3.5rem, 16vw, 7rem);
   aspect-ratio: 1;
   place-items: center;
-}
-
-.guardian-shield {
-  position: absolute;
-  inset: 0;
   border: 3px solid var(--guardian-accent);
-  border-radius: 46% 46% 56% 56%;
-  background: color-mix(in srgb, var(--guardian-accent) 23%, transparent);
-  box-shadow: 0 0 1rem var(--guardian-accent);
-  transform: rotate(12deg);
+  border-radius: 46% 46% 50% 50%;
+  background: color-mix(in srgb, var(--guardian-accent) 20%, #202046);
+  box-shadow: 0 0 1rem color-mix(in srgb, var(--guardian-accent) 60%, transparent);
 }
-
 .guardian-mask {
   position: relative;
   display: flex;
@@ -234,86 +286,72 @@ html {
   background: #202046;
   box-shadow: 0 5px 0 #10162f;
 }
-
 .guardian-mask i {
-  width: 20%;
-  height: 23%;
-  border-radius: 25%;
-  background: var(--guardian-accent);
-  box-shadow: 0 0 .55rem var(--guardian-accent);
+  width: 24%;
+  height: 22%;
+  border: 3px solid var(--guardian-accent);
+  border-bottom: 0;
+  border-radius: 999px 999px 0 0;
+  margin-top: -18%;
+}
+.guardian-mask::after {
+  position: absolute;
+  bottom: 16%;
+  left: 33%;
+  width: 34%;
+  height: 18%;
+  border: 3px solid var(--guardian-accent);
+  border-top: 0;
+  border-radius: 0 0 999px 999px;
+  content: '';
 }
 
-.guardian-mask i:first-child { transform: rotate(18deg); }
-.guardian-mask i:last-child { transform: rotate(-18deg); }
-
-.guardian-energy, .guardian-damage, .guardian-trophy { position: absolute; z-index: 2; }
+.guardian-energy, .guardian-confetti { position: absolute; z-index: 2; }
 .guardian-energy {
-  top: 48%;
-  left: 33%;
-  width: 15%;
-  height: .55rem;
-  border-radius: 1rem;
-  background: #e0fbff;
-  box-shadow: 0 0 .8rem #67e8f9;
+  top: 30%;
+  left: 24%;
+  width: .8rem;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #fffbe6;
+  box-shadow: 0 0 .9rem 4px #fde047;
   opacity: 0;
 }
-.guardian-damage {
-  top: 12%;
-  right: 8%;
-  color: #ffec98;
-  font-weight: 900;
-  text-shadow: 1px 2px #181d42;
-}
-.guardian-trophy { right: 16%; font-size: clamp(2.5rem, 10vw, 5rem); }
-.guardian-stage[data-defeated="true"] .guardian-foe { opacity: 0; }
+.guardian-confetti { top: 44%; left: 50%; font-size: clamp(1.8rem, 7vw, 3rem); transform: translateX(-50%); }
 
 @media (prefers-reduced-motion: no-preference) {
   .guardian-arena[data-move-phase="pizzas"] { --guardian-accent: #ffae76; }
   .guardian-arena[data-move-phase="prize"] { --guardian-accent: #f8cd45; }
   .guardian-arena[data-move-phase="map"] { --guardian-accent: #7dd3fc; }
   .guardian-hp { transition: width .35s ease-out; }
-  .guardian-stage:is([data-move="hit"], [data-move="victory"]) .guardian-hero { animation: guardian-dash .4s ease-out; }
-  .guardian-stage:is([data-move="hit"], [data-move="victory"]) .guardian-energy { animation: guardian-shot .34s ease-in both; }
-  .guardian-stage[data-move="hit"] .guardian-foe { animation: guardian-recoil .42s .23s ease-out both; }
-  .guardian-stage[data-move="blocked"] .guardian-shield { animation: guardian-block .55s ease-out; }
-  .guardian-stage[data-move="victory"] .guardian-foe { animation: guardian-vanish .5s .23s ease-out both; }
-  .guardian-stage[data-move="victory"] .guardian-trophy { animation: guardian-celebrate .38s .63s ease-out both; }
-  .guardian-damage { animation: guardian-damage .8s .24s ease-out both; }
+  .guardian-stage:is([data-move="lit"], [data-move="open"]) .guardian-hero { animation: guardian-hop .4s ease-out; }
+  .guardian-stage:is([data-move="lit"], [data-move="open"]) .guardian-energy { animation: guardian-spark .45s ease-in both; }
+  .guardian-lantern[data-new="true"] { animation: guardian-lantern .6s .35s ease-out both; }
+  .guardian-stage[data-move="notYet"] .guardian-keeper { animation: guardian-not-yet .6s ease-in-out; }
+  .guardian-stage:is([data-move="lit"], [data-move="open"]) .guardian-keeper { animation: guardian-nod .5s .5s ease-out; }
+  .guardian-confetti { animation: guardian-celebrate .45s .6s ease-out both; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .guardian-damage { display: none; }
-  .guardian-arena[data-phase="won"] .guardian-foe { opacity: 0; }
-}
-
-@keyframes guardian-dash { 45% { transform: translateX(24%) scale(1.08); } }
-@keyframes guardian-shot {
-  0% { opacity: 0; transform: translateX(-45%) scaleX(.4); }
+@keyframes guardian-hop { 45% { transform: translateY(-14%) scale(1.06); } }
+@keyframes guardian-spark {
+  0% { opacity: 0; transform: translate(0, 0) scale(.5); }
   25% { opacity: 1; }
-  80% { opacity: 1; }
-  100% { opacity: 0; transform: translateX(225%); }
+  100% { opacity: 0; transform: translate(min(18vw, 11rem), -1.2rem) scale(1.2); }
 }
-@keyframes guardian-recoil {
-  30% { transform: translateX(13%) rotate(9deg); filter: brightness(1.55); }
-  65% { transform: translateX(-4%) rotate(-3deg); }
+@keyframes guardian-lantern {
+  from { transform: scale(.6); filter: brightness(2); }
+  60% { transform: scale(1.25); }
+  to { transform: scale(1); }
 }
-@keyframes guardian-block {
-  40% { transform: rotate(12deg) scale(1.16); box-shadow: 0 0 1.4rem #fbbf24; }
+@keyframes guardian-not-yet {
+  25% { transform: rotate(-7deg); }
+  75% { transform: rotate(7deg); }
 }
-@keyframes guardian-vanish {
-  from { opacity: 1; }
-  30% { opacity: 1; transform: translateX(10%) rotate(9deg); }
-  to { opacity: 0; transform: translateY(20%) scale(.45); }
-}
+@keyframes guardian-nod { 50% { transform: translateY(8%); } }
 @keyframes guardian-celebrate {
-  from { opacity: 0; transform: scale(.55); }
-  70% { opacity: 1; transform: scale(1.12); }
-  to { opacity: 1; transform: scale(1); }
-}
-@keyframes guardian-damage {
-  0%, 100% { opacity: 0; }
-  15%, 65% { opacity: 1; }
-  to { transform: translateY(-1.2rem); }
+  from { opacity: 0; transform: translateX(-50%) scale(.55); }
+  70% { opacity: 1; transform: translateX(-50%) scale(1.15); }
+  to { opacity: 1; transform: translateX(-50%) scale(1); }
 }
 
 .comic-depth {

@@ -109,8 +109,9 @@ export interface UiStrings {
     intro: string
     locked: string
     remaining: (count: number) => string
-    hp: (current: number, max: number) => string
-    hit: (damage: number) => string
+    /** Lanterns lit on the fair arch. */
+    progress: (lit: number, total: number) => string
+    hit: string
     round: (current: number, total: number) => string
     cleared: string
     active: string
@@ -298,20 +299,20 @@ export const STRINGS: Record<Lang, UiStrings> = {
     guardian: {
       title: 'Финальное испытание',
       name: 'Страж ярмарки',
-      intro: 'Помоги Пифику одолеть Стража ярмарки. Реши три задачи: каждый верный ответ снимает 30 HP.',
+      intro: 'Страж ярмарки охраняет праздничную арку. Чтобы ярмарка открылась, нужно зажечь на арке три фонаря. Реши задачу — и Пифик зажжёт фонарь.',
       locked: 'Испытание откроется после прохождения всех глав.',
       remaining: (count) => `Осталось пройти глав: ${count}`,
-      hp: (current, max) => `${current} / ${max} HP`,
-      hit: (damage) => `Верно! Страж теряет ${damage} HP`,
+      progress: (lit, total) => `Фонари на арке: ${lit} из ${total}`,
+      hit: 'Верно! Зажёгся новый фонарь.',
       round: (current, total) => `Раунд ${current} из ${total}`,
       cleared: 'Пройден',
       active: 'Текущий',
       upcoming: 'Впереди',
-      wrong: 'Попробуй ещё раз. HP Стража не изменилось.',
+      wrong: 'Пока не так, фонарь не зажёгся. Попробуй ещё раз.',
       invalidFraction: 'Запиши ответ дробью, например 1/2.',
       invalidNumber: 'Введи целое число без единиц измерения.',
-      victory: 'Испытание пройдено!',
-      victoryText: 'Страж поздравляет тебя: ты решил все задачи ярмарки.',
+      victory: 'Ярмарка открыта!',
+      victoryText: 'Все три фонаря горят! Страж ярмарки распахивает арку и поздравляет тебя: ты решил все задачи сезона.',
       replay: 'Пройти заново',
       wonBadge: 'Испытание пройдено',
     },
@@ -497,20 +498,20 @@ export const STRINGS: Record<Lang, UiStrings> = {
     guardian: {
       title: 'Соңғы сынақ',
       name: 'Жәрмеңке сақшысы',
-      intro: 'Пификке жәрмеңке сақшысын жеңуге көмектес. Үш есепті шығар: әр дұрыс жауап Сақшының HP көрсеткішін 30-ға азайтады.',
+      intro: 'Жәрмеңке сақшысы мерекелік доғаны күзетеді. Жәрмеңке ашылуы үшін доғадағы үш шамды жағу керек. Есепті шеш — Пифик шамды жағады.',
       locked: 'Сынақ барлық тараудан өткен соң ашылады.',
       remaining: (count) => `Әлі ${count} тарау қалды`,
-      hp: (current, max) => `${current} / ${max} HP`,
-      hit: (damage) => `Дұрыс! Сақшының HP көрсеткіші ${damage}-ға азайды`,
+      progress: (lit, total) => `Доғадағы шамдар: ${lit} / ${total}`,
+      hit: 'Дұрыс! Жаңа шам жанды.',
       round: (current, total) => `${total} раундтың ${current}-раунды`,
       cleared: 'Аяқталды',
       active: 'Ағымдағы',
       upcoming: 'Алда',
-      wrong: 'Қайта байқап көр. Сақшының HP көрсеткіші өзгерген жоқ.',
+      wrong: 'Әзірге дұрыс емес, шам жанбады. Қайта байқап көр.',
       invalidFraction: 'Жауабыңды бөлшекпен жаз, мысалы 1/2.',
       invalidNumber: 'Өлшем бірлігінсіз бүтін сан енгіз.',
-      victory: 'Сынақтан өттің!',
-      victoryText: 'Сақшы сені құттықтайды: жәрмеңкедегі барлық есепті шығардың.',
+      victory: 'Жәрмеңке ашылды!',
+      victoryText: 'Үш шам да жанып тұр! Жәрмеңке сақшысы доғаны ашып, сені құттықтайды: маусымның барлық есебін шығардың.',
       replay: 'Қайта өту',
       wonBadge: 'Сынақ аяқталды',
     },

@@ -105,7 +105,6 @@ function roundsFor(variant: number): readonly GuardianRound[] {
   ]
 }
 
-export const DAMAGE_PER_ROUND = 30
 const STORAGE_KEY = 'amc.schoolFair.guardian'
 
 interface GuardianRun {

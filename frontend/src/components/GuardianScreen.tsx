@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import type { CheckStatus, Lang } from '../api/types'
-import { DAMAGE_PER_ROUND, type GuardianRound, type useGuardianChallenge } from '../guardian'
+import type { GuardianRound, useGuardianChallenge } from '../guardian'
 import { GUARDIAN_SETUP } from '../guardianAssignment'
 import { STRINGS } from '../i18n'
 import { SECTION_HREFS } from '../route'
@@ -11,40 +11,46 @@ const BUTTON = 'inline-flex min-h-11 items-center justify-center rounded-2xl bor
 const CARD = 'rounded-[28px] border-[3px] border-ink bg-white p-4 shadow-[0_6px_0_var(--color-ink)] sm:p-6'
 
 type Challenge = ReturnType<typeof useGuardianChallenge>
-type BattleMove = 'hit' | 'blocked' | 'victory'
-type BattleAnimation = { id: number; move: BattleMove; phase: GuardianRound['id']; playing: boolean }
-const BATTLE_ANIMATION_MS = 1100
+/** `lit`: a lantern lights up; `notYet`: the Keeper gently shakes his head; `open`: the arch opens. */
+type ArchMove = 'lit' | 'notYet' | 'open'
+type ArchAnimation = { id: number; move: ArchMove; phase: GuardianRound['id']; playing: boolean }
+const ARCH_ANIMATION_MS = 1100
 
-function GuardianArena({ lang, hp, maxHp, phase, animation }: {
+/** The fair arch: Pifik lights one lantern per solved round while the friendly Fair Keeper watches. */
+function GuardianArena({ lang, lit, total, phase, animation }: {
   lang: Lang
-  hp: number
-  maxHp: number
+  lit: number
+  total: number
   phase: GuardianRound['id'] | 'won'
-  animation?: BattleAnimation
+  animation?: ArchAnimation
 }) {
   const t = STRINGS[lang]
   const move = animation?.playing ? animation.move : undefined
   return (
     <div className="guardian-arena mt-3 rounded-2xl border-[3px] border-ink" data-phase={phase}
       data-move-phase={animation?.playing ? animation.phase : undefined}>
-      <div key={animation?.id} className="guardian-stage" data-move={move} data-defeated={hp === 0 && move !== 'victory'} aria-hidden="true">
+      <div key={animation?.id} className="guardian-stage" data-move={move} aria-hidden="true">
         <PifikSprite eager className="guardian-hero" />
         <div className="guardian-energy" />
-        {move === 'hit' || move === 'victory' ? (
-          <span className="guardian-damage">−{DAMAGE_PER_ROUND} HP</span>
-        ) : null}
-        <div className="guardian-foe">
-          <div className="guardian-shield" />
+        <div className="guardian-arch">
+          <div className="guardian-gate"><i /><i /></div>
+          <div className="guardian-lanterns">
+            {Array.from({ length: total }, (_, i) => (
+              <span key={i} className="guardian-lantern" data-lit={i < lit} data-new={move !== undefined && move !== 'notYet' && i === lit - 1} />
+            ))}
+          </div>
+          {phase === 'won' && <span className="guardian-confetti">🎉</span>}
+        </div>
+        <div className="guardian-keeper">
           <div className="guardian-mask"><i /><i /></div>
         </div>
-        {hp === 0 && <span className="guardian-trophy">🏆</span>}
       </div>
       <div className="relative px-3 pb-3 text-white">
         <p className="font-black">{t.guardian.name}</p>
-        <p className="text-sm font-bold">{t.guardian.hp(hp, maxHp)}</p>
-        <div role="progressbar" aria-label={t.guardian.name} aria-valuemin={0} aria-valuemax={maxHp} aria-valuenow={hp}
+        <p className="text-sm font-bold">{t.guardian.progress(lit, total)}</p>
+        <div role="progressbar" aria-label={t.guardian.progress(lit, total)} aria-valuemin={0} aria-valuemax={total} aria-valuenow={lit}
           className="mt-1 h-3 overflow-hidden rounded-lg bg-slate-950">
-          <div className="guardian-hp h-full bg-sun" style={{ width: `${(hp / maxHp) * 100}%` }} />
+          <div className="guardian-hp h-full bg-sun" style={{ width: `${(lit / total) * 100}%` }} />
         </div>
       </div>
     </div>
@@ -124,11 +130,11 @@ export default function GuardianScreen({ lang, remaining, challenge, assigned = 
   const total = rounds.length
   const roundHeading = useRef<HTMLHeadingElement>(null)
   const lastRound = useRef(run.cleared)
-  const [animation, setAnimation] = useState<BattleAnimation>()
+  const [animation, setAnimation] = useState<ArchAnimation>()
   const submitRound: Challenge['submit'] = (index, value) => {
     const result = submit(index, value)
     if (result === 'correct' || result === 'incorrect') {
-      const move = result === 'incorrect' ? 'blocked' : index === total - 1 ? 'victory' : 'hit'
+      const move = result === 'incorrect' ? 'notYet' : index === total - 1 ? 'open' : 'lit'
       setAnimation(previous => ({
         id: (previous?.id ?? 0) + 1, move, phase: rounds[index].id, playing: true,
       }))
@@ -137,8 +143,6 @@ export default function GuardianScreen({ lang, remaining, challenge, assigned = 
     }
     return result
   }
-  const maxHp = rounds.length * DAMAGE_PER_ROUND
-  const hp = maxHp - run.cleared * DAMAGE_PER_ROUND
   const current = rounds[run.cleared]
   const icons = { pizzas: '🍕', prize: '🏷️', map: '🗺️' }
 
@@ -146,7 +150,7 @@ export default function GuardianScreen({ lang, remaining, challenge, assigned = 
     if (!animation?.playing) return
     const timeout = window.setTimeout(() => {
       setAnimation(previous => previous?.id === animation.id ? { ...previous, playing: false } : previous)
-    }, BATTLE_ANIMATION_MS)
+    }, ARCH_ANIMATION_MS)
     return () => window.clearTimeout(timeout)
   }, [animation])
 
@@ -175,7 +179,7 @@ export default function GuardianScreen({ lang, remaining, challenge, assigned = 
         <h1 className="text-2xl font-black text-ink sm:text-3xl">{c.title}</h1>
         {assigned && <p className="font-bold text-brand-dark">{copy.task}</p>}
         <p className="mt-2 text-sm font-semibold sm:text-base">{assigned ? copy.lead : c.intro}</p>
-        <GuardianArena lang={lang} hp={hp} maxHp={maxHp} phase={current?.id ?? 'won'} animation={animation} />
+        <GuardianArena lang={lang} lit={run.cleared} total={total} phase={current?.id ?? 'won'} animation={animation} />
         <ol className="mt-3 grid grid-cols-3 gap-1.5 text-center text-xs font-bold sm:text-sm">
           {rounds.map((round, index) => {
             const cleared = index < run.cleared
@@ -195,9 +199,9 @@ export default function GuardianScreen({ lang, remaining, challenge, assigned = 
           {current ? c.round(run.cleared + 1, total) : c.victory}
         </h2>
         <div role="status">
-          {animation && animation.move !== 'blocked' && (
+          {animation && animation.move !== 'notYet' && (
             <p className="mt-2 w-fit rounded-lg bg-emerald-100 px-2 py-1 text-sm font-bold text-emerald-950">
-              {c.hit(DAMAGE_PER_ROUND)} · {c.hp(hp, maxHp)}
+              <span aria-hidden>💡 </span>{c.hit} · {c.progress(run.cleared, total)}
             </p>
           )}
         </div>
