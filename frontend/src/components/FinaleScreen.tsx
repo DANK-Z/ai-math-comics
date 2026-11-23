@@ -3,6 +3,10 @@ import type { CheckStatus, Lang } from '../api/types'
 import mosaicDark from '../assets/lights/mosaic-1.webp'
 import mosaicLit from '../assets/lights/mosaic-3.webp'
 import mosaicConcert from '../assets/lights/mosaic-4.webp'
+import hall1 from '../assets/museum/hall-1.webp'
+import hall2 from '../assets/museum/hall-2.webp'
+import hall3 from '../assets/museum/hall-3.webp'
+import hall4 from '../assets/museum/hall-4.webp'
 import { useFinale, type FinaleDef, type FinaleRound } from '../finales'
 import { STRINGS } from '../i18n'
 import { FINALE_LOCK, findOperation, operationHref } from '../operations'
@@ -14,8 +18,8 @@ const BUTTON = 'inline-flex min-h-11 items-center justify-center rounded-2xl bor
 const CARD = 'rounded-[28px] border-[3px] border-ink bg-white p-4 shadow-[0_6px_0_var(--color-ink)] sm:p-6'
 
 const COPY = {
-  ru: { round: (n: number, total: number) => `Часть ${n} из ${total}`, wrong: 'Пока не так. Перечитай условие и попробуй ещё раз.', invalid: 'Введи только целое число, без единиц измерения.', placeholder: 'например, 20', cleared: 'горит', active: 'сейчас', upcoming: 'тёмная' },
-  kk: { round: (n: number, total: number) => `${n}-бөлік / ${total}`, wrong: 'Әзірге дұрыс емес. Шартты қайта оқып, тағы байқап көр.', invalid: 'Тек бүтін санды енгіз, өлшем бірлігінсіз.', placeholder: 'мысалы, 20', cleared: 'жанып тұр', active: 'қазір', upcoming: 'қараңғы' },
+  ru: { round: (n: number, total: number) => `Часть ${n} из ${total}`, wrong: 'Пока не так. Перечитай условие и попробуй ещё раз.', invalid: 'Введи только целое число, без единиц измерения.', placeholder: 'например, 15', cleared: 'решено', active: 'сейчас', upcoming: 'впереди' },
+  kk: { round: (n: number, total: number) => `${n}-бөлік / ${total}`, wrong: 'Әзірге дұрыс емес. Шартты қайта оқып, тағы байқап көр.', invalid: 'Тек бүтін санды енгіз, өлшем бірлігінсіз.', placeholder: 'мысалы, 15', cleared: 'шешілді', active: 'қазір', upcoming: 'алда' },
 }
 
 /**
@@ -53,6 +57,28 @@ function MosaicScene({ lit, total, caption }: { lit: number; total: number; capt
           aria-hidden={!concert}
           className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${concert ? 'opacity-100' : 'opacity-0'}`}
         />
+      </div>
+      <figcaption aria-live="polite" className="bg-sun px-3 py-1.5 text-center text-sm font-black text-ink">
+        <span aria-hidden>{'✨'.repeat(Math.min(lit, total))}{'▫️'.repeat(total - Math.min(lit, total))} </span>{caption}
+      </figcaption>
+    </figure>
+  )
+}
+
+/** Finales told as a sequence of frames: one frame per solved round (start, 1, 2, 3). */
+const FRAME_SCENES: Record<string, { frames: string[]; aspect: string }> = {
+  museum: { frames: [hall1, hall2, hall3, hall4], aspect: '824 / 460' },
+}
+
+function FramesScene({ frames, aspect, lit, caption, total }: { frames: string[]; aspect: string; lit: number; caption: string; total: number }) {
+  const frame = Math.min(lit, frames.length - 1)
+  return (
+    <figure className="mt-3 overflow-hidden rounded-2xl border-[3px] border-ink bg-ink">
+      <div className="relative" style={{ aspectRatio: aspect }}>
+        {frames.map((src, i) => (
+          <img key={src} src={src} alt={i === frame ? caption : ''} aria-hidden={i !== frame}
+            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${i === frame ? 'opacity-100' : 'opacity-0'}`} />
+        ))}
       </div>
       <figcaption aria-live="polite" className="bg-sun px-3 py-1.5 text-center text-sm font-black text-ink">
         <span aria-hidden>{'✨'.repeat(Math.min(lit, total))}{'▫️'.repeat(total - Math.min(lit, total))} </span>{caption}
@@ -143,7 +169,9 @@ export function FinaleScreen({ lang, def, remaining }: { lang: Lang; def: Finale
         <h1 className="text-2xl font-black text-ink sm:text-3xl">{def.title[lang]}</h1>
         {operation && <p className="text-sm font-bold text-brand-dark">{operation.title[lang]} · {operation.finale.math[lang]}</p>}
         <p className="mt-2 text-sm font-semibold sm:text-base">{def.intro[lang]}</p>
-        <MosaicScene lit={run.cleared} total={total} caption={caption} />
+        {FRAME_SCENES[def.id]
+          ? <FramesScene {...FRAME_SCENES[def.id]} lit={run.cleared} total={total} caption={caption} />
+          : <MosaicScene lit={run.cleared} total={total} caption={caption} />}
         <ol className="mt-3 grid grid-cols-3 gap-1.5 text-center text-xs font-bold sm:text-sm">
           {def.rounds.map((round, index) => {
             const cleared = index < run.cleared

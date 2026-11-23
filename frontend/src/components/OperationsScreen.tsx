@@ -1,4 +1,6 @@
 import type { Lang } from '../api'
+import lightsCover from '../assets/lights/park-4.webp'
+import museumCover from '../assets/museum/mirror-1.webp'
 import roadsCover from '../assets/roads/cover.webp'
 import { OPERATIONS, operationHref, type Operation } from '../operations'
 import { comicHref, SECTION_HREFS } from '../route'
@@ -45,7 +47,8 @@ const COPY = {
   },
 }
 
-const COVERS: Record<string, string> = { roads: roadsCover }
+// Covers are season panels that do not spoil the finale; seasons without art show their icon.
+const COVERS: Record<string, string> = { roads: roadsCover, lights: lightsCover, museum: museumCover }
 const TINTS: Record<string, string> = {
   roads: 'from-emerald-200 to-sky-200',
   lights: 'from-indigo-300 to-amber-200',
