@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import type { Lang } from '../api/types'
 import type { UiStrings } from '../i18n'
-import { ROAD_COPY, ROAD_MAX_HP } from '../roadGuardian'
+import { ROAD_COPY, ROAD_ROUNDS } from '../roadGuardian'
 import { SECTION_HREFS, type Section } from '../route'
 import { SCHOOL_FAIR_CHAPTER_COUNT } from '../schoolFair'
 
@@ -17,15 +17,15 @@ interface Props {
   remaining: number
   /** Saved generated comics in this browser. */
   myComics: number
-  /** Road Guardian (motion problems) state for the navigation detail. */
-  roadHp: number
+  /** Road Guardian locks opened so far (motion problems), for the navigation detail. */
+  roadOpened: number
   roadWon: boolean
   /** Chapters solved across the operations after the fair. */
   operationsDone: number
   lang: Lang
 }
 
-function SectionLinks({ t, active, completed, remaining, myComics, roadHp, roadWon, operationsDone, lang, onSelect }: Props & { onSelect?: () => void }) {
+function SectionLinks({ t, active, completed, remaining, myComics, roadOpened, roadWon, operationsDone, lang, onSelect }: Props & { onSelect?: () => void }) {
   const id = useId()
   const links = [
     { section: 'map', icon: '🗺️', label: t.fairRoute.title, detail: t.seasonProgress(completed, SCHOOL_FAIR_CHAPTER_COUNT) },
@@ -34,7 +34,7 @@ function SectionLinks({ t, active, completed, remaining, myComics, roadHp, roadW
     { section: 'backpack', icon: '🎒', label: t.backpack.title, detail: t.backpack.progress(completed, SCHOOL_FAIR_CHAPTER_COUNT) },
     { section: 'guardian', icon: remaining > 0 ? '🔒' : '★', label: t.guardian.title, detail: remaining > 0 ? t.guardian.remaining(remaining) : t.fairRoute.guardianUnlocked },
     { section: 'operations', icon: '🧭', label: OPERATIONS_NAV[lang].label, detail: OPERATIONS_NAV[lang].detail(operationsDone) },
-    { section: 'roadGuardian', icon: '🛣️', label: ROAD_COPY[lang].title, detail: ROAD_COPY[lang].navDetail(roadHp, ROAD_MAX_HP, roadWon) },
+    { section: 'roadGuardian', icon: '🛣️', label: ROAD_COPY[lang].title, detail: ROAD_COPY[lang].navDetail(roadOpened, ROAD_ROUNDS.length, roadWon) },
     { section: 'create', icon: '✨', label: t.createOwn },
   ] satisfies { section: Section; icon: string; label: string; detail?: string }[]
 

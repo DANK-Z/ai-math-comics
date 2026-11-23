@@ -16,7 +16,7 @@ import { DesktopNavigation, MobileNavigation } from './components/SectionNavigat
 import { useContinuationJob } from './continuation'
 import { useGuardianChallenge } from './guardian'
 import { guardianAssignmentHref, type GuardianAssignment } from './guardianAssignment'
-import { ROAD_DAMAGE, ROAD_MAX_HP, useRoadGuardian } from './roadGuardian'
+import { useRoadGuardian } from './roadGuardian'
 import { useLang } from './hooks'
 import { useMyComics } from './myComics'
 import { STRINGS } from './i18n'
@@ -165,7 +165,7 @@ function AppShell() {
   const readerSection = route.name === 'comic' && myComics.some((c) => c.comicId === route.comicId) ? 'myComics' as const : 'comics' as const
   const readerNav = route.name === 'comic' && operationChapter(route.comicId) ? 'operations' as const : readerSection
   const activeSection = route.name === 'comic' ? readerNav : route.name === 'operation' ? 'operations' : route.name === 'teacherClass' ? 'teacher' : route.name === 'motionLeague' ? 'roadGuardian' : route.name === 'guardianAssignment' ? 'guardian' : route.name
-  const navigation = { t, active: activeSection, completed: completedChapters.size, remaining, myComics: myComics.length, roadHp: ROAD_MAX_HP - roadGuardian.run.cleared * ROAD_DAMAGE, roadWon: roadGuardian.run.won, operationsDone: operations.completed.size, lang }
+  const navigation = { t, active: activeSection, completed: completedChapters.size, remaining, myComics: myComics.length, roadOpened: roadGuardian.run.cleared, roadWon: roadGuardian.run.won, operationsDone: operations.completed.size, lang }
 
   const openGenerated = useCallback(
     (comicId: string, request: ComicJobRequest) => {

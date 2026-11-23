@@ -3,7 +3,7 @@ import type { CheckStatus, Lang } from '../api/types'
 import { PORTRAITS } from '../art/sheet'
 import { STRINGS } from '../i18n'
 import { MOTION_COPY } from '../motionLeague'
-import { ROAD_COPY, ROAD_DAMAGE, ROAD_MAX_HP, ROAD_ROUNDS, type RoadPhase, type useRoadGuardian } from '../roadGuardian'
+import { ROAD_COPY, ROAD_ROUNDS, type RoadPhase, type useRoadGuardian } from '../roadGuardian'
 import gate1 from '../assets/roads/gate-1.webp'
 import gate2 from '../assets/roads/gate-2.webp'
 import gate3 from '../assets/roads/gate-3.webp'
@@ -19,7 +19,11 @@ const CHIP = 'rounded-full border-2 border-ink bg-white px-2 py-0.5 text-[11px] 
 
 type Challenge = ReturnType<typeof useRoadGuardian>
 
-/** The finish gates: one lamp lights up per cleared phase, and the gates open on victory. */
+/**
+ * The finish gates: one lamp lights up per opened lock, and the gates open on victory.
+ * The artwork has frames for 0, 1 and 3 lamps plus the open gates; the second lamp is
+ * drawn over the one-lamp frame, and the three-lamp frame shows briefly before the gates open.
+ */
 const GATES = [gate1, gate2, gate3, gate4]
 const GATE_COPY = {
   ru: (lit: number) => lit >= 3 ? 'Все три фонаря горят — ворота открыты!' : `Фонари на воротах: ${lit} из 3`,
@@ -28,6 +32,17 @@ const GATE_COPY = {
 
 function FinishGates({ lit, lang }: { lit: number; lang: Lang }) {
   const caption = GATE_COPY[lang](lit)
+  // Opening the last lock shows all three lamps first; a revisit after victory starts open.
+  const [opened, setOpened] = useState(lit >= 3)
+  useEffect(() => {
+    if (lit < 3) {
+      setOpened(false)
+      return
+    }
+    const timer = window.setTimeout(() => setOpened(true), 1600)
+    return () => window.clearTimeout(timer)
+  }, [lit])
+  const frame = lit <= 0 ? 0 : lit <= 2 ? 1 : opened ? 3 : 2
   return (
     <figure className="mt-3 overflow-hidden rounded-2xl border-[3px] border-ink bg-ink">
       <div className="relative" style={{ aspectRatio: '827 / 463' }}>
@@ -35,11 +50,16 @@ function FinishGates({ lit, lang }: { lit: number; lang: Lang }) {
           <img
             key={src}
             src={src}
-            alt={i === Math.min(lit, 3) ? caption : ''}
-            aria-hidden={i !== Math.min(lit, 3)}
-            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${i === Math.min(lit, 3) ? 'opacity-100' : 'opacity-0'}`}
+            alt={i === frame ? caption : ''}
+            aria-hidden={i !== frame}
+            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${i === frame ? 'opacity-100' : 'opacity-0'}`}
           />
         ))}
+        {/* The middle lamp sits at about 52% × 16% of the frame. */}
+        <span
+          aria-hidden
+          className={`absolute top-[16%] left-[52%] aspect-square w-[9%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,#fffbe6_0%,#fde68a_45%,#f5b729_70%,transparent_72%)] shadow-[0_0_24px_10px_rgb(253_224_71/0.7)] transition-opacity duration-700 ${lit === 2 ? 'opacity-100' : 'opacity-0'}`}
+        />
       </div>
       <figcaption aria-live="polite" className="bg-sun px-3 py-1.5 text-center text-sm font-black text-ink">
         <span aria-hidden>{'💡'.repeat(Math.min(lit, 3))}{'⚪'.repeat(3 - Math.min(lit, 3))} </span>{caption}
@@ -48,18 +68,20 @@ function FinishGates({ lit, lang }: { lit: number; lang: Lang }) {
   )
 }
 
-/** The Guardian: a clockwork robot on wheels. */
-function BossIcon({ className = '' }: { className?: string }) {
+/** The Guardian, cropped from the gate artwork: a friendly keeper in a road-patterned robe. */
+function GuardianIcon({ className = '' }: { className?: string }) {
   return (
-    <span aria-hidden className={`relative grid size-12 shrink-0 place-items-center rounded-full border-[3px] border-ink bg-rose-200 text-2xl sm:size-14 sm:text-3xl ${className}`}>
-      🤖
-      <span className="absolute -right-1.5 -bottom-1 grid size-6 place-items-center rounded-full border-2 border-ink bg-sun text-sm">⏱️</span>
-    </span>
+    // Zoom into the Guardian's face (upper right of the first gate panel).
+    <span
+      aria-hidden
+      style={{ backgroundImage: `url(${gate1})`, backgroundSize: '600% auto', backgroundPosition: '94% 29%' }}
+      className={`block size-12 shrink-0 rounded-full border-[3px] border-ink bg-sky bg-no-repeat sm:size-14 ${className}`}
+    />
   )
 }
 
-function PlayerIcon({ className = '' }: { className?: string }) {
-  return <SheetCrop rect={PORTRAITS.aldiyar} eager className={`size-12 shrink-0 rounded-full border-[3px] border-ink bg-white sm:size-14 ${className}`} />
+function Rider({ who, className = '' }: { who: 'aruna' | 'aldiyar'; className?: string }) {
+  return <SheetCrop rect={PORTRAITS[who]} eager className={`size-12 shrink-0 rounded-full border-[3px] border-ink bg-white sm:size-14 ${className}`} />
 }
 
 function Road({ children }: { children: React.ReactNode }) {
@@ -81,12 +103,12 @@ function PhaseScene({ phase, lang }: { phase: RoadPhase; lang: Lang }) {
       <div role="img" aria-label={label}>
         <Road>
           <div className="absolute top-1/2 left-[6%] flex -translate-y-1/2 flex-col items-center gap-1">
-            <PlayerIcon className="road-bob" />
+            <Rider who="aruna" className="road-bob" />
             <span className={CHIP}>→ 15 км/{lang === 'kk' ? 'сағ' : 'ч'}</span>
           </div>
           <div className="absolute top-3 left-1/2 -translate-x-1/2"><span className={`${CHIP} bg-sun`}>← 18 км →</span></div>
           <div className="absolute top-1/2 right-[6%] flex -translate-y-1/2 flex-col items-center gap-1">
-            <BossIcon className="road-bob [animation-delay:-0.4s]" />
+            <Rider who="aldiyar" className="road-bob [animation-delay:-0.4s]" />
             <span className={CHIP}>→ 9 км/{lang === 'kk' ? 'сағ' : 'ч'}</span>
           </div>
         </Road>
@@ -96,18 +118,15 @@ function PhaseScene({ phase, lang }: { phase: RoadPhase; lang: Lang }) {
 
   if (phase === 'meeting') {
     return (
-      <div role="img" aria-label={label} className="flex flex-col gap-2">
-        <p className="road-alarm rounded-xl border-[3px] border-ink bg-[repeating-linear-gradient(135deg,#f8cd45_0_14px,#fde68a_14px_28px)] px-3 py-1 text-center text-sm font-black text-ink uppercase sm:text-base">
-          <span aria-hidden>⚠️ </span>{copy.collision}
-        </p>
+      <div role="img" aria-label={label}>
         <Road>
           <div className="road-approach-right absolute top-1/2 left-[6%] flex -translate-y-1/2 flex-col items-center gap-1">
-            <PlayerIcon />
+            <Rider who="aruna" />
             <span className={CHIP}>→ 12 км/{lang === 'kk' ? 'сағ' : 'ч'}</span>
           </div>
-          <div className="absolute top-3 left-1/2 -translate-x-1/2 text-2xl" aria-hidden>💥</div>
+          <div className="absolute top-2 left-1/2 -translate-x-1/2 text-2xl" aria-hidden>🌉</div>
           <div className="road-approach-left absolute top-1/2 right-[6%] flex -translate-y-1/2 flex-col items-center gap-1">
-            <BossIcon />
+            <Rider who="aldiyar" />
             <span className={CHIP}>18 км/{lang === 'kk' ? 'сағ' : 'ч'} ←</span>
           </div>
         </Road>
@@ -120,12 +139,10 @@ function PhaseScene({ phase, lang }: { phase: RoadPhase; lang: Lang }) {
       <div className="relative h-28 overflow-hidden rounded-2xl border-[3px] border-ink bg-[linear-gradient(180deg,#7cc4f5,#2f7fd0)] sm:h-32">
         <div aria-hidden className="river-current absolute inset-0 bg-[repeating-linear-gradient(90deg,transparent_0_30px,rgb(255_255_255/0.55)_30px_34px,transparent_34px_64px)] [background-size:64px_100%] opacity-70" />
         <div className="absolute top-2 left-1/2 -translate-x-1/2"><span className={`${CHIP} bg-sky-100`}>{copy.current} →</span></div>
-        {/* Upstream is to the left: both boats fight the current. */}
-        <div className="absolute top-1/2 left-[8%] flex -translate-y-1/3 flex-col items-center gap-1">
-          <span className="road-bob flex items-end"><BossIcon /><span aria-hidden className="-ml-2 text-2xl">🛥️</span></span>
-        </div>
-        <div className="absolute top-1/2 right-[8%] flex -translate-y-1/3 flex-col items-center gap-1">
-          <span className="road-bob flex items-end [animation-delay:-0.5s]"><span aria-hidden className="-mr-2 text-2xl">🚤</span><PlayerIcon /></span>
+        {/* Upstream is to the left: the friends' boat first goes against the current. */}
+        <div className="absolute top-1/2 left-1/2 flex -translate-x-1/2 -translate-y-1/3 flex-col items-center gap-1">
+          <span className="road-bob flex items-end"><span aria-hidden className="-mr-1 text-2xl">🚤</span><Rider who="aruna" /><Rider who="aldiyar" className="-ml-3" /></span>
+          <span className={CHIP}>← 20 км/{lang === 'kk' ? 'сағ' : 'ч'}</span>
         </div>
       </div>
     </div>
@@ -191,8 +208,6 @@ export function RoadGuardianScreen({ lang, challenge }: { lang: Lang; challenge:
   const total = ROAD_ROUNDS.length
   const heading = useRef<HTMLHeadingElement>(null)
   const lastRound = useRef(run.cleared)
-  const hpId = useId()
-  const hp = ROAD_MAX_HP - run.cleared * ROAD_DAMAGE
   const current = ROAD_ROUNDS[run.cleared]
   const river = current?.id === 'river'
 
@@ -215,14 +230,11 @@ export function RoadGuardianScreen({ lang, challenge }: { lang: Lang; challenge:
         <p className="text-sm font-bold text-brand-dark">{copy.subtitle}</p>
         <a href={SECTION_HREFS.motionLeague} className={`${BUTTON} mt-3 bg-white`}>{MOTION_COPY[lang].title}</a>
         <div className="mt-3 flex items-center gap-3">
-          <BossIcon className="size-16 text-4xl sm:size-20" />
+          <GuardianIcon className="size-16 sm:size-20" />
           <p className="min-w-0 text-sm font-semibold sm:text-base">{copy.intro}</p>
         </div>
 
         <FinishGates lit={run.cleared} lang={lang} />
-
-        <p id={hpId} aria-live="polite" className="mt-3 font-black">{copy.hp(hp, ROAD_MAX_HP)}</p>
-        <progress aria-labelledby={hpId} max={ROAD_MAX_HP} value={hp} className="mt-1 block h-3 w-full accent-rose-600" />
 
         <ol className="mt-3 grid grid-cols-3 gap-1.5 text-center text-xs font-bold sm:text-sm">
           {ROAD_ROUNDS.map((round, index) => {
@@ -230,7 +242,7 @@ export function RoadGuardianScreen({ lang, challenge }: { lang: Lang; challenge:
             const active = index === run.cleared
             return (
               <li key={round.id} aria-current={active ? 'step' : undefined} className={`rounded-xl border-2 border-ink p-1.5 ${cleared ? 'bg-emerald-100' : active ? 'bg-sun' : 'bg-sky-100'}`}>
-                <p className="font-black">{round.text[lang].tab}</p>
+                <p className="font-black"><span aria-hidden>{cleared ? '🔓' : '🔒'} </span>{round.text[lang].tab}</p>
                 <p>{cleared ? copy.status.cleared : active ? copy.status.active : copy.status.upcoming}</p>
               </li>
             )
