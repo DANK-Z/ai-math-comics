@@ -49,7 +49,7 @@ function chapterEnding(comicId: string) {
   if (fair) return { ...fair, doneHref: SECTION_HREFS.comics, doneLabel: undefined }
   const op = operationChapter(comicId)
   if (!op) return undefined
-  return { speaker: op.speaker, ending: op.ending, nextComicId: op.nextComicId, doneHref: op.doneHref, doneLabel: op.operation.finale.title }
+  return { speaker: op.speaker, ending: op.ending, nextComicId: op.nextComicId, doneHref: op.doneHref, doneLabel: op.operation.finale.href ? op.operation.finale.title : op.operation.title }
 }
 
 /** Wide screens: which panels are open, where the task is, and why the ending is still closed. */
