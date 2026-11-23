@@ -4,6 +4,7 @@ import { mockApi } from './mockApi'
 import { FAIR_CHAPTERS, LIBRARY_BOXES, SCHOOL_MAP } from './fairChapters'
 import { buildLocalComic, checkLocalAnswer, localHint, type LocalComicDef } from './localComics'
 import { LIGHTS_CHAPTERS } from './lightsChapters'
+import { MARS_CHAPTERS } from './marsChapters'
 import { MUSEUM_CHAPTERS } from './museumChapters'
 import { ROADS_CHAPTERS } from './roadsChapters'
 import { SCHOOL_STORE } from './schoolStore'
@@ -30,7 +31,7 @@ export const createContinuationJob = httpApi.createContinuationJob
 export const resumeComicJob = API_MODE === 'live' ? httpApi.resumeComicJob : undefined
 
 /** Bundled chapters 2–6 of “Operation: School Fair”: served locally in both API modes, no generator needed. */
-export const LOCAL_COMICS: readonly LocalComicDef[] = [SCHOOL_STORE, ...FAIR_CHAPTERS, ...ROADS_CHAPTERS, ...LIGHTS_CHAPTERS, ...MUSEUM_CHAPTERS, ...WEATHER_CHAPTERS]
+export const LOCAL_COMICS: readonly LocalComicDef[] = [SCHOOL_STORE, ...FAIR_CHAPTERS, ...ROADS_CHAPTERS, ...LIGHTS_CHAPTERS, ...MUSEUM_CHAPTERS, ...WEATHER_CHAPTERS, ...MARS_CHAPTERS]
 const byComicId = new Map(LOCAL_COMICS.map((d) => [d.id, d]))
 const byExerciseId = new Map(LOCAL_COMICS.map((d) => [d.exerciseId, d]))
 
