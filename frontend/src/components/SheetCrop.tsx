@@ -1,5 +1,20 @@
 import type { ReactNode } from 'react'
-import { SHEET, type Rect } from '../art/sheet'
+import { PORTRAITS, SHEET, type Rect } from '../art/sheet'
+import aldiyarPortrait from '../assets/portraits/aldiyar.webp'
+import arunaPortrait from '../assets/portraits/aruna.webp'
+import pifikFacePortrait from '../assets/portraits/pifik-face.webp'
+import pifikPortrait from '../assets/portraits/pifik.webp'
+
+/**
+ * Character portraits come from a comic panel («Флажок на колёсах», panel 1) rather than the
+ * style sheet: the heroes are drawn larger and in the same style as the chapters.
+ */
+const PORTRAIT_ART = new Map<Rect, string>([
+  [PORTRAITS.aldiyar, aldiyarPortrait],
+  [PORTRAITS.aruna, arunaPortrait],
+  [PORTRAITS.pifik, pifikPortrait],
+  [PORTRAITS.pifikFace, pifikFacePortrait],
+])
 
 /**
  * Shows one region of the style sheet, scaled to fill its box.
@@ -19,6 +34,7 @@ export function SheetCrop({
   /** Drawn over the crop (e.g. Pifik's skin). */
   children?: ReactNode
 }) {
+  const portrait = PORTRAIT_ART.get(rect)
   return (
     <div
       className={`relative overflow-hidden ${className}`}
@@ -27,6 +43,16 @@ export function SheetCrop({
       aria-label={alt || undefined}
       aria-hidden={alt ? undefined : true}
     >
+      {portrait ? (
+        <img
+          src={portrait}
+          alt=""
+          draggable={false}
+          loading={eager ? 'eager' : 'lazy'}
+          decoding="async"
+          className="pointer-events-none absolute inset-0 size-full object-cover select-none"
+        />
+      ) : (
       <img
         src={SHEET.url}
         alt=""
@@ -41,6 +67,7 @@ export function SheetCrop({
           top: `${(-rect.y / rect.h) * 100}%`,
         }}
       />
+      )}
       {children}
     </div>
   )

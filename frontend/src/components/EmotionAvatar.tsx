@@ -40,7 +40,7 @@ export function EmotionAvatar({ speaker, emotion = 'neutral', className = '' }: 
   if (!character) return null
   if (character.id === 'pifik') return (
     <PifikSprite className={frame} expression={emotion !== 'neutral' && (
-      <div className="absolute top-[51%] left-[15%] w-[70%] rounded-xl bg-[#142846] text-cyan-300" data-emotion={emotion}>
+      <div className="absolute top-[37%] left-[21%] w-[58%] rounded-xl bg-[#142846] text-cyan-300" data-emotion={emotion}>
         <Expression emotion={emotion} className="-my-[12%] w-full" />
       </div>
     )} />
