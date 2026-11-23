@@ -135,6 +135,23 @@ class BossResult(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
+class ProgressReward(Base):
+    """A one-time coin reward for operation progress (a chapter or a finale, by key).
+
+    The primary key makes each reward claimable once per student, even when the same
+    completion is reported again, after a reload, or by two requests at the same time.
+    """
+
+    __tablename__ = "progress_rewards"
+
+    student_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    reward_key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    coins: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
 class SignInWindow(Base):
     """Shared sign-in counters. Keys contain a digest, with no stored login or IP."""
 

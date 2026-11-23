@@ -10,7 +10,9 @@ import { useAnswerCheck } from '../hooks'
 import { GUIDE_COPY } from '../guideCopy'
 import { STRINGS } from '../i18n'
 import { comicHref, DEMO_COMIC_ID, GARLAND_COMIC_ID, GUARDIAN_HREF, SCHOOL_MAP_COMIC_ID, SECTION_HREFS } from '../route'
+import { useAccount } from '../account'
 import { operationChapter } from '../operations'
+import { findForChapter, PROGRESS_REWARDS, REWARD_COPY } from '../rewards'
 import { schoolFairChapter, type SchoolFairCollectible } from '../schoolFair'
 import { BossFight } from './BossFight'
 import { CastCard } from './CastCard'
@@ -19,6 +21,7 @@ import { ExerciseCard } from './ExerciseCard'
 import { PanelArt } from './PanelArt'
 import { PifikHints } from './PifikHints'
 import { BonusPuzzle } from './BonusPuzzle'
+import { YellowFlag } from './BackpackCollection'
 
 // Panels after the exercise panel stay locked until the answer is correct,
 // so later panels don't spoil the solution.
@@ -42,6 +45,27 @@ interface Props {
 
 const BTN =
   'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-2xl border-[3px] border-ink px-4 py-2 font-black shadow-[0_4px_0_var(--color-ink)] transition active:translate-y-[3px] active:shadow-[0_1px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none'
+
+/** The find and the one-time coins of an operation chapter, under its ending. */
+function RewardNotes({ comicId, lang }: { comicId: string; lang: Lang }) {
+  const student = useAccount().user?.role === 'student'
+  const find = findForChapter(comicId)
+  const coins = PROGRESS_REWARDS[comicId]
+  if (!find && !coins) return null
+  const copy = REWARD_COPY[lang]
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-2 text-sm font-bold">
+      {find && (
+        <a href={SECTION_HREFS.backpack} className="rounded-lg border-2 border-ink bg-sun/40 px-2 py-0.5 text-ink hover:bg-sun focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand">
+          <span aria-hidden>{find.icon === '🚩' ? <YellowFlag /> : find.icon} </span>{copy.find(find.name[lang])}
+        </a>
+      )}
+      {coins && (student
+        ? <span className="rounded-lg border-2 border-amber-700 bg-sun px-2 py-0.5 text-ink"><span aria-hidden>🪙 </span>{copy.coins(coins)}</span>
+        : <span className="text-ink/70">{copy.guest}</span>)}
+    </div>
+  )
+}
 
 /** Ending line and onward link for a School Fair or operation chapter. */
 function chapterEnding(comicId: string) {
@@ -197,6 +221,7 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
               {t.cast[ending.speaker].name}
             </span>
             <p className="mt-2 font-bold text-ink">{ending.ending[lang]}</p>
+            <RewardNotes comicId={comicId} lang={lang} />
             <div className="mt-3 flex flex-wrap gap-2">
               <a
                 href={ending.nextComicId ? comicHref(ending.nextComicId) : ending.doneHref}

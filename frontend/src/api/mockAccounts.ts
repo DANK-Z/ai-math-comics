@@ -1,4 +1,5 @@
 import { authToken } from './authToken'
+import { PROGRESS_REWARDS } from '../rewards'
 import { ApiError } from './errors'
 import type { AccountApi, ClassInfo, Dashboard, Grade, Me, Shop, SkinKey } from './types'
 
@@ -18,6 +19,8 @@ interface MockUser {
   stickers: string[]
   /** Demo coins: the mock has no server-side boss rewards. */
   coins?: number
+  /** Progress rewards already paid (like the server's progress_rewards table). */
+  rewards?: string[]
   skins?: { id: number; key: SkinKey; equipped: boolean }[]
 }
 interface MockState {
@@ -241,6 +244,15 @@ export const mockAccounts: AccountApi = {
       const state = load()
       const user = currentUser(state)
       user.completedChapters = [...new Set([...user.completedChapters, ...body.completedChapters])].sort()
+      // One-time coins for operation progress, as on the server.
+      const paid = new Set(user.rewards ?? [])
+      for (const id of new Set(body.completedChapters)) {
+        const coins = PROGRESS_REWARDS[id]
+        if (!coins || paid.has(id)) continue
+        paid.add(id)
+        user.coins = (user.coins ?? DEMO_COINS) + coins
+      }
+      user.rewards = [...paid].sort()
       user.stickers = [...new Set([...user.stickers, ...body.stickers])].sort()
       save(state)
       return toMe(state, user)

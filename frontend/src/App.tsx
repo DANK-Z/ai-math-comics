@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { API_MODE, type ComicJobRequest, type Lang } from './api'
+import logoUrl from './assets/logo.webp'
 import { AccountProvider, useAccount } from './account'
 import { ACCOUNT_COPY } from './accountCopy'
 import { AuthScreen } from './components/AuthScreen'
@@ -25,6 +26,7 @@ import { STRINGS } from './i18n'
 import { useBonusStickers } from './bonusStickers'
 import { comicHref, parseRoute, SCHOOL_MAP_COMIC_ID, SECTION_HREFS, useRoute, type Route } from './route'
 import { chaptersLeft, findOperation, operationChapter, useOperationProgress } from './operations'
+import { findForChapter, logFind, ROADS_FINALE_ID } from './rewards'
 import { useSeasonProgress } from './seasonProgress'
 import { SCHOOL_FAIR_CHAPTER_COUNT } from './schoolFair'
 
@@ -39,22 +41,9 @@ function AssignedGuardian({ assignment, remaining, lang }: { assignment: Guardia
 
 function Logo({ tagline }: { tagline: string }) {
   return (
-    <div className="flex min-w-0 flex-col items-start gap-1.5">
-      <p className="flex items-center gap-2" aria-label="AI Math Comics">
-        <span
-          aria-hidden
-          className="grid h-9 place-items-center rounded-xl border-[3px] border-ink bg-white px-1.5 text-xl leading-none font-black text-brand-dark shadow-[0_3px_0_var(--color-ink)] max-[350px]:h-8 max-[350px]:text-lg sm:h-12 sm:text-3xl"
-        >
-          AI
-        </span>
-        <span aria-hidden className="comic-outline text-[22px] leading-none font-black tracking-tight whitespace-nowrap text-sun italic max-[350px]:text-base sm:text-4xl">
-          MATH COMICS
-        </span>
-        <span aria-hidden className="hidden text-2xl sm:inline">
-          ✏️
-        </span>
-      </p>
-      <p className="max-w-full rounded-full border-2 border-ink bg-sun px-3 py-0.5 text-xs leading-tight text-balance font-extrabold text-ink sm:text-sm">{tagline}</p>
+    <div className="flex min-w-0 flex-col items-start gap-1">
+      <img src={logoUrl} alt="AI Math Comics" width={773} height={176} className="h-10 w-auto max-w-full min-[380px]:h-11 sm:h-16 lg:h-[4.5rem]" />
+      <p className="hidden max-w-full rounded-full bg-sun px-3 py-0.5 text-xs leading-tight font-extrabold text-ink sm:block">{tagline}</p>
     </div>
   )
 }
@@ -112,14 +101,19 @@ function AppShell() {
   const role = account.user?.role ?? null
   const { completedChapters, completeChapter, mergeChapters } = useSeasonProgress()
   const operations = useOperationProgress()
+  const roadGuardian = useRoadGuardian()
   const { complete: completeOperation, merge: mergeOperations } = operations
   // One completion callback for the reader: School Fair chapters give a collectible, operation chapters don't.
   const finishChapter = useCallback((comicId: string) => {
     if (operationChapter(comicId)) {
-      completeOperation(comicId)
+      // A first completion unlocks the chapter's find (the coins are paid by the server).
+      const find = findForChapter(comicId)
+      if (completeOperation(comicId) && find) logFind(find.id)
       return null
     }
-    return completeChapter(comicId)
+    const collectible = completeChapter(comicId)
+    if (collectible) logFind(collectible)
+    return collectible
   }, [completeChapter, completeOperation])
   const { earned: bonusStickers, award: awardBonusSticker, restore: restoreBonusStickers } = useBonusStickers()
   const ready = account.ready
@@ -151,14 +145,14 @@ function AppShell() {
   const { saveProgress } = account
   useEffect(() => {
     if (!student || synced.current !== student.id) return
-    const chapters = [...completedChapters, ...operations.completed].sort()
+    // A won «Дороги ярмарки» finale is reported as its own progress id, so its reward is paid once.
+    const chapters = [...completedChapters, ...operations.completed, ...(roadGuardian.run.won ? [ROADS_FINALE_ID] : [])].sort()
     const stickers = [...bonusStickers].sort()
     const known = new Set(serverChapters ?? [])
     const missing = chapters.some((id) => !known.has(id)) || stickers.some((id) => !serverStickers?.includes(id))
     if (missing) saveProgress(chapters, stickers).catch(() => {})
-  }, [student, completedChapters, operations.completed, bonusStickers, serverChapters, serverStickers, saveProgress])
+  }, [student, completedChapters, operations.completed, roadGuardian.run.won, bonusStickers, serverChapters, serverStickers, saveProgress])
   const guardian = useGuardianChallenge()
-  const roadGuardian = useRoadGuardian()
   const continuationJob = useContinuationJob()
   const remaining = SCHOOL_FAIR_CHAPTER_COUNT - completedChapters.size
   const t = STRINGS[lang]
@@ -179,14 +173,14 @@ function AppShell() {
 
   return (
     <div className="min-h-dvh bg-[linear-gradient(180deg,#d9e8ff_0%,#eef4ff_45%,#f6f1e7_100%)] text-ink">
-      <header className="border-b-4 border-ink bg-[linear-gradient(100deg,var(--color-brand-dark),var(--color-brand)_60%,#4f86f2)] shadow-[0_6px_0_rgb(29_39_102/0.15)]">
-        <div className="mx-auto flex max-w-[90rem] flex-wrap items-start justify-between gap-2 px-3 py-3 sm:items-center sm:px-6 sm:py-4">
-          <a href={SECTION_HREFS.map} className="min-w-0 rounded-xl focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-sun">
+      <header className="border-b-4 border-ink bg-white shadow-[0_6px_0_rgb(29_39_102/0.12)]">
+        <div className="mx-auto flex max-w-[90rem] flex-wrap items-center justify-between gap-2 px-3 py-2.5 sm:px-6 sm:py-3">
+          <a href={SECTION_HREFS.map} className="min-w-0 rounded-xl focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-brand">
             <Logo tagline={t.tagline} />
           </a>
           <div className="ml-auto flex shrink-0 items-center gap-2">
             {API_MODE === 'mock' && (
-              <span className="hidden rounded-full bg-ink/40 px-2 py-0.5 text-[11px] font-bold text-white sm:inline">{t.mockBadge}</span>
+              <span className="hidden rounded-full bg-ink/10 px-2 py-0.5 text-[11px] font-bold text-ink/70 sm:inline">{t.mockBadge}</span>
             )}
             <LanguageSwitcher lang={lang} onChange={setLang} />
             <AccountChip lang={lang} />
@@ -216,7 +210,9 @@ function AppShell() {
           {route.name === 'comics' && <CatalogScreen lang={lang} completedChapters={completedChapters} />}
           {route.name === 'myComics' && <Suspense><MyComicsScreen lang={lang} comics={myComics} lastComicId={lastComicId} /></Suspense>}
           {route.name === 'backpack' && (
-            <BackpackCollection t={t} lang={lang} completedChapters={completedChapters} bonusStickers={bonusStickers} />
+            <BackpackCollection t={t} lang={lang} completedChapters={completedChapters} bonusStickers={bonusStickers}
+              operationChapters={operations.completed}
+              finalesWon={new Set(roadGuardian.run.won || serverChapters?.includes(ROADS_FINALE_ID) ? [ROADS_FINALE_ID] : [])} />
           )}
           {route.name === 'guardian' && <Suspense><GuardianScreen lang={lang} remaining={remaining} challenge={guardian} /></Suspense>}
           {route.name === 'guardianAssignment' && <Suspense><AssignedGuardian key={guardianAssignmentHref(route.assignment)} assignment={route.assignment} remaining={remaining} lang={lang} /></Suspense>}

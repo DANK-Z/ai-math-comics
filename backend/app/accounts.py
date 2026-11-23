@@ -14,7 +14,7 @@ from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field, field_validator
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -30,7 +30,16 @@ from .auth import (
     hash_password,
     verify_password,
 )
-from .db import AnalyticsLog, BackpackItem, BossResult, Role, SchoolClass, StudentProfile, User
+from .db import (
+    AnalyticsLog,
+    BackpackItem,
+    BossResult,
+    ProgressReward,
+    Role,
+    SchoolClass,
+    StudentProfile,
+    User,
+)
 from .schemas import Reward
 
 LOGIN = re.compile(r"[a-z0-9_.-]{3,24}")
@@ -130,6 +139,17 @@ class JoinClass(BaseModel):
     model_config = {"extra": "forbid"}
 
     code: str = Field(min_length=4, max_length=32)
+
+
+# One-time coins for operation progress, by completed id. «Дороги ярмарки» is the pilot:
+# 5 coins per chapter and 10 for its finale (reported as ``roads-finale``).
+PROGRESS_REWARDS: dict[str, int] = {
+    "roads-flag": 5,
+    "roads-bridge": 5,
+    "roads-river": 5,
+    "roads-hill": 5,
+    "roads-finale": 10,
+}
 
 
 class SeasonUpdate(BaseModel):
@@ -628,14 +648,53 @@ async def join_class(body: JoinClass, user: Student, session: Session):
 
 @router.put("/me/progress", response_model=Me, response_model_exclude_none=True)
 async def save_progress(body: SeasonUpdate, user: Student, session: Session):
-    """Merge the browser's season progress into the saved one (progress only grows)."""
-    profile = await session.get(StudentProfile, user.id)
+    """Merge the browser's season progress into the saved one (progress only grows).
+
+    The first report of a rewarded chapter or finale pays its coins once: each reward is a
+    ``ProgressReward`` row keyed by student and reward, so a replay, a reload or a parallel
+    request cannot pay it twice. If two requests race, the second one hits the primary key,
+    rolls back and runs again, now seeing the reward as already paid.
+    """
+    for attempt in range(2):
+        try:
+            await merge_progress(session, user, body)
+            break
+        except IntegrityError:
+            await session.rollback()
+            if attempt:
+                raise
+    return await me(session, user)
+
+
+async def merge_progress(session: AsyncSession, user: User, body: SeasonUpdate) -> None:
+    profile = await session.scalar(
+        select(StudentProfile)
+        .where(StudentProfile.user_id == user.id)
+        .execution_options(populate_existing=True)
+    )
     season = dict(profile.season or {})
     for key, values in (("completedChapters", body.completedChapters), ("stickers", body.stickers)):
         season[key] = sorted(set(season.get(key, [])) | set(values))
     profile.season = season
+    wanted = set(body.completedChapters) & PROGRESS_REWARDS.keys()
+    paid: set[str] = set()
+    if wanted:
+        query = select(ProgressReward.reward_key).where(
+            ProgressReward.student_id == user.id, ProgressReward.reward_key.in_(wanted)
+        )
+        paid = set((await session.scalars(query)).all())
+    new = sorted(wanted - paid)
+    for key in new:
+        session.add(ProgressReward(student_id=user.id, reward_key=key, coins=PROGRESS_REWARDS[key]))
+    if new:
+        await session.flush()  # the primary key rejects a reward another request just paid
+        await session.execute(
+            update(StudentProfile)
+            .where(StudentProfile.user_id == user.id)
+            .values(total_coins=StudentProfile.total_coins + sum(PROGRESS_REWARDS[k] for k in new))
+        )
     await session.commit()
-    return await me(session, user)
+    await session.refresh(profile)
 
 
 @router.get("/me/boss/{comic_id}", response_model=BossState, response_model_exclude_none=True)

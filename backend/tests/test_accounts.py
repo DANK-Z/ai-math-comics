@@ -357,6 +357,49 @@ def test_season_progress_only_grows(env):
     )
 
 
+def test_operation_rewards_pay_once(env):
+    """«Дороги ярмарки»: 5 coins per chapter and 10 for the finale, each paid only once."""
+    _, client = env
+    token = student(client, "aruna", "Аруна")
+
+    def save(*chapters):
+        response = client.put(
+            "/api/me/progress", json={"completedChapters": list(chapters)}, headers=auth(token)
+        )
+        assert response.status_code == 200
+        return response.json()["profile"]["coins"]
+
+    assert save("roads-flag") == 5
+    # Replaying the chapter, reloading the page and re-sending the same list pay nothing.
+    assert save("roads-flag") == 5
+    assert save("roads-flag", "pizza-fractions") == 5
+    assert save("roads-flag", "roads-bridge") == 10
+    assert save("roads-flag", "roads-bridge", "roads-finale") == 20
+    assert save("roads-finale") == 20
+    # Chapters of other operations are progress only.
+    assert save("lights-park", "mars-crater") == 20
+    profile = client.get("/api/me", headers=auth(token)).json()["profile"]
+    assert profile["coins"] == 20
+    assert "roads-finale" in profile["completedChapters"]
+
+
+def test_parallel_progress_reports_pay_once(env):
+    """Two tabs report the same finale at once: one payout."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    _, client = env
+    token = student(client, "aldiyar", "Алдияр")
+    body = {"completedChapters": ["roads-hill", "roads-finale"]}
+
+    def put(_):
+        return client.put("/api/me/progress", json=body, headers=auth(token)).status_code
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        statuses = list(pool.map(put, range(4)))
+    assert statuses == [200] * 4
+    assert client.get("/api/me", headers=auth(token)).json()["profile"]["coins"] == 15
+
+
 def test_boss_fight_awards_coins_once_and_survives_reload(env):
     settings, client = env
     token = student(client, "aruna", "Аруна")
