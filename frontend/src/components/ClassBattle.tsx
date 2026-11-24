@@ -3,7 +3,7 @@ import { accounts, isAbortError, type BattleBoard, type BattleDifficulty, type B
 import { useAccount } from '../account'
 import { BOSS_COPY } from '../boss'
 import { BATTLE_BOSS, CLASSROOM_COPY } from '../classroomCopy'
-import { battleBoardHref, SECTION_HREFS, teacherClassHref } from '../route'
+import { battleBoardHref, joinHref, SECTION_HREFS, teacherClassHref } from '../route'
 import { CARD, PRIMARY, SECONDARY } from './AuthScreen'
 import { BossAvatar } from './BossFight'
 import { QrCode } from './QrCode'
@@ -306,7 +306,7 @@ export function BattleBoardScreen({ battleId, lang }: { battleId: string; lang: 
 
   if (!board) return failed ? <p role="alert" className="font-bold text-rose-700">{copy.error}</p> : null
   const kind = BATTLE_BOSS[board.topic]
-  const battleUrl = `${window.location.origin}${window.location.pathname}${SECTION_HREFS.battle}`
+  const battleUrl = `${window.location.origin}${window.location.pathname}${joinHref(board.classCode, 'battle')}`
   return (
     <div ref={root} className="flex flex-col gap-4 bg-[var(--color-sky,#eef4ff)] p-1">
       <section className={`overflow-hidden rounded-3xl border-[4px] border-ink text-white shadow-[0_8px_0_var(--shadow-ink)] ${kind === 'x-master' ? 'bg-[linear-gradient(160deg,#1d1450,#5b3cc4)]' : 'bg-[linear-gradient(160deg,#14361f,#3f9a4d)]'} ${board.status === 'active' ? 'boss-arena' : ''}`}>

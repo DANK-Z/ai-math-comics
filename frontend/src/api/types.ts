@@ -411,6 +411,8 @@ export interface AccountApi {
   signUpStudent(body: { login: string; password: string; displayName: string; classCode?: string }): Promise<AuthResponse>
   signUpTeacher(body: { email: string; password: string; displayName: string }): Promise<AuthResponse>
   logIn(body: { login: string; password: string }): Promise<AuthResponse>
+  /** Joins a class from the board's QR code: a name and the phone's own key. */
+  quickJoin(body: { classCode: string; displayName: string; deviceKey: string }): Promise<AuthResponse>
   me(): Promise<Me>
   joinClass(code: string): Promise<Me>
   saveProgress(body: { completedChapters: string[]; stickers: string[] }): Promise<Me>

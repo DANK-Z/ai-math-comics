@@ -617,6 +617,49 @@ async def sign_up_teacher(body: TeacherSignup, request: Request, session: Sessio
     return AuthResponse(token=issue(request, user), user=await me(session, user))
 
 
+class QuickJoin(BaseModel):
+    """Join a class from the board's QR code with just a name (no password to remember)."""
+
+    model_config = {"extra": "forbid"}
+
+    classCode: str = Field(min_length=4, max_length=32)
+    displayName: str = Field(min_length=1, max_length=60)
+    # A random key the phone keeps; it is this account's password, so the same phone can sign
+    # in again later. Nobody can take over an account by typing a classmate's name.
+    deviceKey: str = Field(min_length=24, max_length=72)
+
+    @field_validator("displayName")
+    @classmethod
+    def _name(cls, value: str) -> str:
+        return clean_name(value)
+
+    @field_validator("classCode")
+    @classmethod
+    def _code(cls, value: str) -> str:
+        return value.strip().upper()
+
+
+@router.post("/auth/quick-join", status_code=201, response_model=AuthResponse)
+async def quick_join(body: QuickJoin, request: Request, session: Session):
+    # Shares the sign-in counters: a school network can join a class, not flood it.
+    await enforce_sign_in_limit(request, session, f"join\0{body.classCode}\0{body.displayName}")
+    school_class = await find_class(session, body.classCode)
+    from .roster import unique_login  # roster imports this module
+
+    user = User(
+        login=await unique_login(session, body.displayName),
+        display_name=body.displayName,
+        hashed_password=hash_password(body.deviceKey),
+        role=Role.student,
+        class_id=school_class.id,
+    )
+    session.add(user)
+    await session.flush()
+    session.add(StudentProfile(user_id=user.id, total_coins=0, stars_collected=0, season={}))
+    await session.commit()
+    return AuthResponse(token=issue(request, user), user=await me(session, user))
+
+
 @router.post("/auth/login", response_model=AuthResponse)
 async def sign_in(body: LoginRequest, request: Request, session: Session):
     name = body.login.strip().lower()

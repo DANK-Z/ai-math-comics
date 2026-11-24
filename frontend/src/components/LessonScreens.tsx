@@ -3,7 +3,7 @@ import { accounts, LOCAL_COMICS, type Lang, type LessonBoard, type StudentLesson
 import { buildLocalComic, type LocalComicDef } from '../api/localComics'
 import { useAccount } from '../account'
 import { CURRICULUM, CURRICULUM_COPY } from '../curriculum'
-import { lessonBoardHref, SECTION_HREFS, teacherClassHref } from '../route'
+import { joinHref, lessonBoardHref, SECTION_HREFS, teacherClassHref } from '../route'
 import { CARD, PRIMARY, SECONDARY } from './AuthScreen'
 import { usePolled } from './ClassBattle'
 import { chapterTitle } from './CurriculumCard'
@@ -29,7 +29,7 @@ export const LESSON_COPY = {
     collect: 'Собрать ответы с телефонов',
     collectHint: 'Сначала обсудите задачу вместе, потом откройте ответы.',
     qrTitle: 'Отвечайте с телефона',
-    join: (code: string) => `Войдите в аккаунт — задача уже на экране. Код класса: ${code}`,
+    join: (code: string) => `Без регистрации: сканируйте и напишите имя. Код класса: ${code}`,
     answered: (n: number, total: number) => `Ответили: ${n} из ${total}`,
     reveal: 'Показать результат',
     correct: (n: number, total: number) => `Верно ответили ${n} из ${total}`,
@@ -55,7 +55,7 @@ export const LESSON_COPY = {
     collect: 'Телефоннан жауаптарды жинау',
     collectHint: 'Алдымен есепті бірге талқылаңыз, содан кейін жауаптарды ашыңыз.',
     qrTitle: 'Телефоннан жауап беріңдер',
-    join: (code: string) => `Аккаунтқа кіріңдер — есеп экранда тұр. Сынып коды: ${code}`,
+    join: (code: string) => `Тіркеусіз: сканерлеп, атыңды жаз. Сынып коды: ${code}`,
     answered: (n: number, total: number) => `Жауап берді: ${total}-ден ${n}`,
     reveal: 'Нәтижені көрсету',
     correct: (n: number, total: number) => `${total}-ден ${n} оқушы дұрыс жауап берді`,
@@ -181,7 +181,7 @@ export function LessonBoardScreen({ lessonId, lang }: { lessonId: string; lang: 
   const maxPanel = revealed ? total - 1 : exerciseIndex
   const panel = comic.panels[Math.min(board.panel, total - 1)]
   const onExercise = board.panel === exerciseIndex
-  const lessonUrl = `${window.location.origin}${window.location.pathname}${SECTION_HREFS.lesson}`
+  const lessonUrl = `${window.location.origin}${window.location.pathname}${joinHref(board.classCode, 'lesson')}`
   const mistakes = def.text[lang].commonMistakes ?? {}
 
   async function update(body: { panel?: number; phase?: LessonBoard['phase'] }) {

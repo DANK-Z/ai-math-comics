@@ -207,6 +207,22 @@ export const mockAccounts: AccountApi = {
       return signIn(state, user)
     })
   },
+  quickJoin(body) {
+    return later(() => {
+      const state = load()
+      const displayName = cleanName(body.displayName)
+      if (body.deviceKey.length < 24) throw fail(422, 'validation')
+      const schoolClass = findClass(state, body.classCode)
+      const base = translit(displayName.split(' ')[0]).replace(/[^a-z]/g, '').slice(0, 14) || 'student'
+      let login = ''
+      do login = `${base}${100 + Math.floor(Math.random() * 900)}`
+      while (state.users.some((u) => u.login === login))
+      const user: MockUser = { id: state.users.length + 1, role: 'student', login, displayName, password: body.deviceKey, classId: schoolClass?.id, completedChapters: [], stickers: [] }
+      state.users.push(user)
+      save(state)
+      return signIn(state, user)
+    })
+  },
   signUpTeacher(body) {
     return later(() => {
       const state = load()

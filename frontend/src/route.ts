@@ -27,6 +27,7 @@ export type Route =
   | { name: 'teacherClass'; classId: number }
   | { name: 'teacherBattle'; battleId: string }
   | { name: 'teacherLesson'; lessonId: string }
+  | { name: 'join'; code: string; to: 'battle' | 'lesson' }
   | { name: 'practiceTopic'; topic: string; skill: string | null }
   | { name: 'operation'; id: string }
   | { name: 'operationFinale'; id: string }
@@ -52,6 +53,8 @@ export function parseRoute(hash: string): Route {
   if (operation) return { name: 'operation', id: operation[1] }
   const practice = /^#\/practice\/([a-z]{1,20})(?:\?skill=([a-z_]{1,20}))?$/.exec(hash)
   if (practice) return { name: 'practiceTopic', topic: practice[1], skill: practice[2] ?? null }
+  const join = /^#\/join\/([A-Za-z0-9-]{4,32})(?:\?to=(battle|lesson))?$/.exec(hash)
+  if (join) return { name: 'join', code: join[1].toUpperCase(), to: (join[2] as 'battle' | 'lesson' | undefined) ?? 'battle' }
   const teacherLesson = /^#\/teacher\/lesson\/([a-z0-9-]{1,40})$/.exec(hash)
   if (teacherLesson) return { name: 'teacherLesson', lessonId: teacherLesson[1] }
   const teacherBattle = /^#\/teacher\/battle\/([a-z0-9-]{1,40})$/.exec(hash)
@@ -73,6 +76,11 @@ export function parseRoute(hash: string): Route {
 
 export function teacherClassHref(classId: number) {
   return `#/teacher/class/${classId}`
+}
+
+/** The QR address on a board: join the class with a name, then open the battle or lesson. */
+export function joinHref(classCode: string, to: 'battle' | 'lesson') {
+  return `#/join/${classCode}?to=${to}`
 }
 
 /** The board of a lesson (teacher). */

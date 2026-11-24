@@ -205,3 +205,20 @@ test('homework: the teacher sets a chapter, it is marked done once the student s
   await page.getByRole('button', { name: 'Задания', exact: true }).click()
   await expect(page.getByText('Выполнили 1 из 1')).toBeVisible()
 })
+
+test('the board QR: a guest types only a name, and the same phone gets back in by itself @phone', async ({ page }) => {
+  await seed(page, 'guest')
+  await page.goto('/#/join/E2E-5A-2026?to=battle')
+  await page.getByLabel('Как тебя зовут?').fill('Әлия Сапарова')
+  await page.getByRole('button', { name: 'Войти', exact: true }).last().click()
+  await expect(page).toHaveURL(/#\/battle$/)
+  await expect(page.getByRole('heading', { name: 'Классный батл' })).toBeVisible()
+  await expect(page.getByRole('link', { name: /Әлия Сапарова/ })).toBeVisible()
+
+  // The session ends (token gone); scanning again signs the phone in without asking the name.
+  await page.evaluate(() => localStorage.removeItem('amc.auth.token'))
+  await page.reload()
+  await page.goto('/#/join/E2E-5A-2026?to=lesson')
+  await expect(page).toHaveURL(/#\/lesson$/)
+  await expect(page.getByRole('link', { name: /Әлия Сапарова/ })).toBeVisible()
+})
