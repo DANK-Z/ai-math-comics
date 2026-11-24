@@ -66,7 +66,7 @@ export interface UiStrings {
   resumeGenerationError: string
   jobReady: string
   jobFailedTitle: string
-  jobErrors: { generation_failed: string; image_generation_failed: string; student_text_rejected: string; api: string; lost: string; unknown: string }
+  jobErrors: { generation_failed: string; image_generation_failed: string; student_text_rejected: string; api: string; limit: string; lost: string; unknown: string }
   errorDetails: string
   tryAgain: string
   changeParams: string
@@ -238,6 +238,7 @@ export const STRINGS: Record<Lang, UiStrings> = {
       image_generation_failed: 'Не удалось создать иллюстрации для комикса. Попробуй ещё раз.',
       student_text_rejected: 'Описание или завязка не прошли проверку. Измени текст и попробуй снова.',
       api: 'Сервер не ответил как ожидалось. Проверь подключение и попробуй снова.',
+      limit: 'На сегодня новые комиксы закончились — завтра Пифик придумает ещё. А пока читай готовые главы и операции!',
       lost: 'Задание не найдено на сервере.',
       unknown: 'Что-то пошло не так при создании комикса.',
     },
@@ -437,6 +438,7 @@ export const STRINGS: Record<Lang, UiStrings> = {
       image_generation_failed: 'Комикстің суреттерін жасау сәтсіз аяқталды. Қайтадан байқап көр.',
       student_text_rejected: 'Сипаттама немесе оқиға басы тексеруден өтпеді. Мәтінді өзгертіп, қайта байқап көр.',
       api: 'Сервер күткендей жауап бермеді. Байланысты тексеріп, қайтадан байқап көр.',
+      limit: 'Бүгінге жаңа комикстер бітті — ертең Пифик тағы ойлап табады. Әзірге дайын тараулар мен операцияларды оқы!',
       lost: 'Тапсырма серверде табылмады.',
       unknown: 'Комикс жасау кезінде бірдеңе дұрыс болмады.',
     },

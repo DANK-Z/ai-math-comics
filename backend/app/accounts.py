@@ -583,6 +583,7 @@ Teacher = Annotated[User, Depends(current_teacher)]
 
 @router.post("/auth/students", status_code=201, response_model=AuthResponse)
 async def sign_up_student(body: StudentSignup, request: Request, session: Session):
+    await enforce_sign_in_limit(request, session, f"signup-{body.login}")
     school_class = await find_class(session, body.classCode) if body.classCode else None
     user = User(
         login=body.login,
@@ -603,6 +604,7 @@ async def sign_up_student(body: StudentSignup, request: Request, session: Sessio
 
 @router.post("/auth/teachers", status_code=201, response_model=AuthResponse)
 async def sign_up_teacher(body: TeacherSignup, request: Request, session: Session):
+    await enforce_sign_in_limit(request, session, f"signup-{body.email}")
     user = User(
         email=body.email,
         display_name=body.displayName,

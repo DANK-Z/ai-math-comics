@@ -15,6 +15,7 @@ type ResumeTarget = { jobId: string; startedAt: number; resumeToken: string }
 export type JobFailure =
   | { kind: 'job'; code: string | null } // server says status=failed
   | { kind: 'api'; detail: string } // request failed
+  | { kind: 'limit' } // the daily generation limit is reached (429)
   | { kind: 'lost' } // job id unknown to the server
 
 export type JobState<Request = ComicJobRequest> =
@@ -126,7 +127,8 @@ export function useComicJob<Request = ComicJobRequest>(
       })
       .catch((e) => {
         busy.current = false
-        setState({ phase: 'failed', request, failure: { kind: 'api', detail: describeError(e) } })
+        const limited = e instanceof ApiError && e.status === 429
+        setState({ phase: 'failed', request, failure: limited ? { kind: 'limit' } : { kind: 'api', detail: describeError(e) } })
       })
   }, [createJob, storageKey])
 

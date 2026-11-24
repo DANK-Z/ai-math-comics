@@ -61,6 +61,8 @@ function failureMessage(t: UiStrings, f: JobFailure): string {
       return f.code === 'generation_failed' ? t.jobErrors.generation_failed : t.jobErrors.unknown
     case 'api':
       return t.jobErrors.api
+    case 'limit':
+      return t.jobErrors.limit
     case 'lost':
       return t.jobErrors.lost
   }

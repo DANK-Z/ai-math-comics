@@ -42,18 +42,27 @@ def verify_password(password: str, hashed: str) -> bool:
 DUMMY_HASH = hash_password(secrets.token_urlsafe(16))
 
 
-async def enforce_sign_in_limit(request: Request, session: AsyncSession, login: str) -> None:
-    """Reserve an attempt before verifying any password, including for unknown logins."""
-    ip = request.client.host if request.client else "unknown"
+async def consume(
+    request: Request,
+    session: AsyncSession,
+    windows: list[tuple[str, int, int]],
+    error: str,
+) -> None:
+    """Reserves one use in every (label, seconds, limit) window, or raises 429 with Retry-After.
+
+    Shared by sign-in, sign-up and comic generation. Keys are HMAC digests, so the table
+    never stores a login, a name or an IP.
+    """
     insert = sqlite_insert if session.get_bind().dialect.name == "sqlite" else postgres_insert
     secret = request.app.state.jwt_secret.encode()
     now = int(time())
-    retry_after = None
+    # Loading the signed-in user already opened a read transaction: end it first.
+    if session.in_transaction():
+        await session.commit()
 
     async with session.begin():
         await session.execute(delete(SignInWindow).where(SignInWindow.expires_at <= now))
-        # Students at a school may share an IP. Give the network more room than each login.
-        for label, duration, limit in ((f"ip\0{ip}", 60, 60), (f"login\0{ip}\0{login}", 300, 8)):
+        for label, duration, limit in windows:
             key = hmac.digest(secret, label.encode(), "sha256").hex()
             expires = (now // duration + 1) * duration
             stmt = insert(SignInWindow).values(key=key, expires_at=expires, attempts=1)
@@ -64,10 +73,42 @@ async def enforce_sign_in_limit(request: Request, session: AsyncSession, login: 
             ).returning(SignInWindow.attempts)
             if (await session.execute(stmt)).scalar_one_or_none() is None:
                 retry_after = expires - now
-                break
+                # Raised inside the transaction: nothing is reserved when any window is full.
+                raise HTTPException(429, error, headers={"Retry-After": str(retry_after)})
 
-    if retry_after is not None:
-        raise HTTPException(429, "sign_in_rate_limited", headers={"Retry-After": str(retry_after)})
+
+def client_ip(request: Request) -> str:
+    return request.client.host if request.client else "unknown"
+
+
+async def enforce_sign_in_limit(request: Request, session: AsyncSession, login: str) -> None:
+    """Reserve an attempt before verifying any password, including for unknown logins."""
+    ip = client_ip(request)
+    # Students at a school may share an IP. Give the network more room than each login.
+    windows = [(f"ip\0{ip}", 60, 60), (f"login\0{ip}\0{login}", 300, 8)]
+    await consume(request, session, windows, "sign_in_rate_limited")
+
+
+async def enforce_generation_limit(request: Request, session: AsyncSession, user) -> None:
+    """Daily comic generation limits: the whole site, each signed-in user, each guest network."""
+    settings = request.app.state.settings
+    day = 24 * 3600
+    windows = []
+    if settings.generation_daily_total:
+        windows.append(("gen\0all", day, settings.generation_daily_total))
+    if user is None:
+        if settings.generation_daily_guest:
+            windows.append((f"gen\0ip\0{client_ip(request)}", day, settings.generation_daily_guest))
+    else:
+        per_user = (
+            settings.generation_daily_teacher
+            if user.role == Role.teacher
+            else settings.generation_daily_student
+        )
+        if per_user:
+            windows.append((f"gen\0user\0{user.id}", day, per_user))
+    if windows:
+        await consume(request, session, windows, "generation_limit")
 
 
 def create_token(user: User, secret: str, lifetime: timedelta) -> str:

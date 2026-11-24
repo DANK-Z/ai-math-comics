@@ -13,7 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from .answers import parse_equation_answer
-from .auth import Session, current_student, current_teacher
+from .auth import Session, current_student, current_teacher, enforce_generation_limit
 from .db import AnalyticsLog, AssignedComic, AssignmentHint, Role, SchoolClass, User
 from .problems import EquationProblem, choose_problem
 from .providers import ProviderError
@@ -194,7 +194,10 @@ def absolute_art(request: Request, comic: Comic, private_source: str | None = No
 
 
 @router.post("/teacher/comic-drafts", status_code=202)
-def create_draft(body: DraftRequest, request: Request, teacher: Teacher) -> JobAccepted:
+async def create_draft(
+    body: DraftRequest, request: Request, teacher: Teacher, session: Session
+) -> JobAccepted:
+    await enforce_generation_limit(request, session, teacher)
     job_id = request.app.state.store.enqueue(body, teacher.id, teacher_draft=True)
     return JobAccepted(jobId=job_id)
 

@@ -24,7 +24,7 @@ from .assignments import (
     record_assignment_hint,
 )
 from .assignments import router as assignments_router
-from .auth import Session, lenient_user
+from .auth import Session, enforce_generation_limit, lenient_user
 from .classroom import router as classroom_router
 from .config import Settings
 from .content import FEEDBACK, HINTS, get_comic
@@ -138,13 +138,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(voice_router)
 
     @app.post("/api/comic-jobs", status_code=202, response_model=JobAccepted)
-    def create_job(body: JobRequest, request: Request, user: Viewer) -> JobAccepted:
+    async def create_job(
+        body: JobRequest, request: Request, user: Viewer, session: Session
+    ) -> JobAccepted:
+        await enforce_generation_limit(request, session, user)
         return JobAccepted(jobId=get_store(request).enqueue(body, user.id if user else None))
 
     @app.post("/api/continuation-jobs", status_code=202, response_model=JobAccepted)
-    def create_continuation(
-        body: ContinuationRequest, request: Request, user: Viewer
+    async def create_continuation(
+        body: ContinuationRequest, request: Request, user: Viewer, session: Session
     ) -> JobAccepted:
+        await enforce_generation_limit(request, session, user)
         return JobAccepted(jobId=get_store(request).enqueue(body, user.id if user else None))
 
     @app.post(

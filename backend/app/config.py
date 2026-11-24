@@ -41,6 +41,12 @@ class Settings:
     cache_variants: int = 1
     semantic_threshold: float = 0.92
     embedding_model: str = ""
+    # Daily comic generation limits (0 = no limit). from_env sets pilot defaults: the AI
+    # provider is paid per comic and the site is public.
+    generation_daily_total: int = 0
+    generation_daily_student: int = 0
+    generation_daily_teacher: int = 0
+    generation_daily_guest: int = 0
 
     def __post_init__(self):
         if self.provider not in ("openai", "gemini"):
@@ -102,6 +108,10 @@ class Settings:
             redis_url=os.getenv("REDIS_URL", "").strip(),
             cache_variants=int(os.getenv("CACHE_VARIANTS", "1")),
             semantic_threshold=float(os.getenv("SEMANTIC_THRESHOLD", "0.92")),
+            generation_daily_total=int(os.getenv("COMIC_DAILY_TOTAL", "300")),
+            generation_daily_student=int(os.getenv("COMIC_DAILY_PER_STUDENT", "10")),
+            generation_daily_teacher=int(os.getenv("COMIC_DAILY_PER_TEACHER", "40")),
+            generation_daily_guest=int(os.getenv("COMIC_DAILY_PER_GUEST_IP", "3")),
             embedding_model=os.getenv(
                 "EMBEDDING_MODEL", "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
             ).strip(),
