@@ -51,6 +51,8 @@ class Settings:
     generation_guests: bool = True
     # Parent payments: "test" credits at once without money (no provider yet), "off" hides them.
     payments_mode: str = "test"
+    # How many comic panels are drawn at the same time (cost is the same, the wait is shorter).
+    image_concurrency: int = 1
 
     def __post_init__(self):
         if self.provider not in ("openai", "gemini"):
@@ -118,6 +120,7 @@ class Settings:
             generation_daily_guest=int(os.getenv("COMIC_DAILY_PER_GUEST_IP", "3")),
             generation_guests=os.getenv("COMIC_GUESTS", "0").strip() == "1",
             payments_mode=os.getenv("PAYMENTS_MODE", "test").strip() or "test",
+            image_concurrency=max(1, int(os.getenv("IMAGE_CONCURRENCY", "3"))),
             embedding_model=os.getenv(
                 "EMBEDDING_MODEL", "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
             ).strip(),

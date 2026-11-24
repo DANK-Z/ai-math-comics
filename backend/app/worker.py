@@ -584,8 +584,23 @@ class Worker:
                 raise ProviderError(
                     "image_generation_failed", stage=f"image:cast_reference:{stage}"
                 ) from None
-        aspects = {}
-        for panel in panels:
+        aspects: dict[int, float] = {}
+        # Panels are drawn a few at a time (same cost, much shorter wait). Progress is still
+        # recorded in panel order: a panel counts once every panel before it is saved.
+        order = [panel.id for panel in panels]
+        finished: set[int] = set()
+        recorded = 0
+        gate = asyncio.Semaphore(self.settings.image_concurrency)
+        stopped = False  # after a failure, panels still waiting for the gate are not drawn
+
+        def record(panel_id: int) -> None:
+            nonlocal recorded
+            finished.add(panel_id)
+            while recorded < len(order) and order[recorded] in finished:
+                self.store.panel_saved(claim, order[recorded])
+                recorded += 1
+
+        async def draw(panel: ScenePanel) -> None:
             saved = directory / f"{panel.id}.png"
             if saved.is_file():
                 try:
@@ -596,15 +611,20 @@ class Worker:
                     pass  # A missing or damaged file needs a fresh illustration.
                 else:
                     aspects[panel.id] = aspect
-                    self.store.panel_saved(claim, panel.id)
-                    continue
-            try:
-                image = normalize_png(
-                    await self.image.generate(scene_prompt(panel.scene), reference)
-                )
-            except ProviderError as exc:
-                stage = f"image:panel_{panel.id}:{exc.stage or exc.code}"
-                raise ProviderError("image_generation_failed", stage=stage) from None
+                    record(panel.id)
+                    return
+            nonlocal stopped
+            async with gate:
+                if stopped:
+                    return
+                try:
+                    image = normalize_png(
+                        await self.image.generate(scene_prompt(panel.scene), reference)
+                    )
+                except ProviderError as exc:
+                    stopped = True
+                    stage = f"image:panel_{panel.id}:{exc.stage or exc.code}"
+                    raise ProviderError("image_generation_failed", stage=stage) from None
             with Image.open(io.BytesIO(image)) as panel_art:
                 aspects[panel.id] = panel_art.width / panel_art.height
             temporary = directory / f"{panel.id}.{claim['owner']}.tmp"
@@ -615,7 +635,18 @@ class Worker:
                 raise ProviderError(
                     "image_generation_failed", stage=f"image:panel_{panel.id}:save_failed"
                 ) from None
-            self.store.panel_saved(claim, panel.id)
+            record(panel.id)
+
+        tasks = [asyncio.create_task(draw(panel)) for panel in panels]
+        try:
+            await asyncio.gather(*tasks)
+        except BaseException:
+            # The first failure wins: stop the other drawings. Panels saved so far stay for
+            # a resumed job.
+            for task in tasks:
+                task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
+            raise
         return aspects
 
 
