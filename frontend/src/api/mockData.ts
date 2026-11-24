@@ -11,9 +11,9 @@ export const MOCK_COMICS: Record<Lang, Comic> = {
     panels: [
       { id: 1, speaker: 'Пифик', text: 'Привет! Я Пифик. Сегодня у четырёх друзей праздник!', imageKey: 'pizza-01' },
       { id: 2, speaker: 'Аруна', text: 'Мы заказали три одинаковые пиццы.', imageKey: 'pizza-02' },
-      { id: 3, speaker: 'Алдияр', text: 'Но нас четверо! Как разделить пиццы поровну?', imageKey: 'pizza-03' },
+      { id: 3, speaker: 'Аруна', text: 'Вот они! Но нас четверо — как разделить три пиццы поровну?', imageKey: 'pizza-03' },
       { id: 4, speaker: 'Пифик', text: 'Помогите друзьям! Какую часть пиццы получит каждый?', imageKey: 'pizza-04' },
-      { id: 5, speaker: 'Аруна', text: 'Можно разрезать каждую пиццу на одинаковые кусочки!', imageKey: 'pizza-05' },
+      { id: 5, speaker: 'Алдияр', text: 'Разрежу каждую пиццу на одинаковые кусочки!', imageKey: 'pizza-05' },
       { id: 6, speaker: 'Алдияр', text: 'Каждый получил поровну — вот это настоящая дружба!', imageKey: 'pizza-06' },
     ],
     exercise: {
@@ -30,9 +30,9 @@ export const MOCK_COMICS: Record<Lang, Comic> = {
     panels: [
       { id: 1, speaker: 'Пифик', text: 'Сәлем! Мен Пификпін. Бүгін төрт доста мереке!', imageKey: 'pizza-01' },
       { id: 2, speaker: 'Аруна', text: 'Біз үш бірдей пицца тапсырыс бердік.', imageKey: 'pizza-02' },
-      { id: 3, speaker: 'Алдияр', text: 'Бірақ біз төртеуміз! Пиццаларды қалай тең бөлеміз?', imageKey: 'pizza-03' },
+      { id: 3, speaker: 'Аруна', text: 'Міне, пиццалар! Бірақ біз төртеуміз — үш пиццаны қалай тең бөлеміз?', imageKey: 'pizza-03' },
       { id: 4, speaker: 'Пифик', text: 'Достарға көмектесіңдер! Әрқайсысы пиццаның қандай бөлігін алады?', imageKey: 'pizza-04' },
-      { id: 5, speaker: 'Аруна', text: 'Әр пиццаны бірдей тілімдерге кесуге болады!', imageKey: 'pizza-05' },
+      { id: 5, speaker: 'Алдияр', text: 'Әр пиццаны бірдей тілімдерге кесемін!', imageKey: 'pizza-05' },
       { id: 6, speaker: 'Алдияр', text: 'Әркім тең үлес алды — міне, нағыз достық!', imageKey: 'pizza-06' },
     ],
     exercise: {

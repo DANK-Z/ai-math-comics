@@ -197,3 +197,9 @@ def test_frontend_cors(origin):
         "/api/comics/pizza-fractions", headers={"Origin": "http://unrelated.example"}
     )
     assert "access-control-allow-origin" not in response.headers
+
+
+def test_pizza_chapter_uses_the_game_cast():
+    for lang in ("ru", "kk"):
+        comic = client.get(f"/api/comics/pizza-fractions?lang={lang}").json()
+        assert {p["speaker"] for p in comic["panels"]} <= {"Пифик", "Аруна", "Алдияр"}
