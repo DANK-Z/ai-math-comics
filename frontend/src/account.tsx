@@ -22,6 +22,9 @@ interface AccountContextValue {
   refresh(): Promise<void>
   /** The Pifik skin the signed-in student wears, if any. */
   skin: SkinKey | null
+  /** The hero-card frame and the title under the name (fair shop), if worn. */
+  frame: string | null
+  title: string | null
 }
 
 const AccountContext = createContext<AccountContextValue | null>(null)
@@ -78,6 +81,8 @@ export function AccountProvider({ children }: { children: ReactNode }) {
         setUser(await accounts.me())
       },
       skin: (user?.profile?.items.find((i) => i.type === 'skin' && i.equipped)?.key as SkinKey | undefined) ?? null,
+      frame: user?.profile?.items.find((i) => i.type === 'frame' && i.equipped)?.key ?? null,
+      title: user?.profile?.items.find((i) => i.type === 'title' && i.equipped)?.key ?? null,
     }),
     [user, ready, finish],
   )

@@ -177,7 +177,9 @@ async def summary(session, parent: User, child: User) -> ChildSummary:
     school_class = await session.get(SchoolClass, child.class_id) if child.class_id else None
     skin = await session.scalar(
         select(BackpackItem.item_key).where(
-            BackpackItem.student_id == child.id, BackpackItem.is_equipped.is_(True)
+            BackpackItem.student_id == child.id,
+            BackpackItem.is_equipped.is_(True),
+            BackpackItem.item_type == "skin",
         )
     )
     rewards = (

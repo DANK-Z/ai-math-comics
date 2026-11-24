@@ -1,6 +1,7 @@
 import { authToken } from './authToken'
 import { PROGRESS_REWARDS } from '../rewards'
 import { ApiError } from './errors'
+import { COSMETICS, isCosmetic, type CosmeticKey } from '../cosmetics'
 import type { AccountApi, ChildSummary, ClassInfo, Dashboard, Grade, Me, PracticeReport, PraiseKind, Shop, SkinKey } from './types'
 import { mockPracticeAnswer, mockPracticeTask, mockPracticeTopic } from './mockClassroom'
 import { currentLesson, homeworkOf, lessonBoardOf, myHomeworkOf, studentLessonOf, wholeAnswer, type MockHomework, type MockLesson, type PracticeDone } from './mockLessons'
@@ -25,7 +26,8 @@ interface MockUser {
   coins?: number
   /** Progress rewards already paid (like the server's progress_rewards table). */
   rewards?: string[]
-  skins?: { id: number; key: SkinKey; equipped: boolean }[]
+  /** Backpack items: skins, and (with `type`) frames and titles. */
+  skins?: { id: number; key: string; equipped: boolean; type?: 'skin' | 'frame' | 'title' }[]
 }
 interface MockState {
   users: MockUser[]
@@ -95,15 +97,21 @@ function countLogin(name: string) {
 const DEMO_COINS = 120
 const PRICES: Record<SkinKey, number> = { 'smart-glasses': 40, 'yellow-backpack': 50, 'racer-helmet': 60 }
 
+const slotOf = (item: { type?: 'skin' | 'frame' | 'title' }) => item.type ?? 'skin'
+
 function shopOf(user: MockUser): Shop {
   const skins = user.skins ?? []
-  const equipped = skins.find((s) => s.equipped)?.key ?? null
+  const equipped = (skins.find((s) => s.equipped && slotOf(s) === 'skin')?.key as SkinKey | undefined) ?? null
   return {
     coins: user.coins ?? DEMO_COINS,
     equippedSkin: equipped,
     items: (Object.keys(PRICES) as SkinKey[]).map((key) => {
       const owned = skins.find((s) => s.key === key)
       return { id: key, type: 'skin', price: PRICES[key], owned: !!owned, equipped: key === equipped, backpackItemId: owned?.id ?? null }
+    }),
+    cosmetics: (Object.keys(COSMETICS) as CosmeticKey[]).map((key) => {
+      const owned = skins.find((s) => s.key === key)
+      return { id: key, type: COSMETICS[key].slot, price: COSMETICS[key].price, owned: !!owned, equipped: !!owned?.equipped, backpackItemId: owned?.id ?? null }
     }),
   }
 }
@@ -138,7 +146,7 @@ function toMe(state: MockState, user: MockUser): Me {
             stars: 0,
             completedChapters: user.completedChapters,
             stickers: user.stickers,
-            items: (user.skins ?? []).map((s) => ({ id: s.id, type: 'skin', key: s.key, equipped: s.equipped })),
+            items: (user.skins ?? []).map((s) => ({ id: s.id, type: slotOf(s), key: s.key, equipped: s.equipped })),
           },
         }
       : {}),
@@ -415,25 +423,27 @@ export const mockAccounts: AccountApi = {
     return later(() => {
       const state = load()
       const user = student(state)
-      const price = PRICES[itemId]
+      const price = isCosmetic(itemId) ? COSMETICS[itemId].price : PRICES[itemId as SkinKey]
       if (!price) throw fail(404, 'item_not_found')
       const skins = (user.skins ??= [])
       if (skins.some((s) => s.key === itemId)) throw fail(409, 'already_owned')
       const coins = user.coins ?? DEMO_COINS
       if (coins < price) throw fail(409, 'not_enough_coins')
       user.coins = coins - price
-      skins.push({ id: Date.now(), key: itemId, equipped: false })
+      skins.push({ id: Date.now(), key: itemId, equipped: false, type: isCosmetic(itemId) ? COSMETICS[itemId].slot : 'skin' })
       save(state)
       return shopOf(user)
     })
   },
-  equip(backpackItemId) {
+  equip(backpackItemId, slot = 'skin') {
     return later(() => {
       const state = load()
       const user = student(state)
       const skins = user.skins ?? []
-      if (backpackItemId !== null && !skins.some((s) => s.id === backpackItemId)) throw fail(404, 'item_not_found')
-      for (const s of skins) s.equipped = s.id === backpackItemId
+      const chosen = backpackItemId === null ? null : skins.find((s) => s.id === backpackItemId)
+      if (chosen === undefined) throw fail(404, 'item_not_found')
+      const worn = chosen ? slotOf(chosen) : slot
+      for (const s of skins) if (slotOf(s) === worn) s.equipped = s === chosen
       save(state)
       return shopOf(user)
     })
@@ -765,7 +775,7 @@ function childSummary(state: MockState, parentId: number, studentId: number): Ch
     id: child.id,
     name: child.displayName,
     className: schoolClass?.name ?? null,
-    skin: child.skins?.find((s) => s.equipped)?.key ?? null,
+    skin: (child.skins?.find((s) => s.equipped && slotOf(s) === 'skin')?.key as SkinKey | undefined) ?? null,
     coins: child.coins ?? DEMO_COINS,
     stars: 6,
     chaptersMonth: chapters.length,

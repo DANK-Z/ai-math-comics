@@ -122,6 +122,35 @@ def test_shop_is_for_students_and_items_are_private(env):
     assert client.get("/api/v1/shop").status_code == 401
 
 
+
+def test_frames_and_titles_are_worn_next_to_the_skin(env):
+    settings, client = env
+    token = student(client, "aruna", "Аруна")
+    earn_coins(settings, client, token)  # 40 coins
+    shop = client.post("/api/v1/shop/buy", json={"itemId": "frame-sunny"}, headers=auth(token))
+    assert shop.status_code == 201
+    shop = client.post("/api/v1/shop/buy", json={"itemId": "smart-glasses"}, headers=auth(token))
+    assert shop.status_code == 409  # 10 coins left
+    shop = client.get("/api/v1/shop", headers=auth(token)).json()
+    assert [i["id"] for i in shop["items"]] == ["smart-glasses", "yellow-backpack", "racer-helmet"]
+    frame = next(i for i in shop["cosmetics"] if i["id"] == "frame-sunny")
+    assert frame["owned"] and frame["type"] == "frame" and shop["coins"] == 10
+
+    worn = client.post(
+        "/api/v1/backpack/equip", json={"itemId": frame["backpackItemId"]}, headers=auth(token)
+    ).json()
+    assert worn["equippedSkin"] is None
+    assert next(i for i in worn["cosmetics"] if i["id"] == "frame-sunny")["equipped"]
+    # Taking the skin off leaves the frame on; taking the frame off needs its slot.
+    client.post("/api/v1/backpack/equip", json={"itemId": None}, headers=auth(token))
+    me = client.get("/api/me", headers=auth(token)).json()
+    assert [(i["key"], i["equipped"]) for i in me["profile"]["items"]] == [("frame-sunny", True)]
+    off = client.post(
+        "/api/v1/backpack/equip", json={"itemId": None, "slot": "frame"}, headers=auth(token)
+    ).json()
+    assert not any(i["equipped"] for i in off["cosmetics"])
+
+
 # ---- story cache ----------------------------------------------------------------------------
 
 

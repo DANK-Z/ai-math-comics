@@ -600,3 +600,41 @@ html {
   --color-white: #ffffff;
   --color-ink: #1d2766;
 }
+
+/* Fair-shop frames around the hero picture (cosmetics.ts) and the title badge. */
+.hero-frame-sunny { border: 5px solid #ffc83d; box-shadow: 0 0 0 3px #1d2766, 0 0 18px 4px rgb(255 200 61 / 0.75); }
+.hero-frame-steppe {
+  border: 6px solid transparent;
+  background-image: linear-gradient(var(--color-sky, #dff1ff), var(--color-sky, #dff1ff)),
+    repeating-linear-gradient(45deg, #00a6b4 0 8px, #ffc83d 8px 16px, #e2583e 16px 24px);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  box-shadow: 0 0 0 3px #1d2766;
+}
+.hero-frame-space {
+  border: 5px solid #6a4fd0;
+  background: radial-gradient(circle at 20% 25%, #fff 0 1.5px, transparent 2px),
+    radial-gradient(circle at 75% 15%, #fff 0 1px, transparent 1.5px),
+    radial-gradient(circle at 85% 70%, #fff 0 1.5px, transparent 2px),
+    radial-gradient(circle at 30% 80%, #fff 0 1px, transparent 1.5px),
+    linear-gradient(135deg, #1d1b5e, #4b2d9a 60%, #8b62d6);
+  box-shadow: 0 0 0 3px #1d2766, 0 0 16px rgb(139 98 214 / 0.8);
+}
+.hero-frame-gold {
+  border: 6px solid transparent;
+  background-image: linear-gradient(var(--color-sky, #dff1ff), var(--color-sky, #dff1ff)),
+    linear-gradient(135deg, #fff3b0, #e0a800 35%, #fff3b0 55%, #b07a00);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  box-shadow: 0 0 0 3px #1d2766, 0 0 22px 6px rgb(255 200 40 / 0.7);
+}
+.hero-title {
+  display: inline-block;
+  border: 2px solid #1d2766;
+  border-radius: 999px;
+  background: #ffc83d;
+  color: #1d2766;
+  padding: 1px 10px;
+  font-size: 0.875rem;
+  font-weight: 900;
+}

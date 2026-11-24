@@ -5,6 +5,7 @@ import { PORTRAITS } from '../art/sheet'
 import { SECTION_HREFS } from '../route'
 import { errorKey } from './AuthScreen'
 import { PifikSprite } from './PifikSprite'
+import { COSMETICS, frameClass, isCosmetic, type CosmeticKey } from '../cosmetics'
 
 // «Магазин ярмарки»: spend coins on Pifik skins (cosmetics only; Pifik's hints stay free).
 // Prices, balance, ownership and the worn skin are the server's; guests are asked to sign in.
@@ -120,7 +121,7 @@ function useShop(lang: Lang) {
   const isStudent = account.user?.role === 'student'
   const [shop, setShop] = useState<Shop | null>(null)
   const [status, setStatus] = useState<{ ok: boolean; text: string } | null>(null)
-  const [busy, setBusy] = useState<SkinKey | null>(null)
+  const [busy, setBusy] = useState<string | null>(null)
   const inFlight = useRef(false)
 
   useEffect(() => {
@@ -132,7 +133,7 @@ function useShop(lang: Lang) {
     return () => ctrl.abort()
   }, [isStudent, c])
 
-  async function act(key: SkinKey, action: () => Promise<Shop>, done: string) {
+  async function act(key: string, action: () => Promise<Shop>, done: string) {
     // A ref, not state: a double click arrives before React re-renders the disabled button.
     if (inFlight.current) return false
     inFlight.current = true
@@ -273,8 +274,87 @@ export function FairShop({ lang }: { lang: Lang }) {
           })}
         </ul>
       )}
+      {shop && <CosmeticsShelf lang={lang} shop={shop} busy={busy} act={act} />}
       <p className="text-xs font-semibold text-ink/65">{c.free}</p>
     </div>
+  )
+}
+
+const SHELF = {
+  ru: { title: 'Рамки и звания', lead: 'Рамка украшает карточку героя на главной и в профиле, звание видно под именем. Носить можно одну рамку и одно звание вместе со скином.', frames: 'Рамки', titles: 'Звания', preview: 'Аруна', bought: (n: string) => `Готово! «${n}» куплено — можно надеть.`, worn: (n: string) => `Надето: «${n}».`, off: 'Снято.' },
+  kk: { title: 'Жиектер мен атақтар', lead: 'Жиек басты бет пен профильдегі кейіпкер карточкасын безендіреді, атақ есім астында көрінеді. Скинмен бірге бір жиек пен бір атақ тағуға болады.', frames: 'Жиектер', titles: 'Атақтар', preview: 'Аруна', bought: (n: string) => `Дайын! «${n}» сатып алынды — тағуға болады.`, worn: (n: string) => `Тағылды: «${n}».`, off: 'Шешілді.' },
+}
+
+/** Frames and titles: cheap cosmetics that need no new Pifik art. */
+function CosmeticsShelf({ lang, shop, busy, act }: {
+  lang: Lang
+  shop: Shop
+  busy: string | null
+  act: (key: string, action: () => Promise<Shop>, done: string) => Promise<boolean>
+}) {
+  const c = COPY[lang]
+  const s = SHELF[lang]
+  const id = useId()
+  const groups = [
+    { slot: 'frame' as const, label: s.frames, items: shop.cosmetics.filter((i) => i.type === 'frame' && isCosmetic(i.id)) },
+    { slot: 'title' as const, label: s.titles, items: shop.cosmetics.filter((i) => i.type === 'title' && isCosmetic(i.id)) },
+  ]
+  return (
+    <section aria-labelledby={`${id}-title`} className="mt-2 flex flex-col gap-3">
+      <h3 id={`${id}-title`} className="text-xl font-black text-ink">✨ {s.title}</h3>
+      <p className="max-w-prose text-sm font-semibold text-ink/85">{s.lead}</p>
+      {groups.map((group) => (
+        <div key={group.slot} className="flex flex-col gap-2">
+          <h4 className="text-sm font-black tracking-wide text-brand-dark uppercase">{group.label}</h4>
+          <ul className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 lg:grid-cols-4">
+            {group.items.map((item) => {
+              const info = COSMETICS[item.id as CosmeticKey]
+              const name = info.name[lang]
+              const missing = item.price - shop.coins
+              return (
+                <li key={item.id} className={`flex flex-col gap-2 rounded-2xl border-[3px] border-ink p-3 shadow-[0_4px_0_var(--shadow-ink)] ${item.equipped ? 'bg-sun/40' : 'bg-white'}`}>
+                  {group.slot === 'frame' ? (
+                    <div className={`grid aspect-[4/3] place-items-center rounded-xl bg-sky p-3 ${frameClass(item.id)}`}>
+                      <PifikSprite rect={PORTRAITS.pifik} className="aspect-square w-20" />
+                    </div>
+                  ) : (
+                    <div className="grid aspect-[4/3] place-items-center rounded-xl border-2 border-ink/30 bg-cream p-3 text-center">
+                      <p className="text-lg font-black text-ink">{s.preview}</p>
+                      <p className="hero-title mt-1">{info.icon} {name}</p>
+                    </div>
+                  )}
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-black leading-tight text-ink">{info.icon} {name}</p>
+                    {!item.owned && <span className="shrink-0 rounded-lg border-2 border-ink/60 bg-cream px-2 py-0.5 text-sm font-black text-ink">🪙 {item.price}</span>}
+                  </div>
+                  <p className="text-sm font-semibold text-ink/75">{info.about[lang]}</p>
+                  <div className="mt-auto flex flex-col gap-2">
+                    {!item.owned ? (
+                      <>
+                        <button type="button" disabled={busy !== null || missing > 0}
+                          onClick={() => act(item.id, () => accounts.buy(item.id), s.bought(name))}
+                          className={`${BUTTON} bg-sun`}>
+                          {busy === item.id ? c.buying : c.buy(item.price)}
+                        </button>
+                        {missing > 0 && <p className="rounded-lg bg-rose-50 px-2 py-1 text-xs font-bold text-rose-800">{c.short(missing)}</p>}
+                      </>
+                    ) : item.equipped ? (
+                      <button type="button" disabled={busy !== null} onClick={() => act(item.id, () => accounts.equip(null, group.slot), s.off)} className={`${BUTTON} bg-white`}>
+                        {c.takeOff}
+                      </button>
+                    ) : (
+                      <button type="button" disabled={busy !== null} onClick={() => act(item.id, () => accounts.equip(item.backpackItemId), s.worn(name))} className={`${BUTTON} bg-sun`}>
+                        {c.wear}
+                      </button>
+                    )}
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      ))}
+    </section>
   )
 }
 

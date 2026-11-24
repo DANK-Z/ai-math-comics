@@ -5,6 +5,7 @@ import { CURRICULUM_COPY, curriculumFor } from '../curriculum'
 import { OPERATIONS, operationHref, type Operation, type OperationChapter } from '../operations'
 import { comicHref } from '../route'
 import { PifikSprite } from './PifikSprite'
+import { COSMETICS, frameClass, isCosmetic } from '../cosmetics'
 import { PORTRAITS } from '../art/sheet'
 
 // The first tab: one big scene that says what to do now. Pifik greets the student, the next
@@ -70,7 +71,8 @@ function chapterArt(comicId: string | undefined): string {
 
 export function HomeHero({ lang, progress, finalesWon }: { lang: Lang; progress: ReadonlySet<string>; finalesWon: ReadonlySet<string> }) {
   const copy = COPY[lang]
-  const user = useAccount().user
+  const { user, frame, title } = useAccount()
+  const worn = title && isCosmetic(title) ? COSMETICS[title] : null
   const name = user?.role === 'student' ? user.displayName.trim().split(/\s+/)[0] || null : null
   const step = nextStep(progress, finalesWon)
   const operation = step.kind === 'done' ? null : step.operation
@@ -87,8 +89,11 @@ export function HomeHero({ lang, progress, finalesWon }: { lang: Lang; progress:
         <div className="relative grid items-center gap-5 p-5 sm:p-7 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-8 lg:p-9">
           <div className="flex min-w-0 flex-col gap-4">
             <div className="flex items-center gap-3">
-              <PifikSprite rect={PORTRAITS.pifik} eager className="home-hero-pifik w-20 shrink-0 rounded-3xl border-[3px] border-white/80 bg-white/20 sm:w-24" />
-              <p className="text-2xl font-black sm:text-3xl">{copy.hello(name)}</p>
+              <PifikSprite rect={PORTRAITS.pifik} eager className={`home-hero-pifik w-20 shrink-0 rounded-3xl border-[3px] border-white/80 bg-white/20 sm:w-24 ${frameClass(frame)}`} />
+              <div className="min-w-0">
+                <p className="text-2xl font-black sm:text-3xl">{copy.hello(name)}</p>
+                {worn && <p className="hero-title mt-1">{worn.icon} {worn.name[lang]}</p>}
+              </div>
             </div>
             {operation ? (
               <>

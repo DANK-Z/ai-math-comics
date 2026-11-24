@@ -4,13 +4,14 @@ import type { Lang } from '../api'
 import { useAccount } from '../account'
 import { ACCOUNT_COPY } from '../accountCopy'
 import { SECTION_HREFS } from '../route'
+import { COSMETICS, isCosmetic } from '../cosmetics'
 import { CARD, errorKey, FieldError, INPUT, PRIMARY, SECONDARY } from './AuthScreen'
 
 // A student's profile: coins, stars, class and the class-code form.
 
 export function ProfileScreen({ lang }: { lang: Lang }) {
   const c = ACCOUNT_COPY[lang]
-  const { user, joinClass, logOut } = useAccount()
+  const { user, joinClass, logOut, title } = useAccount()
   const id = useId()
   const [code, setCode] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -44,6 +45,7 @@ export function ProfileScreen({ lang }: { lang: Lang }) {
       <section className={CARD} aria-labelledby={`${id}-title`}>
         <h1 id={`${id}-title`} className="text-2xl font-black text-ink sm:text-3xl">{c.profile.title}</h1>
         <p className="mt-1 font-bold text-ink/80">{user.displayName} · <span className="font-mono">{user.login}</span></p>
+        {title && isCosmetic(title) && <p className="hero-title mt-2">{COSMETICS[title].icon} {COSMETICS[title].name[lang]}</p>}
         <dl className="mt-4 grid grid-cols-2 gap-3">
           <div className="rounded-xl border-[3px] border-ink bg-sun/60 p-3">
             <dt className="text-sm font-black text-ink/80">{c.profile.coins}</dt>

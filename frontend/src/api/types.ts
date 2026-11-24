@@ -253,7 +253,11 @@ export interface Shop {
   coins: number
   equippedSkin: SkinKey | null
   items: { id: SkinKey; type: 'skin'; price: number; owned: boolean; equipped: boolean; backpackItemId: number | null }[]
+  /** Frames and titles (worn next to the skin, one of each). */
+  cosmetics: { id: string; type: 'frame' | 'title'; price: number; owned: boolean; equipped: boolean; backpackItemId: number | null }[]
 }
+
+export type WearSlot = 'skin' | 'frame' | 'title'
 
 /** GET /api/me/leaderboard: this week's class table (stars, then coins earned). */
 export interface LeaderRow {
@@ -476,9 +480,9 @@ export interface AccountApi {
   listClasses(): Promise<ClassInfo[]>
   dashboard(classId: number, signal?: AbortSignal): Promise<Dashboard>
   shop(signal?: AbortSignal): Promise<Shop>
-  buy(itemId: SkinKey): Promise<Shop>
-  /** A backpack item id, or null to take the skin off. */
-  equip(backpackItemId: number | null): Promise<Shop>
+  buy(itemId: string): Promise<Shop>
+  /** A backpack item id, or null to take off what is worn in `slot` (the skin by default). */
+  equip(backpackItemId: number | null, slot?: WearSlot): Promise<Shop>
   leaderboard(signal?: AbortSignal): Promise<Leaderboard>
   classLeaderboard(classId: number, signal?: AbortSignal): Promise<Leaderboard>
   startBattle(classId: number, body: { topic: BattleTopic; difficulty: BattleDifficulty; hp: number }): Promise<BattleBoard>

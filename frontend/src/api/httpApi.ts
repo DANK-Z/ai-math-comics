@@ -196,8 +196,8 @@ export function createHttpApi(baseUrl: string): Api & AccountApi & {
     buy(itemId) {
       return request<Shop>('/api/v1/shop/buy', { method: 'POST', body: JSON.stringify({ itemId }) })
     },
-    equip(backpackItemId) {
-      return request<Shop>('/api/v1/backpack/equip', { method: 'POST', body: JSON.stringify({ itemId: backpackItemId }) })
+    equip(backpackItemId, slot = 'skin') {
+      return request<Shop>('/api/v1/backpack/equip', { method: 'POST', body: JSON.stringify({ itemId: backpackItemId, slot }) })
     },
     leaderboard(signal) {
       return request<Leaderboard>('/api/me/leaderboard', { signal })
