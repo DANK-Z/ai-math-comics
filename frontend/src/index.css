@@ -57,12 +57,6 @@ html {
 :root[data-theme='dark'] .site-bg {
   background: linear-gradient(180deg, #0c1230 0%, #111a40 45%, #151c3d 100%);
 }
-/* The logo has navy lettering: keep it on a light plate. */
-:root[data-theme='dark'] .site-logo {
-  background: #fff;
-  border-radius: 14px;
-  padding: 2px 8px;
-}
 /* Yellow stays yellow, so text on it stays dark (plain, selected, pressed and checked states). */
 :root[data-theme='dark'] :is([class~='bg-sun'], [aria-current='page'][class*='aria-[current=page]:bg-sun'], [aria-pressed='true'][class*='aria-pressed:bg-sun'], [aria-selected='true'][class*='aria-selected:bg-sun'], [class*='hover:bg-sun']:hover, [class*='has-checked:bg-sun']:has(:checked)),
 :root[data-theme='dark'] :is([class~='bg-sun'], [aria-current='page'][class*='aria-[current=page]:bg-sun'], [aria-pressed='true'][class*='aria-pressed:bg-sun'], [aria-selected='true'][class*='aria-selected:bg-sun'], [class*='hover:bg-sun']:hover, [class*='has-checked:bg-sun']:has(:checked)) * {

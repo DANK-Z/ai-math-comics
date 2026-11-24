@@ -2,6 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import { API_MODE, type BattleTopic, type ComicJobRequest, type Lang, type Role } from './api'
 import { PRACTICE_TOPICS, PracticeScreen } from './components/PracticeScreen'
 import logoUrl from './assets/logo.webp'
+import logoDarkUrl from './assets/logo-dark.webp'
 import { AccountProvider, useAccount } from './account'
 import { ACCOUNT_COPY } from './accountCopy'
 import { AuthScreen } from './components/AuthScreen'
@@ -53,9 +54,10 @@ function AssignedGuardian({ assignment, remaining, lang }: { assignment: Guardia
 }
 
 function Logo({ tagline }: { tagline: string }) {
+  const dark = useDarkTheme()
   return (
     <div className="flex min-w-0 flex-col items-start gap-1">
-      <img src={logoUrl} alt="AI Math Comics" width={773} height={176} className="site-logo h-10 w-auto max-w-full min-[380px]:h-11 sm:h-16 lg:h-[4.5rem]" />
+      <img src={dark ? logoDarkUrl : logoUrl} alt="AI Math Comics" width={773} height={176} className="site-logo h-10 w-auto max-w-full min-[380px]:h-11 sm:h-16 lg:h-[4.5rem]" />
       <p className="hidden max-w-full rounded-full bg-sun px-3 py-0.5 text-xs leading-tight font-extrabold text-ink sm:block">{tagline}</p>
     </div>
   )
