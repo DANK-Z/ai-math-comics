@@ -26,7 +26,7 @@ export const ROADS_RIVER_ID = 'roads-river'
 export const ROADS_HILL_ID = 'roads-hill'
 
 /** Sheet crops are ~827×462. */
-const ASPECT = 827 / 462
+const ASPECT = 16 / 9
 
 export const ROADS_FLAG: LocalComicDef = {
   id: ROADS_FLAG_ID,
