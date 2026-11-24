@@ -1,6 +1,6 @@
 import { CURRICULUM_COPY, curriculumFor } from '../curriculum'
 import type { Lang } from '../api'
-import fairCover from '../assets/pizza/cover.png'
+import fairCover from '../assets/pizza/cover.webp'
 import lightsCover from '../assets/lights/park-4.webp'
 import marsCover from '../assets/mars/crater-2.webp'
 import museumCover from '../assets/museum/mirror-1.webp'
