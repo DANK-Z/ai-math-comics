@@ -130,6 +130,7 @@ The Guardian final challenge exists (`9dc0af2`): three rounds (fractions, percen
 | Class dashboard: ranking by stars, combo, misses; error heatmap by round and skill; review recommendation | Done |
 | Server-side coins and stars from boss fights; boss and season progress restored after reload / on another device | Done |
 | Backpack shop and Pifik skins (glasses, yellow backpack, racer helmet) | Done |
+| Personalized item stories | Done. Shop skins and earned School Fair collectibles have fictional lore and a separate, verified achievement note. |
 | Power-ups for boss fights | Done for the School Fair Guardian. Students get one worked example and one solution plan per run. |
 | Story cache: Redis for Express, pgvector + local embeddings for «Моя история» (fresh math every time) | Done |
 | Shareable chapter assignments | Done. A teacher can choose a chapter and copy its direct student link from the class dashboard. |
@@ -154,6 +155,7 @@ or student account. See the [classroom walkthrough](../frontend/README.md#classr
 | --- | --- | --- |
 | New comics and exercise templates from the upcoming Grade 5–6 teaching materials | In progress | Generation supports grades 5–6, the `fractions` and `equations` topics (`a964b80`), and three difficulties. Bundled chapters also cover percentages, scale, proportions, and perimeter. Server templates for GCD/LCM, decimal fractions and problems on parts power class battles and review drills; comics for them still need artwork. |
 | Russian and Kazakh support | Done, keep for all new content | `LANGS = ['ru', 'kk']` |
+| Voice answer entry | Available with a local multilingual checkpoint | RU/KK recognition fills the boss answer field. Students review and submit through the existing checker. |
 
 ### 12. Pilot hosting — In progress
 

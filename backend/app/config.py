@@ -22,6 +22,7 @@ class Settings:
     provider: Literal["openai", "gemini"] = "openai"
     art_mode: Literal["live", "prepared"] = "live"
     depth_model: Path | None = None
+    voice_model: Path | None = None
     gemini_api_key: str = field(default="", repr=False)
     gemini_text_model: str = "gemini-3.8-flash"
     gemini_image_model: str = "gemini-3.1-flash-image"
@@ -66,6 +67,7 @@ class Settings:
         load_dotenv(BACKEND_DIR / ".env", override=False)
         data_dir = Path(os.getenv("COMIC_DATA_DIR", str(BACKEND_DIR / "data"))).expanduser()
         depth_model = os.getenv("COMIC_DEPTH_MODEL", "").strip()
+        voice_model = os.getenv("COMIC_VOICE_MODEL", "").strip()
         if not data_dir.is_absolute():
             data_dir = BACKEND_DIR / data_dir
         return cls(
@@ -80,6 +82,9 @@ class Settings:
             art_mode=os.getenv("COMIC_ART_MODE", "live").strip().lower(),
             depth_model=(BACKEND_DIR / Path(depth_model).expanduser()).resolve()
             if depth_model
+            else None,
+            voice_model=(BACKEND_DIR / Path(voice_model).expanduser()).resolve()
+            if voice_model
             else None,
             gemini_api_key=os.getenv("GEMINI_API_KEY", ""),
             gemini_text_model=os.getenv("GEMINI_TEXT_MODEL", "gemini-3.8-flash"),

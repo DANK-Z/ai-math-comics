@@ -348,3 +348,17 @@ The SQLite queue stores author ownership alongside jobs. The accounts database
 (PostgreSQL in a deployed setup) stores the snapshots and hint events.
 Run `alembic upgrade head` before starting a migration-enforced API.
 
+## Voice answers and item lore
+
+| Endpoint | Contract |
+| --- | --- |
+| `GET /api/voice` | `{enabled}` indicates whether a local checkpoint is configured. |
+| `POST /api/voice/{lang}?kind=equation` | `lang` is `ru` or `kk`. `kind` is `equation` or `fraction`. The raw body is 16-bit mono PCM WAV at 16 kHz, at most eight seconds. Returns `{answer}` for review before checking. |
+| `POST /api/v1/items/{itemKey}/lore?lang=ru` | Student-only. Accepts shop skin IDs and `collectible-<id>` for earned School Fair collectibles. Returns `{story, source, student, owned, acquiredAt, victoryAt, perfect, combo}`. Dates can be null and `source` is `generated` or `prepared`. |
+
+The voice API rejects unsupported content (415), oversize clips (413), malformed or unrecognized
+audio (422), a busy recognizer (429) and unavailable or timed-out recognition (503 or 504).
+It does not record an exercise attempt. Item fiction is generated on request and cached per
+student and language. The achievement refers to the latest verified boss victory and does not
+imply the item was won in that fight.
+

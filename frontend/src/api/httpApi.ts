@@ -1,6 +1,7 @@
 import { authToken } from './authToken'
 import { ApiError } from './errors'
 import type { BattleAnswerResult, BattleBoard, Leaderboard, PracticeReport, PracticeResult, PracticeTask, StudentBattle, StudentCredentials, WeakSpot } from './types'
+import type { ItemLore, VoiceAnswerKind } from './types'
 import type { AssignmentReport, ClassAssignment, ComicJobRequest, Lang, TeacherDraft, TeacherDraftJob, TeacherPublication, TeacherTask } from './types'
 import type { AccountApi, Api, AuthResponse, BossState, CheckResponse, ClassInfo, Comic, ComicJob, ComicJobCreated, ContinuationJobRequest, Dashboard, HintResponse, Me, Shop } from './types'
 
@@ -34,12 +35,15 @@ export function createHttpApi(baseUrl: string): Api & AccountApi & {
   publishDraft(comicId: string, body: TeacherPublication): Promise<ClassAssignment>
   assignments(lang: Lang, signal?: AbortSignal): Promise<ClassAssignment[]>
   assignmentReports(classId: number, lang: Lang, signal?: AbortSignal): Promise<AssignmentReport[]>
+  voiceStatus(signal?: AbortSignal): Promise<{ enabled: boolean }>
+  recognizeVoice(lang: Lang, kind: VoiceAnswerKind, audio: Blob, signal?: AbortSignal): Promise<{ answer: string }>
+  itemLore(key: string, lang: Lang, signal?: AbortSignal): Promise<ItemLore>
 } {
   const base = baseUrl.replace(/\/+$/, '')
 
   async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     const headers: Record<string, string> = { Accept: 'application/json' }
-    if (init.body) headers['Content-Type'] = 'application/json'
+    if (init.body) headers['Content-Type'] = init.body instanceof Blob ? init.body.type : 'application/json'
     // Signed-in users send their JWT; the server treats a stale token on checks as a guest.
     const token = authToken.get()
     if (token) headers.Authorization = `Bearer ${token}`
@@ -55,6 +59,17 @@ export function createHttpApi(baseUrl: string): Api & AccountApi & {
   }
 
   return {
+    voiceStatus(signal) {
+      return request('/api/voice', { signal })
+    },
+    recognizeVoice(lang, kind, audio, signal) {
+      return request(`/api/voice/${lang}?kind=${kind}`, { method: 'POST', body: audio, signal })
+    },
+    itemLore(key, lang, signal) {
+      return request(`/api/v1/items/${encodeURIComponent(key)}/lore?lang=${lang}`, {
+        method: 'POST', signal,
+      })
+    },
     getComic(comicId, lang, signal) {
       return request<Comic>(`/api/comics/${encodeURIComponent(comicId)}?lang=${lang}`, { signal })
     },

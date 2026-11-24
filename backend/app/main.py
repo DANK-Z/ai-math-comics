@@ -6,6 +6,7 @@ import secrets
 from contextlib import asynccontextmanager
 from fractions import Fraction
 from typing import Annotated, Literal
+from weakref import WeakValueDictionary
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -28,6 +29,7 @@ from .classroom import router as classroom_router
 from .config import Settings
 from .content import FEEDBACK, HINTS, get_comic
 from .db import Database, Role, User, default_database_url
+from .item_lore import router as lore_router
 from .library_episode import EXERCISE_PREFIX, check_library_answer
 from .practice import router as practice_router
 from .prepared_art import ART_DIR, PREPARED_PANELS
@@ -48,6 +50,7 @@ from .shop import router as shop_router
 from .side_episode import EXERCISE_PREFIX as SIDE_EXERCISE_PREFIX
 from .side_episode import check_side_answer
 from .storage import Store
+from .voice import router as voice_router
 
 # Restrict input to an integer numerator and denominator, allowing spaces and signs.
 # No decimal conversion or floating-point comparison is involved.
@@ -106,6 +109,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app = FastAPI(title="AI Math Comics", version="2.0.0", lifespan=lifespan)
     app.state.settings = settings
+    app.state.lore_locks = WeakValueDictionary()
     app.state.store = Store(settings.data_dir)
     app.state.database = Database(
         settings.database_url or default_database_url(settings.data_dir),
@@ -128,6 +132,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(classroom_router)
     app.include_router(practice_router)
     app.include_router(roster_router)
+    app.include_router(lore_router)
+    app.include_router(voice_router)
 
     @app.post("/api/comic-jobs", status_code=202, response_model=JobAccepted)
     def create_job(body: JobRequest, request: Request, user: Viewer) -> JobAccepted:

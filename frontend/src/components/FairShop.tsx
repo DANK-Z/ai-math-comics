@@ -234,6 +234,7 @@ export function FairShop({ lang }: { lang: Lang }) {
                   {!item.owned && <span className="shrink-0 rounded-lg border-2 border-ink/60 bg-cream px-2 py-0.5 text-sm font-black text-ink">🪙 {item.price}</span>}
                 </div>
                 <p className="text-sm font-semibold text-ink/75">{info.about}</p>
+                <ItemLore itemKey={item.id} name={info.name} lang={lang} />
                 <div className="mt-auto flex flex-col gap-2">
                   <button type="button" aria-pressed={preview === item.id} onClick={() => setPreview(item.id)}
                     className={`${BUTTON} text-sm ${preview === item.id ? 'bg-sky' : 'bg-white'}`}>
@@ -299,6 +300,7 @@ export function PifikWardrobe({ lang, onOpenShop }: { lang: Lang; onOpenShop: ()
             <li key={item.id} className={`flex flex-col gap-2 rounded-2xl border-[3px] border-ink p-2 shadow-[0_3px_0_var(--shadow-ink)] ${item.equipped ? 'bg-sun/40' : 'bg-white'}`}>
               <PifikSprite rect={PORTRAITS.pifik} skin={item.id} className="aspect-square w-full rounded-xl border-2 border-ink/40 bg-sky" />
               <p className="text-sm leading-tight font-black text-ink">{c.items[item.id].name}</p>
+              <ItemLore itemKey={item.id} name={c.items[item.id].name} lang={lang} />
               {item.equipped ? (
                 <button type="button" disabled={busy !== null} onClick={() => act(item.id, () => accounts.equip(null), c.takenOff)} className={`${BUTTON} mt-auto bg-white text-sm`}>
                   {c.takeOff}
@@ -315,3 +317,4 @@ export function PifikWardrobe({ lang, onOpenShop }: { lang: Lang; onOpenShop: ()
     </div>
   )
 }
+import { ItemLore } from './ItemLore'

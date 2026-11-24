@@ -50,7 +50,7 @@ export function BossAvatar({ kind, shielded, hitKey, big = false }: { kind: Boss
   )
 }
 
-function RoundForm({ round, lang, onHit, onMiss }: { round: BossRound; lang: Lang; onHit: (response: CheckResponse) => void; onMiss: () => void }) {
+function RoundForm({ round, lang, active, onHit, onMiss }: { round: BossRound; lang: Lang; active: boolean; onHit: (response: CheckResponse) => void; onMiss: () => void }) {
   const t = STRINGS[lang]
   const copy = BOSS_COPY[lang]
   const [answer, setAnswer] = useState('')
@@ -88,7 +88,7 @@ function RoundForm({ round, lang, onHit, onMiss }: { round: BossRound; lang: Lan
         <RichText text={round.prompt} />
       </p>
       <label htmlFor={inputId} className="mt-1 text-sm font-black text-ink/80">{copy.answerLabel}</label>
-      <div className="flex flex-col gap-2 min-[360px]:flex-row">
+      <div className="flex flex-wrap gap-2">
         <input
           ref={input}
           id={inputId}
@@ -102,10 +102,17 @@ function RoundForm({ round, lang, onHit, onMiss }: { round: BossRound; lang: Lan
           aria-describedby={wrong ? `${inputId}-result` : undefined}
           className="min-h-12 w-full min-w-0 flex-1 rounded-xl border-[3px] border-ink bg-white px-3 font-mono text-2xl font-bold tabular-nums outline-none placeholder:font-sans placeholder:text-base placeholder:font-semibold focus-visible:ring-4 focus-visible:ring-sun disabled:bg-stone-100 aria-invalid:border-rose-600 aria-invalid:bg-rose-50 aria-invalid:focus-visible:ring-rose-300"
         />
+        {active && (
+          <VoiceAnswer key={lang} lang={lang} kind={round.answerFormat === 'whole-number' ? 'equation' : 'fraction'}
+            inputId={inputId} disabled={solved || checking} onAnswer={(value) => {
+              setAnswer(value)
+              input.current?.focus()
+            }} />
+        )}
         <button
           type="submit"
           disabled={!answer.trim() || checking || solved}
-          className="min-h-12 shrink-0 rounded-xl border-[3px] border-ink bg-sun px-5 text-lg font-black text-ink shadow-[0_4px_0_var(--shadow-ink)] transition active:translate-y-[3px] active:shadow-[0_1px_0_var(--shadow-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+          className="min-h-12 w-full shrink-0 rounded-xl border-[3px] border-ink bg-sun px-5 text-lg font-black text-ink shadow-[0_4px_0_var(--shadow-ink)] transition active:translate-y-[3px] active:shadow-[0_1px_0_var(--shadow-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none min-[390px]:w-auto"
         >
           {checking ? t.checking : t.check}
         </button>
@@ -301,7 +308,7 @@ export function BossFight({ boss, lang, active, cleared, onRoundCleared, misses,
               <EmotionAvatar speaker="Пифик" emotion={missedRound === round.exerciseId ? 'confused' : 'neutral'} className="w-10 bg-white" />
               <p className="text-sm font-black text-brand-dark">{copy.round(cleared + 1, total)}</p>
             </div>
-            <RoundForm key={round.exerciseId} round={round} lang={lang} onHit={onHit} onMiss={miss} />
+            <RoundForm key={round.exerciseId} round={round} lang={lang} active={active} onHit={onHit} onMiss={miss} />
           </>
         )}
       </div>
@@ -324,3 +331,4 @@ export function BossFight({ boss, lang, active, cleared, onRoundCleared, misses,
     </section>
   )
 }
+import { VoiceAnswer } from './VoiceAnswer'

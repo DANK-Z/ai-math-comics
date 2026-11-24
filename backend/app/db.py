@@ -101,6 +101,17 @@ class BackpackItem(Base):
     acquired_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
+class ItemLore(Base):
+    __tablename__ = "item_lore"
+
+    student_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    item_key: Mapped[str] = mapped_column(String(40), primary_key=True)
+    locale: Mapped[str] = mapped_column(String(2), primary_key=True)
+    story: Mapped[str] = mapped_column(String(400))
+
+
 class AnalyticsLog(Base):
     """One checked answer of a signed-in student in a boss round (teacher reports)."""
 

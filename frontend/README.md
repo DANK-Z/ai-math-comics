@@ -124,6 +124,10 @@ outside season progress.
   comic, re-checks the last answer and re-fetches revealed hints so all server text matches the
   language. UI strings live in `src/i18n.ts`.
 - **Answer feedback** — `correct` / `incorrect` / `invalid` states with the server's message.
+- **Voice answers** — when the live API has a local voice model, panel 4 offers a microphone.
+  The recognized answer is editable and uses the same check button as manual input.
+- **Item stories** — signed-in students can inspect a shop skin, wardrobe item, or earned
+  School Fair collectible. Stories open inline and local achievement details appear separately.
 - **Pifik's hints** — step 1 then step 2, driven by `hasMore`.
 - **Dialogue motion** — generated dialogue can include a validated emotion. The bubble
   changes colour and shape, and a named character can show an expression beside it.

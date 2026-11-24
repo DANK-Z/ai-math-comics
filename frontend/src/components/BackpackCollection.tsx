@@ -8,6 +8,7 @@ import { GUIDE_COPY } from '../guideCopy'
 import { OPERATION_FINDS, readFindsLog, TROPHIES, type FindId } from '../rewards'
 import { comicHref } from '../route'
 import { FairShop, PifikWardrobe, skinName } from './FairShop'
+import { ItemLore } from './ItemLore'
 import { PifikSprite } from './PifikSprite'
 import { SCHOOL_FAIR_STOPS, type SchoolFairCollectible } from '../schoolFair'
 
@@ -174,6 +175,7 @@ export function BackpackCollection({ t, lang, completedChapters, bonusStickers, 
                   <div className="min-w-0">
                     <p className="text-sm leading-tight font-black">{name}</p>
                     <p className="mt-0.5 text-sm leading-snug font-semibold text-ink/80">{story}</p>
+                    <div className="mt-2"><ItemLore itemKey={`collectible-${collectible}`} name={name} lang={lang} /></div>
                   </div>
                 </li>
               )

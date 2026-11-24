@@ -3,6 +3,17 @@ export type Lang = 'ru' | 'kk'
 export const LANGS: readonly Lang[] = ['ru', 'kk']
 
 export type Emotion = 'neutral' | 'happy' | 'confused' | 'scared' | 'surprised' | 'angry'
+export type VoiceAnswerKind = 'equation' | 'fraction'
+export interface ItemLore {
+  story: string
+  source: 'generated' | 'prepared'
+  student: string
+  owned: boolean
+  acquiredAt: string | null
+  victoryAt: string | null
+  perfect: boolean
+  combo: number
+}
 export type PanelLayers = { backgroundUrl: string; foregroundUrl: string }
 
 export interface Panel {

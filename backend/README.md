@@ -146,6 +146,33 @@ Equation exercises use the exact value parser described below.
 Unequal fractions return `incorrect`; malformed input and zero denominators return `invalid`.
 These outcomes use HTTP 200 with localized feedback; numeric JSON answers return HTTP 422.
 
+### Optional local voice answers
+
+Install the optional dependencies and download a multilingual
+[Faster Whisper model](https://huggingface.co/Systran/faster-whisper-tiny) before starting the API.
+
+```powershell
+.venv\Scripts\python -m pip install -r requirements-voice.txt
+.venv\Scripts\python -c 'from huggingface_hub import snapshot_download; snapshot_download("Systran/faster-whisper-tiny", local_dir="data/models/whisper-tiny")'
+```
+
+Set `COMIC_VOICE_MODEL=data/models/whisper-tiny` for FastAPI and restart it. The directory can
+also contain a larger multilingual Faster Whisper checkpoint. The worker does not use
+this setting. The browser needs localhost or HTTPS and microphone permission.
+
+The API accepts up to eight seconds of mono 16 kHz PCM WAV and processes it locally.
+The clip and raw transcript stay in memory only. The normalized answer fills the input
+field. The existing checker still runs only when the student submits.
+
+### Item stories
+
+Signed-in students can open a story for a shop skin or an earned School Fair collectible.
+The configured text provider receives the fictional item setting, language and a broad
+narrative theme. The API reads the student's name, acquisition date and latest boss
+victory from local records and presents those facts separately. Cached generated fiction
+is scoped to the student, item and locale. A prepared legend is available when the
+provider fails or has no key. Migration `0007` creates the `item_lore` cache.
+
 ### My Story jobs
 
 `POST /api/comic-jobs` accepts an optional `story` object (heroes, up to two student
