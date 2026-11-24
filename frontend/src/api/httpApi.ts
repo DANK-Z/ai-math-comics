@@ -2,6 +2,7 @@ import { authToken } from './authToken'
 import { ApiError } from './errors'
 import type { BattleAnswerResult, BattleBoard, Leaderboard, PracticeReport, PracticeResult, PracticeTask, StudentBattle, StudentCredentials, WeakSpot } from './types'
 import type { ItemLore, VoiceAnswerKind } from './types'
+import type { HomeworkItem, LessonBoard, MyHomework, StudentLesson } from './types'
 import type { AssignmentReport, ClassAssignment, ComicJobRequest, Lang, TeacherDraft, TeacherDraftJob, TeacherPublication, TeacherTask } from './types'
 import type { AccountApi, Api, AuthResponse, BossState, CheckResponse, ClassInfo, Comic, ComicJob, ComicJobCreated, ContinuationJobRequest, Dashboard, HintResponse, Me, Shop } from './types'
 
@@ -55,6 +56,7 @@ export function createHttpApi(baseUrl: string): Api & AccountApi & {
       throw new ApiError(0, 'Network error', { detail: e instanceof Error ? e.message : null })
     }
     if (!res.ok) throw await readError(res)
+    if (res.status === 204) return undefined as T
     return (await res.json()) as T
   }
 
@@ -201,6 +203,33 @@ export function createHttpApi(baseUrl: string): Api & AccountApi & {
     },
     practiceReport(classId, signal) {
       return request<PracticeReport>(`/api/teacher/classes/${classId}/practice`, { signal })
+    },
+    startLesson(classId, body) {
+      return request<LessonBoard>(`/api/teacher/classes/${classId}/lessons`, { method: 'POST', body: JSON.stringify(body) })
+    },
+    lessonBoard(lessonId, signal) {
+      return request<LessonBoard>(`/api/teacher/lessons/${encodeURIComponent(lessonId)}`, { signal })
+    },
+    updateLesson(lessonId, body) {
+      return request<LessonBoard>(`/api/teacher/lessons/${encodeURIComponent(lessonId)}`, { method: 'POST', body: JSON.stringify(body) })
+    },
+    myLesson(signal) {
+      return request<StudentLesson | null>('/api/me/lesson', { signal })
+    },
+    answerLesson(lessonId, answer) {
+      return request<StudentLesson>(`/api/me/lesson/${encodeURIComponent(lessonId)}/answer`, { method: 'POST', body: JSON.stringify({ answer }) })
+    },
+    setHomework(classId, body) {
+      return request<HomeworkItem>(`/api/teacher/classes/${classId}/homework`, { method: 'POST', body: JSON.stringify(body) })
+    },
+    classHomework(classId, signal) {
+      return request<HomeworkItem[]>(`/api/teacher/classes/${classId}/homework`, { signal })
+    },
+    async deleteHomework(homeworkId) {
+      await request<unknown>(`/api/teacher/homework/${encodeURIComponent(homeworkId)}`, { method: 'DELETE' })
+    },
+    myHomework(signal) {
+      return request<MyHomework[]>('/api/me/homework', { signal })
     },
     weakSpot(signal) {
       return request<WeakSpot | null>('/api/me/practice/weak', { signal })

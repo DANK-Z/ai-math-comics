@@ -2,7 +2,8 @@ import { authToken } from './authToken'
 import { PROGRESS_REWARDS } from '../rewards'
 import { ApiError } from './errors'
 import type { AccountApi, ClassInfo, Dashboard, Grade, Me, PracticeReport, Shop, SkinKey } from './types'
-import { mockPracticeAnswer, mockPracticeTask } from './mockClassroom'
+import { mockPracticeAnswer, mockPracticeTask, mockPracticeTopic } from './mockClassroom'
+import { currentLesson, homeworkOf, lessonBoardOf, myHomeworkOf, studentLessonOf, wholeAnswer, type MockHomework, type MockLesson, type PracticeDone } from './mockLessons'
 import { BATTLE_HP, boardOf, checkMockAnswer, demoLeaderboard, latestBattle, MOCK_BATTLE_COPY, settle, shortName, studentView, type MockBattle } from './mockClassroom'
 
 // In-browser stand-in for the accounts API (demo mode, no backend): accounts and classes live
@@ -29,6 +30,9 @@ interface MockState {
   users: MockUser[]
   classes: (ClassInfo & { teacherId: number })[]
   battles?: MockBattle[]
+  lessons?: MockLesson[]
+  homework?: MockHomework[]
+  practiceDone?: PracticeDone[]
 }
 
 const KEY = 'amc.mock.accounts'
@@ -433,9 +437,16 @@ export const mockAccounts: AccountApi = {
   },
   answerPractice(body) {
     return later(() => {
-      student(load())
+      const state = load()
+      const user = student(state)
+      const topic = mockPracticeTopic(body.taskId)
       const result = mockPracticeAnswer(body.taskId, body.answer, body.lang)
       if (!result) throw fail(404, 'task_not_found')
+      // A finished drill counts for homework on that topic.
+      if (topic && result.status === 'correct' && !result.next) {
+        ;(state.practiceDone ??= []).push({ userId: user.id, topic, at: Date.now() })
+        save(state)
+      }
       return result
     })
   },
@@ -493,7 +504,110 @@ export const mockAccounts: AccountApi = {
       return { topic: 'equations' as const, skill: 'mul_add', mistakes: 3 }
     })
   },
+  startLesson(classId, body) {
+    return later(() => {
+      const state = load()
+      const schoolClass = ownClass(state, classId)
+      const lessons = (state.lessons ??= [])
+      for (const l of lessons) if (l.classId === classId) l.phase = 'closed'
+      const lesson: MockLesson = { id: `lesson-${Date.now()}`, classId, comicId: body.comicId, answer: body.answer, panel: 0, phase: 'reading', createdAt: Date.now(), answers: {} }
+      lessons.push(lesson)
+      save(state)
+      return lessonBoardOf(schoolClass, lesson, classSize(state, classId))
+    })
+  },
+  lessonBoard(lessonId) {
+    return later(() => {
+      const state = load()
+      const lesson = state.lessons?.find((l) => l.id === lessonId)
+      if (!lesson) throw fail(404, 'lesson_not_found')
+      return lessonBoardOf(ownClass(state, lesson.classId), lesson, classSize(state, lesson.classId))
+    })
+  },
+  updateLesson(lessonId, body) {
+    return later(() => {
+      const state = load()
+      const lesson = state.lessons?.find((l) => l.id === lessonId)
+      if (!lesson) throw fail(404, 'lesson_not_found')
+      const schoolClass = ownClass(state, lesson.classId)
+      if (body.panel !== undefined) lesson.panel = body.panel
+      if (body.phase) {
+        if (body.phase === 'answering' && lesson.phase !== 'answering') lesson.answeringAt = Date.now()
+        // Demo classmates stop answering when answering ends.
+        if (body.phase !== 'answering' && lesson.answeringAt && lesson.phase === 'answering') {
+          const elapsed = Date.now() - lesson.answeringAt
+          lesson.answeringAt = Date.now() - Math.min(elapsed, 6 * 1800)
+        }
+        lesson.phase = body.phase
+      }
+      save(state)
+      return lessonBoardOf(schoolClass, lesson, classSize(state, lesson.classId))
+    })
+  },
+  myLesson() {
+    return later(() => {
+      const state = load()
+      const user = student(state)
+      if (!state.classes.some((c) => c.id === user.classId)) throw fail(404, 'no_class')
+      const lesson = currentLesson(state.lessons ?? [], user.classId!)
+      return lesson ? studentLessonOf(lesson, user.id) : null
+    })
+  },
+  answerLesson(lessonId, answer) {
+    return later(() => {
+      const state = load()
+      const user = student(state)
+      const lesson = state.lessons?.find((l) => l.id === lessonId && l.classId === user.classId)
+      if (!lesson) throw fail(404, 'lesson_not_found')
+      if (lesson.phase !== 'answering') throw fail(409, 'not_answering')
+      const value = wholeAnswer(answer)
+      if (value === null) throw fail(422, 'invalid_answer')
+      lesson.answers[user.id] = { text: answer.trim(), correct: value === lesson.answer }
+      save(state)
+      return studentLessonOf(lesson, user.id)
+    })
+  },
+  setHomework(classId, body) {
+    return later(() => {
+      const state = load()
+      ownClass(state, classId)
+      const item: MockHomework = { id: `hw-${Date.now()}`, classId, kind: body.kind, target: body.target, dueDate: body.dueDate, createdAt: Date.now() }
+      ;(state.homework ??= []).push(item)
+      save(state)
+      return homeworkOf(item, state.users.filter((u) => u.role === 'student'), state.practiceDone ?? [])
+    })
+  },
+  classHomework(classId) {
+    return later(() => {
+      const state = load()
+      ownClass(state, classId)
+      const pupils = state.users.filter((u) => u.role === 'student')
+      return (state.homework ?? []).filter((h) => h.classId === classId).reverse().map((h) => homeworkOf(h, pupils, state.practiceDone ?? []))
+    })
+  },
+  deleteHomework(homeworkId) {
+    return later(() => {
+      const state = load()
+      const item = state.homework?.find((h) => h.id === homeworkId)
+      if (!item) throw fail(404, 'homework_not_found')
+      ownClass(state, item.classId)
+      state.homework = state.homework!.filter((h) => h.id !== homeworkId)
+      save(state)
+    })
+  },
+  myHomework() {
+    return later(() => {
+      const state = load()
+      const user = student(state)
+      return (state.homework ?? [])
+        .filter((h) => h.classId === user.classId)
+        .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
+        .map((h) => myHomeworkOf(h, user, state.practiceDone ?? []))
+    })
+  },
 }
+
+const classSize = (state: MockState, classId: number) => state.users.filter((u) => u.role === 'student' && u.classId === classId).length
 
 const TRANSLIT: Record<string, string> = {
   а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ё: 'e', ж: 'zh', з: 'z', и: 'i', й: 'i', к: 'k', л: 'l', м: 'm', н: 'n', о: 'o',

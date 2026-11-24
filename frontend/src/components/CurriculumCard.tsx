@@ -5,7 +5,7 @@ import { comicHref } from '../route'
 
 const PIZZA_TITLE = { ru: 'Пицца для четырёх друзей', kk: 'Төрт досқа арналған пицца' }
 
-function chapterTitle(comicId: string, lang: Lang) {
+export function chapterTitle(comicId: string, lang: Lang) {
   return LOCAL_COMICS.find((d) => d.id === comicId)?.text[lang].title ?? (comicId === 'pizza-fractions' ? PIZZA_TITLE[lang] : comicId)
 }
 

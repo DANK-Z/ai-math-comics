@@ -246,6 +246,9 @@ export function mockPracticeTask(topic: BattleTopic, number: number, lang: Lang)
   return { id, topic, prompt: problem.prompt[lang], answerFormat: answerFormatOf(topic), number, total: PRACTICE_LENGTH }
 }
 
+/** The topic of a demo drill task (before it is answered). */
+export const mockPracticeTopic = (taskId: string) => practiceTasks.get(taskId)?.topic
+
 export function mockPracticeAnswer(taskId: string, answer: string, lang: Lang) {
   const task = practiceTasks.get(taskId)
   if (!task) return null

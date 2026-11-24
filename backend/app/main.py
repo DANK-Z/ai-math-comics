@@ -30,6 +30,7 @@ from .config import Settings
 from .content import FEEDBACK, HINTS, get_comic
 from .db import Database, Role, User, default_database_url
 from .item_lore import router as lore_router
+from .lessons import router as lessons_router
 from .library_episode import EXERCISE_PREFIX, check_library_answer
 from .practice import router as practice_router
 from .prepared_art import ART_DIR, PREPARED_PANELS
@@ -132,6 +133,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(classroom_router)
     app.include_router(practice_router)
     app.include_router(roster_router)
+    app.include_router(lessons_router)
     app.include_router(lore_router)
     app.include_router(voice_router)
 

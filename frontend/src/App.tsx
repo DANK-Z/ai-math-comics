@@ -1,4 +1,5 @@
 import { BattleBoardScreen, BattleScreen } from './components/ClassBattle'
+import { LessonBoardScreen, StudentLessonScreen } from './components/LessonScreens'
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { API_MODE, type BattleTopic, type ComicJobRequest, type Lang } from './api'
 import { PRACTICE_TOPICS, PracticeScreen } from './components/PracticeScreen'
@@ -81,10 +82,10 @@ function AccountChip({ lang }: { lang: Lang }) {
 
 /** Teachers see only their dashboard; students and guests only the game. */
 function screenFor(route: Route, role: 'student' | 'teacher' | null): Route | null {
-  const teacherRoute = route.name === 'teacher' || route.name === 'teacherClass' || route.name === 'teacherBattle'
+  const teacherRoute = route.name === 'teacher' || route.name === 'teacherClass' || route.name === 'teacherBattle' || route.name === 'teacherLesson'
   if (role === 'teacher') return teacherRoute ? null : { name: 'teacher' }
   if (role === 'student') return teacherRoute || route.name === 'login' ? { name: 'map' } : null
-  return teacherRoute || route.name === 'profile' || route.name === 'battle' ? { name: 'login' } : null
+  return teacherRoute || route.name === 'profile' || route.name === 'battle' || route.name === 'lesson' ? { name: 'login' } : null
 }
 
 const THEME_LABEL = { ru: { dark: 'Включить светлую тему', light: 'Включить ночную тему' }, kk: { dark: 'Жарық тақырыпты қосу', light: 'Түнгі тақырыпты қосу' } }
@@ -150,7 +151,7 @@ function AppShell() {
     const current = parseRoute(window.location.hash)
     const target = screenFor(current, role)
     // A guest who scanned the battle QR (or opened a drill) comes back there after signing in.
-    if (target?.name === 'login' && (current.name === 'battle' || current.name === 'practiceTopic' || current.name === 'practice')) {
+    if (target?.name === 'login' && (current.name === 'battle' || current.name === 'lesson' || current.name === 'practiceTopic' || current.name === 'practice')) {
       rememberAfterLogin(window.location.hash)
     }
     // A student who just signed in goes back where they were heading (the battle QR, a drill).
@@ -215,7 +216,7 @@ function AppShell() {
   // A saved generated comic belongs to My Comics; everything else to the catalog.
   const readerSection = route.name === 'comic' && myComics.some((c) => c.comicId === route.comicId) ? 'myComics' as const : 'comics' as const
   const readerNav = route.name === 'comic' && operationChapter(route.comicId) ? 'operations' as const : readerSection === 'comics' ? 'map' as const : readerSection
-  const activeSection = route.name === 'comic' ? readerNav : route.name === 'operation' || route.name === 'operationFinale' ? 'operations' : route.name === 'teacherClass' || route.name === 'teacherBattle' ? 'teacher' : route.name === 'battle' || route.name === 'practice' || route.name === 'practiceTopic' ? 'map' : route.name === 'motionLeague' || route.name === 'roadGuardian' ? 'operations' : route.name === 'guardianAssignment' || route.name === 'guardian' || route.name === 'comics' ? 'map' : route.name
+  const activeSection = route.name === 'comic' ? readerNav : route.name === 'operation' || route.name === 'operationFinale' ? 'operations' : route.name === 'teacherClass' || route.name === 'teacherBattle' || route.name === 'teacherLesson' ? 'teacher' : route.name === 'lesson' || route.name === 'battle' || route.name === 'practice' || route.name === 'practiceTopic' ? 'map' : route.name === 'motionLeague' || route.name === 'roadGuardian' ? 'operations' : route.name === 'guardianAssignment' || route.name === 'guardian' || route.name === 'comics' ? 'map' : route.name
   const navigation = { t, active: activeSection, completed: completedChapters.size, remaining, myComics: myComics.length, guardianWon: guardian.run.won, operationsDone: operations.completed.size, lang }
 
   const openGenerated = useCallback(
@@ -250,6 +251,7 @@ function AppShell() {
           {route.name === 'teacher' && <TeacherHome lang={lang} />}
           {route.name === 'teacherClass' && <ClassDashboard key={route.classId} lang={lang} classId={route.classId} />}
           {route.name === 'teacherBattle' && <BattleBoardScreen key={route.battleId} lang={lang} battleId={route.battleId} />}
+          {route.name === 'teacherLesson' && <LessonBoardScreen key={route.lessonId} lang={lang} lessonId={route.lessonId} />}
         </Suspense>
         </main>
       ) : (
@@ -264,6 +266,7 @@ function AppShell() {
           {route.name === 'login' && <AuthScreen lang={lang} />}
           {route.name === 'profile' && role === 'student' && <ProfileScreen lang={lang} />}
           {route.name === 'battle' && role === 'student' && <BattleScreen lang={lang} />}
+          {route.name === 'lesson' && role === 'student' && <StudentLessonScreen lang={lang} />}
           {route.name === 'practice' && <PracticeScreen lang={lang} topic={null} skill={null} />}
           {route.name === 'practiceTopic' && (
             <PracticeScreen lang={lang} topic={PRACTICE_TOPICS.includes(route.topic as BattleTopic) ? route.topic as BattleTopic : null} skill={route.skill} />

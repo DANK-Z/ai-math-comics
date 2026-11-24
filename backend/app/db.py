@@ -211,6 +211,50 @@ class PracticeTask(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
+class ClassLesson(Base):
+    """A comic read together on the board; every student answers its exercise from a phone."""
+
+    __tablename__ = "class_lessons"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    class_id: Mapped[int] = mapped_column(ForeignKey("classes.id", ondelete="CASCADE"), index=True)
+    comic_id: Mapped[str] = mapped_column(String(64))
+    answer: Mapped[int] = mapped_column(Integer)  # the chapter's whole-number answer
+    panel: Mapped[int] = mapped_column(Integer, default=0)
+    # reading | answering | reveal | closed
+    phase: Mapped[str] = mapped_column(String(12), default="reading")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class LessonAnswer(Base):
+    """A student's answer in a class lesson (one per student; it can change until the reveal)."""
+
+    __tablename__ = "lesson_answers"
+
+    lesson_id: Mapped[str] = mapped_column(
+        ForeignKey("class_lessons.id", ondelete="CASCADE"), primary_key=True
+    )
+    student_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    text_entered: Mapped[str] = mapped_column(String(32))
+    correct: Mapped[bool] = mapped_column(Boolean)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class Homework(Base):
+    """A chapter or a review drill set for a class, with a due date."""
+
+    __tablename__ = "homework"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    class_id: Mapped[int] = mapped_column(ForeignKey("classes.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(10))  # chapter | practice
+    target: Mapped[str] = mapped_column(String(64))  # comic id or practice topic
+    due_date: Mapped[date] = mapped_column(Date)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
 class SignInWindow(Base):
     """Shared sign-in counters. Keys contain a digest, with no stored login or IP."""
 

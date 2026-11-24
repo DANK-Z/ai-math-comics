@@ -17,6 +17,8 @@ import { PifikSprite } from './PifikSprite'
 import { SchoolFairRoute } from './SchoolFairRoute'
 import { StudentAssignments } from './ClassAssignments'
 import { BattleAlert } from './ClassBattle'
+import { LessonAlert } from './LessonScreens'
+import { MyHomeworkCard } from './HomeworkCards'
 import { ClassLeague } from './ClassLeague'
 import { WeakSpotCard } from './PracticeScreen'
 
@@ -210,7 +212,9 @@ export function HomeScreen({ lang, completedChapters, remaining, guardianWon, la
       <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,48rem)_minmax(15rem,20rem)]">
         <aside className="flex max-w-3xl flex-col gap-4 xl:sticky xl:top-5 xl:col-start-2 xl:row-start-1">
           <ContinueCard lang={lang} completedChapters={completedChapters} guardianWon={guardianWon} lastComicId={lastComicId} />
+          <LessonAlert lang={lang} />
           <BattleAlert lang={lang} />
+          <MyHomeworkCard lang={lang} />
           <StudentAssignments lang={lang} />
           <WeakSpotCard lang={lang} />
           <ClassLeague lang={lang} />

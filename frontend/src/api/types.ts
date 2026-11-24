@@ -355,6 +355,58 @@ export interface PracticeReport {
   students: { id: number; displayName: string; drills: number; finished: number; solved: number; topics: Record<string, number>; lastAt?: string | null }[]
 }
 
+export type LessonPhase = 'reading' | 'answering' | 'reveal' | 'closed'
+
+/** The board of a lesson: a bundled chapter shown on the projector, answers from phones. */
+export interface LessonBoard {
+  id: string
+  classId: number
+  className: string
+  classCode: string
+  comicId: string
+  panel: number
+  phase: LessonPhase
+  students: number
+  answered: number
+  /** After the reveal. */
+  correct?: number | null
+  wrong: { text: string; count: number }[]
+  answer: number
+}
+
+export interface StudentLesson {
+  id: string
+  comicId: string
+  panel: number
+  phase: LessonPhase
+  myAnswer?: string | null
+  /** After the reveal. */
+  correct?: boolean | null
+}
+
+export type HomeworkKind = 'chapter' | 'practice'
+
+export interface HomeworkItem {
+  id: string
+  kind: HomeworkKind
+  target: string
+  dueDate: string
+  createdAt: string
+  overdue: boolean
+  done: number
+  total: number
+  students: { id: number; name: string; done: boolean }[]
+}
+
+export interface MyHomework {
+  id: string
+  kind: HomeworkKind
+  target: string
+  dueDate: string
+  overdue: boolean
+  done: boolean
+}
+
 export interface AccountApi {
   signUpStudent(body: { login: string; password: string; displayName: string; classCode?: string }): Promise<AuthResponse>
   signUpTeacher(body: { email: string; password: string; displayName: string }): Promise<AuthResponse>
@@ -384,6 +436,15 @@ export interface AccountApi {
   createStudents(classId: number, names: string[]): Promise<StudentCredentials[]>
   resetStudentPassword(classId: number, studentId: number): Promise<StudentCredentials>
   practiceReport(classId: number, signal?: AbortSignal): Promise<PracticeReport>
+  startLesson(classId: number, body: { comicId: string; answer: number }): Promise<LessonBoard>
+  lessonBoard(lessonId: string, signal?: AbortSignal): Promise<LessonBoard>
+  updateLesson(lessonId: string, body: { panel?: number; phase?: LessonPhase }): Promise<LessonBoard>
+  myLesson(signal?: AbortSignal): Promise<StudentLesson | null>
+  answerLesson(lessonId: string, answer: string): Promise<StudentLesson>
+  setHomework(classId: number, body: { kind: HomeworkKind; target: string; dueDate: string }): Promise<HomeworkItem>
+  classHomework(classId: number, signal?: AbortSignal): Promise<HomeworkItem[]>
+  deleteHomework(homeworkId: string): Promise<void>
+  myHomework(signal?: AbortSignal): Promise<MyHomework[]>
 }
 export interface TeacherTask {
   boss: BossKind

@@ -9,7 +9,7 @@ export function rememberAfterLogin(hash: string) {
   }
 }
 
-const SAFE = /^#\/(battle|practice)(\/[a-z]+)?(\?skill=[a-z_]+)?$/
+const SAFE = /^#\/(battle|lesson|practice)(\/[a-z]+)?(\?skill=[a-z_]+)?$/
 
 /** The remembered address, if any (kept until taken). */
 export function peekAfterLogin(): string | null {

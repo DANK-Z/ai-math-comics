@@ -19,7 +19,7 @@ const BOARD_POLL_MS = 2000
 const HOME_POLL_MS = 20000
 
 /** Polls a loader while `active`; returns the latest value (undefined until the first load). */
-function usePolled<T>(load: (signal: AbortSignal) => Promise<T>, ms: number, active = true) {
+export function usePolled<T>(load: (signal: AbortSignal) => Promise<T>, ms: number, active = true) {
   const [value, setValue] = useState<T | undefined>(undefined)
   const [failed, setFailed] = useState(false)
   const [tick, setTick] = useState(0)

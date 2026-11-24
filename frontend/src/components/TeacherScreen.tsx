@@ -8,6 +8,8 @@ import { STRINGS } from '../i18n'
 import { comicHref, teacherClassHref, SECTION_HREFS } from '../route'
 import { SCHOOL_FAIR_STOPS } from '../schoolFair'
 import { BattleLauncher, ReviewBattleButton } from './ClassBattle'
+import { LessonLauncher } from './LessonScreens'
+import { HomeworkCard } from './HomeworkCards'
 import { TeacherLeague } from './ClassLeague'
 import { CurriculumCard } from './CurriculumCard'
 import { PracticeReportCard, RosterCard } from './RosterCard'
@@ -404,6 +406,7 @@ export function ClassDashboard({ lang, classId }: { lang: Lang; classId: number 
       </section>
       <section id={`${id}-assignments`} aria-labelledby={`${id}-button-assignments`} hidden={section !== 'assignments'}>
         <div className="grid gap-4">
+          <HomeworkCard classId={classId} lang={lang} />
           <ClassAssignmentReports classId={classId} lang={lang} />
           <ChapterAssignment lang={lang} />
           <GuardianAssignmentForm lang={lang} />
@@ -412,6 +415,7 @@ export function ClassDashboard({ lang, classId }: { lang: Lang; classId: number 
       </section>
       <section id={`${id}-games`} aria-labelledby={`${id}-button-games`} hidden={section !== 'games'}>
         <div className="grid gap-4">
+          <LessonLauncher classId={classId} lang={lang} />
           <BattleLauncher classId={classId} lang={lang} />
           <TeacherLeague classId={classId} lang={lang} />
         </div>
