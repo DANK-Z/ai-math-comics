@@ -8,6 +8,7 @@ import { CARD, PRIMARY, SECONDARY } from './AuthScreen'
 import { usePolled } from './ClassBattle'
 import { chapterTitle } from './CurriculumCard'
 import { PanelArt } from './PanelArt'
+import { Lobby } from './Lobby'
 import { QrCode } from './QrCode'
 import { RichText } from './RichText'
 
@@ -251,6 +252,7 @@ export function LessonBoardScreen({ lessonId, lang }: { lessonId: string; lang: 
             </section>
           )}
           {!revealed && board.panel >= exerciseIndex && <p className="text-sm font-bold text-ink/70">🔒 {copy.locked}</p>}
+          <Lobby classId={board.classId} present={board.present} lang={lang} />
         </aside>
       </div>
       <nav className="flex flex-wrap items-center gap-2">

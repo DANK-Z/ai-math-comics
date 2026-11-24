@@ -6,6 +6,7 @@ import { BATTLE_BOSS, CLASSROOM_COPY } from '../classroomCopy'
 import { battleBoardHref, joinHref, SECTION_HREFS, teacherClassHref } from '../route'
 import { CARD, PRIMARY, SECONDARY } from './AuthScreen'
 import { BossAvatar } from './BossFight'
+import { Lobby } from './Lobby'
 import { QrCode } from './QrCode'
 import { RichText } from './RichText'
 
@@ -339,6 +340,8 @@ export function BattleBoardScreen({ battleId, lang }: { battleId: string; lang: 
           </div>
         </section>
       )}
+
+      {board.status === 'active' && <Lobby classId={board.classId} present={board.present} lang={lang} />}
 
       <div className="grid gap-4 md:grid-cols-2">
         <section className={CARD}>

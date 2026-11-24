@@ -1,5 +1,5 @@
 import { PROGRESS_REWARDS } from '../rewards'
-import type { AnswerFormat, BattleBoard, BattleDifficulty, BattleTopic, ClassInfo, Lang, Leaderboard, LeaderRow, StudentBattle } from './types'
+import type { AnswerFormat, BattleBoard, LobbyStudent, BattleDifficulty, BattleTopic, ClassInfo, Lang, Leaderboard, LeaderRow, StudentBattle } from './types'
 
 // Classroom demo (no backend): a weekly table with demo classmates, and class battles in
 // localStorage where demo classmates keep hitting the boss so the board feels alive.
@@ -117,7 +117,7 @@ export function latestBattle(battles: MockBattle[], classId: number) {
   return battle.status === 'active' || Date.now() - (battle.finishedAt ?? 0) < 3_600_000 ? battle : null
 }
 
-export function boardOf(schoolClass: ClassInfo, battle: MockBattle): BattleBoard {
+export function boardOf(schoolClass: ClassInfo, battle: MockBattle, present: LobbyStudent[] = []): BattleBoard {
   settle(battle)
   const hits = allHits(battle)
   const counts = new Map<string, number>()
@@ -137,6 +137,7 @@ export function boardOf(schoolClass: ClassInfo, battle: MockBattle): BattleBoard
     fighters: counts.size,
     top: [...counts].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([name, n]) => ({ name, hits: n })),
     recent: hits.slice(-6).reverse().map((h) => ({ name: h.name, at: new Date(h.at).toISOString() })),
+    present,
     startedAt: new Date(battle.startedAt).toISOString(),
     finishedAt: battle.finishedAt ? new Date(battle.finishedAt).toISOString() : null,
   }
@@ -265,3 +266,6 @@ const MOCK_PRACTICE_COPY = {
   ru: { correct: 'Верно! Следующая задача.', done: 'Верно! Тренировка пройдена — тема закреплена.', incorrect: 'Пока неверно. Проверь вычисления и попробуй ещё раз.', invalid: 'Запиши ответ числом или дробью, например 12, 3/4 или 4,2.' },
   kk: { correct: 'Дұрыс! Келесі есеп.', done: 'Дұрыс! Жаттығу аяқталды — тақырып бекітілді.', incorrect: 'Әзірге дұрыс емес. Есебіңді тексеріп, қайта көр.', invalid: 'Жауапты санмен немесе бөлшекпен жаз, мысалы 12, 3/4 немесе 4,2.' },
 }
+
+/** Demo classmates in a board's lobby (they cannot be removed). */
+export const DEMO_LOBBY: LobbyStudent[] = DEMO_FIGHTERS.map((name, i) => ({ id: -(i + 1), name }))

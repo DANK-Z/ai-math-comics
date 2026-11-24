@@ -25,6 +25,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .auth import Session, current_student, current_teacher
 from .db import BattleTask, BossResult, ClassBattle, ProgressReward, Role, SchoolClass, User
 from .practice import Topic, answer_format, check, from_stored, make_problem
+from .presence import Present, present, touch
 from .schemas import Language
 
 router = APIRouter(prefix="/api")
@@ -186,6 +187,7 @@ class BattleBoard(BaseModel):
     fighters: int
     top: list[Fighter]
     recent: list[Hit]
+    present: list[Present] = []
     startedAt: datetime
     finishedAt: datetime | None = None
 
@@ -263,6 +265,7 @@ async def board(session: AsyncSession, battle: ClassBattle) -> BattleBoard:
     names = {student_id: short_name(name) for student_id, _, name in solved}
     per_student = Counter(student_id for student_id, _, _ in solved)
     return BattleBoard(
+        present=await present(session, battle.id, battle.class_id),
         id=battle.id,
         classId=school_class.id,
         className=school_class.name,
@@ -444,6 +447,7 @@ async def my_battle(user: Student, session: Session, response: Response, lang: L
     battle = await latest_battle(session, school_class.id)
     if battle is None:
         return None
+    await touch(session, battle.id, user.id)  # the board's lobby
     return await student_view(session, battle, user, lang, school_class.grade)
 
 

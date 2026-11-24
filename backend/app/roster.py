@@ -11,7 +11,7 @@ from collections import Counter, defaultdict
 from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import select
 
@@ -123,6 +123,19 @@ async def reset_password(class_id: int, student_id: int, user: Teacher, session:
     return StudentCredentials(
         id=student.id, displayName=student.display_name, login=student.login, password=password
     )
+
+
+@router.post("/teacher/classes/{class_id}/students/{student_id}/remove", status_code=204)
+async def remove_student(class_id: int, student_id: int, user: Teacher, session: Session):
+    """Takes a student out of the class (a joke name in the lobby, a stranger with the code).
+
+    The account stays; it just loses the class, its boards and its homework.
+    """
+    school_class = await own_class(session, user, class_id)
+    student = await class_student(session, school_class, student_id)
+    student.class_id = None
+    await session.commit()
+    return Response(status_code=204)
 
 
 # ---- review-drill report -----------------------------------------------------------------

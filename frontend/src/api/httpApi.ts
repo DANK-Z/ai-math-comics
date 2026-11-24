@@ -204,6 +204,9 @@ export function createHttpApi(baseUrl: string): Api & AccountApi & {
     resetStudentPassword(classId, studentId) {
       return request<StudentCredentials>(`/api/teacher/classes/${classId}/students/${studentId}/password`, { method: 'POST' })
     },
+    async removeStudent(classId, studentId) {
+      await request<unknown>(`/api/teacher/classes/${classId}/students/${studentId}/remove`, { method: 'POST' })
+    },
     practiceReport(classId, signal) {
       return request<PracticeReport>(`/api/teacher/classes/${classId}/practice`, { signal })
     },

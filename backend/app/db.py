@@ -255,6 +255,18 @@ class Homework(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
+class BoardPresence(Base):
+    """Who is on a board right now (a battle or a lesson): the student's last poll."""
+
+    __tablename__ = "board_presence"
+
+    board_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    student_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
 class SignInWindow(Base):
     """Shared sign-in counters. Keys contain a digest, with no stored login or IP."""
 

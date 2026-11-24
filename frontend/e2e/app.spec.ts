@@ -222,3 +222,30 @@ test('the board QR: a guest types only a name, and the same phone gets back in b
   await expect(page).toHaveURL(/#\/lesson$/)
   await expect(page.getByRole('link', { name: /Әлия Сапарова/ })).toBeVisible()
 })
+
+test('the board lobby shows who joined, and the teacher can remove a joke name', async ({ page }) => {
+  await seed(page, 'teacher')
+  await page.goto('/#/teacher/class/1')
+  await page.getByRole('button', { name: 'Бои и лига' }).click()
+  await page.getByRole('button', { name: 'Запустить на доске' }).click()
+  await expect(page.getByText(/Подключились: \d+/)).toBeVisible()
+  const boardUrl = page.url()
+
+  // A student scans the QR and joins as «Бэтмен».
+  await page.evaluate(() => localStorage.removeItem('amc.auth.token'))
+  await page.reload()
+  await page.goto('/#/join/E2E-5A-2026?to=battle')
+  await page.getByLabel('Как тебя зовут?').fill('Бэтмен')
+  await page.getByRole('button', { name: 'Войти', exact: true }).last().click()
+  await expect(page).toHaveURL(/#\/battle$/)
+  await expect(page.getByText('Твои удары: 0')).toBeVisible()
+
+  await page.evaluate(() => localStorage.setItem('amc.auth.token', 'mock-2'))
+  await page.reload()
+  await page.goto(boardUrl)
+  const joker = page.getByRole('button', { name: 'Убрать Бэтмен из класса' })
+  await expect(joker).toBeVisible()
+  page.once('dialog', (dialog) => dialog.accept())
+  await joker.click()
+  await expect(joker).toHaveCount(0)
+})

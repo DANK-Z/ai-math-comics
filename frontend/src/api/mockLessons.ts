@@ -1,4 +1,4 @@
-import type { ClassInfo, HomeworkItem, HomeworkKind, LessonBoard, LessonPhase, MyHomework, StudentLesson } from './types'
+import type { ClassInfo, HomeworkItem, LobbyStudent, HomeworkKind, LessonBoard, LessonPhase, MyHomework, StudentLesson } from './types'
 
 // Demo lessons and homework (no backend). Demo classmates answer a lesson a few seconds after
 // the teacher opens answering, so the board fills up like in a real class.
@@ -44,7 +44,7 @@ function demoAnswers(lesson: MockLesson) {
   })
 }
 
-export function lessonBoardOf(schoolClass: ClassInfo, lesson: MockLesson, classStudents: number): LessonBoard {
+export function lessonBoardOf(schoolClass: ClassInfo, lesson: MockLesson, classStudents: number, present: LobbyStudent[] = []): LessonBoard {
   const answers = [...Object.values(lesson.answers), ...demoAnswers(lesson)]
   const revealed = lesson.phase === 'reveal' || lesson.phase === 'closed'
   const wrong = new Map<string, number>()
@@ -62,6 +62,7 @@ export function lessonBoardOf(schoolClass: ClassInfo, lesson: MockLesson, classS
     correct: revealed ? answers.filter((a) => a.correct).length : null,
     wrong: revealed ? [...wrong].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([text, count]) => ({ text, count })) : [],
     answer: lesson.answer,
+    present,
   }
 }
 

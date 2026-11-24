@@ -4,6 +4,7 @@ import { ApiError } from './errors'
 import type { AccountApi, ClassInfo, Dashboard, Grade, Me, PracticeReport, Shop, SkinKey } from './types'
 import { mockPracticeAnswer, mockPracticeTask, mockPracticeTopic } from './mockClassroom'
 import { currentLesson, homeworkOf, lessonBoardOf, myHomeworkOf, studentLessonOf, wholeAnswer, type MockHomework, type MockLesson, type PracticeDone } from './mockLessons'
+import { DEMO_LOBBY } from './mockClassroom'
 import { BATTLE_HP, boardOf, checkMockAnswer, demoLeaderboard, latestBattle, MOCK_BATTLE_COPY, settle, shortName, studentView, type MockBattle } from './mockClassroom'
 
 // In-browser stand-in for the accounts API (demo mode, no backend): accounts and classes live
@@ -33,6 +34,8 @@ interface MockState {
   lessons?: MockLesson[]
   homework?: MockHomework[]
   practiceDone?: PracticeDone[]
+  /** Board lobbies: when each student last looked at a battle or lesson. */
+  presence?: Record<string, Record<number, number>>
 }
 
 const KEY = 'amc.mock.accounts'
@@ -375,7 +378,7 @@ export const mockAccounts: AccountApi = {
       const battle: MockBattle = { id: `battle-${Date.now()}`, classId, topic: body.topic, difficulty: body.difficulty, maxHp: body.hp, status: 'active', startedAt: Date.now(), hits: [], tasks: {} }
       battles.push(battle)
       save(state)
-      return boardOf(schoolClass, battle)
+      return boardOf(schoolClass, battle, lobby(state, battle.id, schoolClass.id))
     })
   },
   currentClassBattle(classId) {
@@ -384,14 +387,14 @@ export const mockAccounts: AccountApi = {
       const schoolClass = ownClass(state, classId)
       const battle = latestBattle(state.battles ?? [], classId)
       save(state)
-      return battle ? boardOf(schoolClass, battle) : null
+      return battle ? boardOf(schoolClass, battle, lobby(state, battle.id, schoolClass.id)) : null
     })
   },
   battleBoard(battleId) {
     return later(() => {
       const state = load()
       const { battle, schoolClass } = teacherBattle(state, battleId)
-      const board = boardOf(schoolClass, battle)
+      const board = boardOf(schoolClass, battle, lobby(state, battle.id, schoolClass.id))
       save(state)
       return board
     })
@@ -403,7 +406,7 @@ export const mockAccounts: AccountApi = {
       settle(battle)
       if (battle.status === 'active') Object.assign(battle, { status: 'stopped', finishedAt: Date.now() })
       save(state)
-      return boardOf(schoolClass, battle)
+      return boardOf(schoolClass, battle, lobby(state, battle.id, schoolClass.id))
     })
   },
   myBattle(lang) {
@@ -413,6 +416,7 @@ export const mockAccounts: AccountApi = {
       if (!state.classes.some((c) => c.id === user.classId)) throw fail(404, 'no_class')
       const battle = latestBattle(state.battles ?? [], user.classId!)
       if (!battle) return null
+      touch(state, battle.id, user.id)
       const view = studentView(battle, user.id, lang)
       save(state)
       return view
@@ -498,6 +502,15 @@ export const mockAccounts: AccountApi = {
       return { id: user.id, displayName: user.displayName, login: user.login ?? '', password: user.password }
     })
   },
+  removeStudent(classId, studentId) {
+    return later(() => {
+      const state = load()
+      ownClass(state, classId)
+      const user = state.users.find((u) => u.id === studentId && u.role === 'student' && u.classId === classId)
+      if (user) user.classId = undefined
+      save(state)
+    })
+  },
   practiceReport(classId) {
     return later(() => {
       const state = load()
@@ -529,7 +542,7 @@ export const mockAccounts: AccountApi = {
       const lesson: MockLesson = { id: `lesson-${Date.now()}`, classId, comicId: body.comicId, answer: body.answer, panel: 0, phase: 'reading', createdAt: Date.now(), answers: {} }
       lessons.push(lesson)
       save(state)
-      return lessonBoardOf(schoolClass, lesson, classSize(state, classId))
+      return lessonBoardOf(schoolClass, lesson, classSize(state, classId), lobby(state, lesson.id, classId))
     })
   },
   lessonBoard(lessonId) {
@@ -537,7 +550,7 @@ export const mockAccounts: AccountApi = {
       const state = load()
       const lesson = state.lessons?.find((l) => l.id === lessonId)
       if (!lesson) throw fail(404, 'lesson_not_found')
-      return lessonBoardOf(ownClass(state, lesson.classId), lesson, classSize(state, lesson.classId))
+      return lessonBoardOf(ownClass(state, lesson.classId), lesson, classSize(state, lesson.classId), lobby(state, lesson.id, lesson.classId))
     })
   },
   updateLesson(lessonId, body) {
@@ -557,7 +570,7 @@ export const mockAccounts: AccountApi = {
         lesson.phase = body.phase
       }
       save(state)
-      return lessonBoardOf(schoolClass, lesson, classSize(state, lesson.classId))
+      return lessonBoardOf(schoolClass, lesson, classSize(state, lesson.classId), lobby(state, lesson.id, lesson.classId))
     })
   },
   myLesson() {
@@ -566,7 +579,10 @@ export const mockAccounts: AccountApi = {
       const user = student(state)
       if (!state.classes.some((c) => c.id === user.classId)) throw fail(404, 'no_class')
       const lesson = currentLesson(state.lessons ?? [], user.classId!)
-      return lesson ? studentLessonOf(lesson, user.id) : null
+      if (!lesson) return null
+      touch(state, lesson.id, user.id)
+      save(state)
+      return studentLessonOf(lesson, user.id)
     })
   },
   answerLesson(lessonId, answer) {
@@ -621,6 +637,20 @@ export const mockAccounts: AccountApi = {
         .map((h) => myHomeworkOf(h, user, state.practiceDone ?? []))
     })
   },
+}
+
+function touch(state: MockState, boardId: string, userId: number) {
+  ;((state.presence ??= {})[boardId] ??= {})[userId] = Date.now()
+}
+
+/** Students seen on a board in the last five minutes, plus the demo classmates. */
+function lobby(state: MockState, boardId: string, classId: number) {
+  const seen = state.presence?.[boardId] ?? {}
+  const real = state.users
+    .filter((u) => u.role === 'student' && u.classId === classId && Date.now() - (seen[u.id] ?? 0) < 300_000)
+    .sort((a, b) => seen[a.id] - seen[b.id])
+    .map((u) => ({ id: u.id, name: shortName(u.displayName) }))
+  return [...DEMO_LOBBY, ...real]
 }
 
 const classSize = (state: MockState, classId: number) => state.users.filter((u) => u.role === 'student' && u.classId === classId).length

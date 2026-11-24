@@ -272,6 +272,12 @@ export interface Leaderboard {
   classSize: number
 }
 
+/** A student in a board's lobby (negative ids are demo classmates). */
+export interface LobbyStudent {
+  id: number
+  name: string
+}
+
 export type BattleTopic = 'fractions' | 'equations' | 'gcd' | 'decimals' | 'parts'
 export type AnswerFormat = 'fraction' | 'decimal' | 'whole-number'
 export type BattleDifficulty = 'basic' | 'intermediate' | 'advanced'
@@ -293,6 +299,8 @@ export interface BattleBoard {
   fighters: number
   top: { name: string; hits: number }[]
   recent: { name: string; at: string }[]
+  /** The lobby: students on the board right now. */
+  present: LobbyStudent[]
   startedAt: string
   finishedAt?: string | null
 }
@@ -372,6 +380,8 @@ export interface LessonBoard {
   correct?: number | null
   wrong: { text: string; count: number }[]
   answer: number
+  /** The lobby: students on the board right now. */
+  present: LobbyStudent[]
 }
 
 export interface StudentLesson {
@@ -437,6 +447,8 @@ export interface AccountApi {
   weakSpot(signal?: AbortSignal): Promise<WeakSpot | null>
   createStudents(classId: number, names: string[]): Promise<StudentCredentials[]>
   resetStudentPassword(classId: number, studentId: number): Promise<StudentCredentials>
+  /** Takes a student out of the class (the lobby's «убрать»). */
+  removeStudent(classId: number, studentId: number): Promise<void>
   practiceReport(classId: number, signal?: AbortSignal): Promise<PracticeReport>
   startLesson(classId: number, body: { comicId: string; answer: number }): Promise<LessonBoard>
   lessonBoard(lessonId: string, signal?: AbortSignal): Promise<LessonBoard>

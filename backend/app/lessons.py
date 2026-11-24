@@ -36,6 +36,7 @@ from .db import (
     User,
 )
 from .practice import TOPICS
+from .presence import Present, present, touch
 
 router = APIRouter(prefix="/api")
 Student = Annotated[User, Depends(current_student)]
@@ -91,6 +92,7 @@ class LessonBoard(BaseModel):
     correct: int | None = None
     """Revealed only after the reveal."""
     wrong: list[WrongAnswer] = []
+    present: list[Present] = []
     answer: int
 
 
@@ -125,6 +127,7 @@ async def lesson_board(session, lesson: ClassLesson) -> LessonBoard:
     revealed = lesson.phase in ("reveal", "closed")
     wrong = Counter(a.text_entered.strip() for a in answers if not a.correct)
     return LessonBoard(
+        present=await present(session, lesson.id, lesson.class_id),
         id=lesson.id,
         classId=school_class.id,
         className=school_class.name,
@@ -230,7 +233,11 @@ async def student_lesson(session, lesson: ClassLesson, student: User) -> Student
 async def my_lesson(user: Student, session: Session, response: Response):
     response.headers["Cache-Control"] = "no-store"
     lesson = await current_lesson(session, (await class_of(session, user)).id)
-    return await student_lesson(session, lesson, user) if lesson else None
+    if lesson is None:
+        return None
+    await touch(session, lesson.id, user.id)  # the board's lobby
+    await session.commit()
+    return await student_lesson(session, lesson, user)
 
 
 @router.post("/me/lesson/{lesson_id}/answer", response_model=StudentLesson)
