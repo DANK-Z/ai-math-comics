@@ -282,3 +282,18 @@ test('a parent links a child by the family code and sends a gift the child sees 
   await page.getByRole('button', { name: /Спасибо!/ }).click()
   await expect(page.getByText('Открытка от родных')).toHaveCount(0)
 })
+
+test('the Burabay season: a typical LCM mistake gets its own hint, then the answer opens the ending', async ({ page }) => {
+  await seed(page, 'guest')
+  await page.goto('/#/comic/burabay-bus')
+  await expect(page.getByText(/Цель урока: находить наименьшее общее кратное/)).toBeVisible()
+  await openExercise(page)
+  const answer = page.getByLabel('Твой ответ')
+  await answer.fill('216')
+  await page.getByRole('button', { name: 'Проверить' }).click()
+  await expect(page.getByText(/общее кратное, но не наименьшее/)).toBeVisible()
+  await answer.fill('36')
+  await page.getByRole('button', { name: 'Проверить' }).click()
+  await page.getByRole('button', { name: 'Далее', exact: true }).click()
+  await expect(page.getByText(/Через 36 минут — в 8:36/).first()).toBeVisible()
+})

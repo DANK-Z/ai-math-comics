@@ -6,6 +6,7 @@ import marsCover from '../assets/mars/crater-2.webp'
 import museumCover from '../assets/museum/mirror-1.webp'
 import roadsCover from '../assets/roads/cover.webp'
 import weatherCover from '../assets/weather/units-1.webp'
+import burabayCover from '../assets/burabay/trail-4.webp'
 import { OPERATIONS, operationHref, type Operation } from '../operations'
 import { comicHref, SECTION_HREFS } from '../route'
 
@@ -52,7 +53,7 @@ const COPY = {
 }
 
 // Covers are season panels that do not spoil the finale; seasons without art show their icon.
-const COVERS: Record<string, string> = { fair: fairCover, roads: roadsCover, lights: lightsCover, museum: museumCover, weather: weatherCover, mars: marsCover }
+const COVERS: Record<string, string> = { fair: fairCover, roads: roadsCover, lights: lightsCover, museum: museumCover, weather: weatherCover, mars: marsCover, burabay: burabayCover }
 const TINTS: Record<string, string> = {
   fair: 'from-amber-200 to-rose-200',
   roads: 'from-emerald-200 to-sky-200',
@@ -60,6 +61,7 @@ const TINTS: Record<string, string> = {
   museum: 'from-amber-100 to-rose-200',
   weather: 'from-sky-200 to-slate-200',
   mars: 'from-orange-300 to-rose-300',
+  burabay: 'from-teal-200 to-sky-300',
 }
 const CTA = 'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border-[3px] border-ink px-4 font-black text-ink shadow-[0_3px_0_var(--shadow-ink)] transition active:translate-y-[2px] active:shadow-[0_1px_0_var(--shadow-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand'
 

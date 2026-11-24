@@ -15,6 +15,10 @@ import docking1 from '../assets/mars/docking-1.webp'
 import docking2 from '../assets/mars/docking-2.webp'
 import docking3 from '../assets/mars/docking-3.webp'
 import docking4 from '../assets/mars/docking-4.webp'
+import mist1 from '../assets/burabay/mist-1.webp'
+import mist2 from '../assets/burabay/mist-2.webp'
+import mist3 from '../assets/burabay/mist-3.webp'
+import mist4 from '../assets/burabay/mist-4.webp'
 import { useFinale, type FinaleDef, type FinaleRound } from '../finales'
 import { STRINGS } from '../i18n'
 import { FINALE_LOCK, findOperation, operationHref } from '../operations'
@@ -80,6 +84,7 @@ const FRAME_SCENES: Record<string, { frames: string[]; aspect: string }> = {
   museum: { frames: [hall1, hall2, hall3, hall4], aspect: '824 / 460' },
   weather: { frames: [stage1, stage2, stage3, stage4], aspect: '826 / 460' },
   mars: { frames: [docking1, docking2, docking3, docking4], aspect: '821 / 453' },
+  burabay: { frames: [mist1, mist2, mist3, mist4], aspect: '16 / 9' },
 }
 
 function FramesScene({ frames, aspect, lit, caption, total }: { frames: string[]; aspect: string; lit: number; caption: string; total: number }) {

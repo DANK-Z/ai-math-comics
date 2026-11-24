@@ -24,6 +24,7 @@ const BY_OPERATION: Record<string, PanelEffect> = {
   lights: 'glow',
   museum: 'dust',
   mars: 'sparks',
+  burabay: 'leaves',
 }
 
 export function panelEffectFor(comicId: string): PanelEffect | undefined {

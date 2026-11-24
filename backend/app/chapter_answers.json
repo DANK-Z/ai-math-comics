@@ -101,6 +101,22 @@
       "comicId": "mars-greenhouse",
       "answer": "5"
     },
+    "burabay-lcm": {
+      "comicId": "burabay-bus",
+      "answer": "36"
+    },
+    "burabay-volume": {
+      "comicId": "burabay-water",
+      "answer": "60"
+    },
+    "burabay-decimals": {
+      "comicId": "burabay-trail",
+      "answer": "5"
+    },
+    "burabay-gcd": {
+      "comicId": "burabay-snacks",
+      "answer": "12"
+    },
     "pizza-share": {
       "comicId": "pizza-fractions",
       "answer": "3/4"

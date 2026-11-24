@@ -3,22 +3,24 @@ import type { Lang } from '../api/types'
 import type { UiStrings } from '../i18n'
 import { SECTION_HREFS, type Section } from '../route'
 import { SCHOOL_FAIR_CHAPTER_COUNT } from '../schoolFair'
+import { OPERATIONS } from '../operations'
 
 const NAV = {
   ru: {
     home: 'Главная',
     homeDetail: 'Что делать сейчас',
     stories: 'Истории',
-    storiesDetail: (n: number, total: number) => (n ? `Глав пройдено: ${n} из ${total}` : '6 сезонов, 26 глав'),
+    storiesDetail: (n: number, total: number) => (n ? `Глав пройдено: ${n} из ${total}` : `${SEASONS} сезонов, ${total} глав`),
   },
   kk: {
     home: 'Басты бет',
     homeDetail: 'Қазір не істеу керек',
     stories: 'Оқиғалар',
-    storiesDetail: (n: number, total: number) => (n ? `Өтілген тараулар: ${total}-ден ${n}` : '6 маусым, 26 тарау'),
+    storiesDetail: (n: number, total: number) => (n ? `Өтілген тараулар: ${total}-ден ${n}` : `${SEASONS} маусым, ${total} тарау`),
   },
 }
-const STORY_CHAPTERS = 26
+const SEASONS = OPERATIONS.length
+const STORY_CHAPTERS = OPERATIONS.reduce((sum, operation) => sum + operation.chapters.length, 0)
 
 interface Props {
   t: UiStrings

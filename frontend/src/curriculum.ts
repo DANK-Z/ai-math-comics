@@ -28,6 +28,9 @@ const SYMMETRY = t('Симметрия', 'Симметрия')
 const NEGATIVE = t('Положительные и отрицательные числа', 'Оң және теріс сандар')
 const DATA = t('Графики и статистика', 'Графиктер және статистика')
 const UNITS = t('Величины и единицы измерения', 'Шамалар және өлшем бірліктері')
+const DIVISIBILITY = t('Делимость чисел', 'Сандардың бөлінгіштігі')
+const VOLUME = t('Объём', 'Көлем')
+const DECIMALS = t('Десятичные дроби', 'Ондық бөлшектер')
 
 export const CURRICULUM: Readonly<Record<string, CurriculumGoal>> = {
   // Operation: School Fair
@@ -62,6 +65,11 @@ export const CURRICULUM: Readonly<Record<string, CurriculumGoal>> = {
   'mars-battery': g(5, FRACTIONS, t('Находить дробь от числа и от остатка', 'Саннан және қалдықтан бөлшек табу')),
   'mars-signal': g(5, UNITS, t('Складывать время в минутах и секундах', 'Минут пен секундтағы уақытты қосу')),
   'mars-greenhouse': g(6, PROPORTION, t('Делить величину в данном отношении', 'Шаманы берілген қатынаста бөлу')),
+  // The Secret of Burabay
+  'burabay-bus': g(6, DIVISIBILITY, t('Находить наименьшее общее кратное двух чисел', 'Екі санның ең кіші ортақ еселігін табу')),
+  'burabay-water': g(5, VOLUME, t('Находить объём прямоугольного параллелепипеда и переводить см³ в литры', 'Тікбұрышты параллелепипедтің көлемін табу және см³-ті литрге айналдыру')),
+  'burabay-trail': g(5, DECIMALS, t('Складывать десятичные дроби', 'Ондық бөлшектерді қосу')),
+  'burabay-snacks': g(6, DIVISIBILITY, t('Находить наибольший общий делитель двух чисел', 'Екі санның ең үлкен ортақ бөлгішін табу')),
 }
 
 export function curriculumFor(comicId: string): CurriculumGoal | undefined {
