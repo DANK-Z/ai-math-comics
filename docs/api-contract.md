@@ -412,3 +412,19 @@ It does not record an exercise attempt. Item fiction is generated on request and
 student and language. The achievement refers to the latest verified boss victory and does not
 imply the item was won in that fight.
 
+
+## Parents: family code, child summary, praise
+
+A parent signs up with e-mail and password (`POST /api/auth/parents`, same body as a teacher; role `parent`).
+The student shows a family code in the profile; the parent adds the child with it.
+
+| Endpoint | Who | What |
+| --- | --- | --- |
+| `GET /api/me/family-code` | student | `{ code: "AMC-XXXXXXXX", parents }` (created on first call) |
+| `POST /api/parent/children` `{ code }` | parent | links the child, returns a `ChildSummary`; 404 `family_code_not_found`; at most 6 children; rate-limited |
+| `GET /api/parent/children` | parent | `ChildSummary[]`: coins, stars, chapters this month / total (server-checked), boss wins, strengths and weakest skill (30 days), drills this week, open/overdue homework, recent wins, `giftReadyAt` |
+| `DELETE /api/parent/children/{id}` | parent | unlinks |
+| `POST /api/parent/children/{id}/praise` `{ kind }` | parent | `proud`, `keep-going`, `star` or `gift`; a gift adds 20 coins once per 7 days (409 `gift_too_soon`) |
+| `GET /api/me/praise` / `POST /api/me/praise/seen` | student | unseen praise cards on the home page / mark them read |
+
+The "Pifik summary" in the parent screen is written from these numbers by a template on the client; no LLM is called.

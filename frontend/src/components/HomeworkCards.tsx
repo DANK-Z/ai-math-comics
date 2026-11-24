@@ -1,4 +1,5 @@
 import { useEffect, useId, useState, type FormEvent } from 'react'
+import { dayMonth } from '../dates'
 import { accounts, isAbortError, LOCAL_COMICS, type HomeworkItem, type HomeworkKind, type Lang, type MyHomework } from '../api'
 import { useAccount } from '../account'
 import { CLASSROOM_COPY } from '../classroomCopy'
@@ -62,7 +63,7 @@ export const HOMEWORK_COPY = {
 }
 
 const formatDate = (iso: string, lang: Lang) =>
-  new Date(`${iso}T00:00:00`).toLocaleDateString(lang === 'kk' ? 'kk-KZ' : 'ru-RU', { day: 'numeric', month: 'long' })
+  dayMonth(new Date(`${iso}T00:00:00`), lang)
 
 function homeworkTitle(kind: HomeworkKind, target: string, lang: Lang) {
   if (kind === 'chapter') return chapterTitle(target, lang)

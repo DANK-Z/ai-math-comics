@@ -1,7 +1,7 @@
 import { authToken } from './authToken'
 import { PROGRESS_REWARDS } from '../rewards'
 import { ApiError } from './errors'
-import type { AccountApi, ClassInfo, Dashboard, Grade, Me, PracticeReport, Shop, SkinKey } from './types'
+import type { AccountApi, ChildSummary, ClassInfo, Dashboard, Grade, Me, PracticeReport, PraiseKind, Shop, SkinKey } from './types'
 import { mockPracticeAnswer, mockPracticeTask, mockPracticeTopic } from './mockClassroom'
 import { currentLesson, homeworkOf, lessonBoardOf, myHomeworkOf, studentLessonOf, wholeAnswer, type MockHomework, type MockLesson, type PracticeDone } from './mockLessons'
 import { DEMO_LOBBY } from './mockClassroom'
@@ -13,7 +13,7 @@ import { BATTLE_HP, boardOf, checkMockAnswer, demoLeaderboard, latestBattle, MOC
 
 interface MockUser {
   id: number
-  role: 'student' | 'teacher'
+  role: 'student' | 'teacher' | 'parent'
   login?: string
   email?: string
   displayName: string
@@ -36,6 +36,9 @@ interface MockState {
   practiceDone?: PracticeDone[]
   /** Board lobbies: when each student last looked at a battle or lesson. */
   presence?: Record<string, Record<number, number>>
+  familyCodes?: Record<number, string>
+  familyLinks?: { parentId: number; studentId: number }[]
+  praises?: { id: number; parentId: number; studentId: number; kind: PraiseKind; coins: number; at: number; seen: boolean }[]
 }
 
 const KEY = 'amc.mock.accounts'
@@ -228,6 +231,94 @@ export const mockAccounts: AccountApi = {
       state.users.push(user)
       save(state)
       return signIn(state, user)
+    })
+  },
+  signUpParent(body) {
+    return later(() => {
+      const state = load()
+      const email = body.email.trim().toLowerCase()
+      if (!EMAIL.test(email) || body.password.length < 8) throw fail(422, 'validation')
+      const displayName = cleanName(body.displayName)
+      if (state.users.some((u) => u.email === email)) throw fail(409, 'email_taken')
+      const user: MockUser = { id: state.users.length + 1, role: 'parent', email, displayName, password: body.password, completedChapters: [], stickers: [] }
+      state.users.push(user)
+      save(state)
+      return signIn(state, user)
+    })
+  },
+  familyCode() {
+    return later(() => {
+      const state = load()
+      const user = student(state)
+      const codes = (state.familyCodes ??= {})
+      codes[user.id] ??= `AMC-${Math.random().toString(36).slice(2, 10).toUpperCase().padEnd(8, 'X')}`
+      save(state)
+      return { code: codes[user.id], parents: (state.familyLinks ?? []).filter((l) => l.studentId === user.id).length }
+    })
+  },
+  parentChildren() {
+    return later(() => {
+      const state = load()
+      const user = parentOf(state)
+      return (state.familyLinks ?? []).filter((l) => l.parentId === user.id).map((l) => childSummary(state, user.id, l.studentId))
+    })
+  },
+  addChild(code) {
+    return later(() => {
+      const state = load()
+      const user = parentOf(state)
+      const entry = Object.entries(state.familyCodes ?? {}).find(([, c]) => c === code.trim().toUpperCase())
+      if (!entry) throw fail(404, 'family_code_not_found')
+      const studentId = Number(entry[0])
+      const links = (state.familyLinks ??= [])
+      if (!links.some((l) => l.parentId === user.id && l.studentId === studentId)) links.push({ parentId: user.id, studentId })
+      save(state)
+      return childSummary(state, user.id, studentId)
+    })
+  },
+  removeChild(studentId) {
+    return later(() => {
+      const state = load()
+      const user = parentOf(state)
+      state.familyLinks = (state.familyLinks ?? []).filter((l) => !(l.parentId === user.id && l.studentId === studentId))
+      save(state)
+    })
+  },
+  sendPraise(studentId, kind) {
+    return later(() => {
+      const state = load()
+      const user = parentOf(state)
+      if (!(state.familyLinks ?? []).some((l) => l.parentId === user.id && l.studentId === studentId)) throw fail(404, 'child_not_found')
+      const praises = (state.praises ??= [])
+      let coins = 0
+      if (kind === 'gift') {
+        const last = praises.filter((p) => p.parentId === user.id && p.studentId === studentId && p.coins > 0).at(-1)
+        if (last && Date.now() - last.at < 7 * 86400_000) throw fail(409, 'gift_too_soon')
+        coins = 20
+        const child = state.users.find((u) => u.id === studentId)
+        if (child) child.coins = (child.coins ?? DEMO_COINS) + coins
+      }
+      praises.push({ id: praises.length + 1, parentId: user.id, studentId, kind, coins, at: Date.now(), seen: false })
+      save(state)
+      return childSummary(state, user.id, studentId)
+    })
+  },
+  myPraise() {
+    return later(() => {
+      const state = load()
+      const user = student(state)
+      return (state.praises ?? []).filter((p) => p.studentId === user.id && !p.seen).reverse().slice(0, 5).map((p) => ({
+        id: p.id, kind: p.kind, coins: p.coins, at: new Date(p.at).toISOString(),
+        fromName: state.users.find((u) => u.id === p.parentId)?.displayName ?? '',
+      }))
+    })
+  },
+  praiseSeen() {
+    return later(() => {
+      const state = load()
+      const user = student(state)
+      for (const p of state.praises ?? []) if (p.studentId === user.id) p.seen = true
+      save(state)
     })
   },
   signUpTeacher(body) {
@@ -655,6 +746,45 @@ function lobby(state: MockState, boardId: string, classId: number) {
     .sort((a, b) => seen[a.id] - seen[b.id])
     .map((u) => ({ id: u.id, name: shortName(u.displayName) }))
   return [...DEMO_LOBBY, ...real]
+}
+
+function parentOf(state: MockState) {
+  const user = currentUser(state)
+  if (user.role !== 'parent') throw fail(403, 'parents_only')
+  return user
+}
+
+/** Demo child summary: real coins and chapters from this browser, plus demo boss stats. */
+function childSummary(state: MockState, parentId: number, studentId: number): ChildSummary {
+  const child = state.users.find((u) => u.id === studentId)!
+  const schoolClass = state.classes.find((c) => c.id === child.classId)
+  const chapters = (child.rewards ?? []).filter((k) => !k.startsWith('secret-') && !k.endsWith('-finale'))
+  const lastGift = (state.praises ?? []).filter((p) => p.parentId === parentId && p.studentId === studentId && p.coins > 0).at(-1)
+  const giftReady = lastGift ? lastGift.at + 7 * 86400_000 : 0
+  return {
+    id: child.id,
+    name: child.displayName,
+    className: schoolClass?.name ?? null,
+    skin: child.skins?.find((s) => s.equipped)?.key ?? null,
+    coins: child.coins ?? DEMO_COINS,
+    stars: 6,
+    chaptersMonth: chapters.length,
+    chaptersTotal: chapters.length,
+    bossWins: 3,
+    cleanWins: 1,
+    strengths: ['add', 'sub'],
+    weakSkill: 'div',
+    weakMistakes: 3,
+    drillsWeek: 1,
+    homeworkOpen: (state.homework ?? []).filter((h) => h.classId === child.classId).length,
+    homeworkOverdue: 0,
+    lastActive: new Date().toISOString(),
+    recent: [
+      { kind: 'boss', key: 'equations', stars: 3, at: new Date(Date.now() - 3600_000).toISOString() },
+      { kind: 'boss', key: 'fractions', stars: 2, at: new Date(Date.now() - 86400_000).toISOString() },
+    ],
+    giftReadyAt: giftReady > Date.now() ? new Date(giftReady).toISOString() : null,
+  }
 }
 
 const classSize = (state: MockState, classId: number) => state.users.filter((u) => u.role === 'student' && u.classId === classId).length

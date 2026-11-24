@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { API_MODE, type BattleTopic, type ComicJobRequest, type Lang } from './api'
+import { API_MODE, type BattleTopic, type ComicJobRequest, type Lang, type Role } from './api'
 import { PRACTICE_TOPICS, PracticeScreen } from './components/PracticeScreen'
 import logoUrl from './assets/logo.webp'
 import { AccountProvider, useAccount } from './account'
@@ -41,6 +41,7 @@ const BattleBoardScreen = lazy(() => import('./components/ClassBattle').then((m)
 const BattleScreen = lazy(() => import('./components/ClassBattle').then((m) => ({ default: m.BattleScreen })))
 const LessonBoardScreen = lazy(() => import('./components/LessonScreens').then((m) => ({ default: m.LessonBoardScreen })))
 const StudentLessonScreen = lazy(() => import('./components/LessonScreens').then((m) => ({ default: m.StudentLessonScreen })))
+const ParentScreen = lazy(() => import('./components/ParentScreen').then((m) => ({ default: m.ParentScreen })))
 const JoinScreen = lazy(() => import('./components/JoinScreen').then((m) => ({ default: m.JoinScreen })))
 const MotionLeague = lazy(() => import('./components/MotionLeague'))
 const GuardianScreen = lazy(() => import('./components/GuardianScreen'))
@@ -68,6 +69,13 @@ function AccountChip({ lang }: { lang: Lang }) {
     'inline-flex min-h-11 max-w-[11rem] items-center gap-1.5 rounded-xl border-[3px] border-ink px-3 text-sm font-black text-ink shadow-[0_3px_0_var(--shadow-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun sm:max-w-[16rem] sm:text-base'
   if (!ready) return null
   if (!user) return <a href={SECTION_HREFS.login} className={`${base} bg-sun`}>{c.signIn}</a>
+  if (user.role === 'parent') {
+    return (
+      <a href={SECTION_HREFS.parent} className={`${base} bg-white`}>
+        <span aria-hidden>👨‍👩‍👧</span><span className="truncate max-[480px]:sr-only">{user.displayName}</span>
+      </a>
+    )
+  }
   if (user.role === 'teacher') {
     return (
       <a href={SECTION_HREFS.teacher} className={`${base} bg-white`}>
@@ -84,7 +92,9 @@ function AccountChip({ lang }: { lang: Lang }) {
 }
 
 /** Teachers see only their dashboard; students and guests only the game. */
-function screenFor(route: Route, role: 'student' | 'teacher' | null): Route | null {
+function screenFor(route: Route, role: Role | null): Route | null {
+  if (role === 'parent') return route.name === 'parent' ? null : { name: 'parent' }
+  if (route.name === 'parent') return role ? { name: role === 'teacher' ? 'teacher' : 'map' } : { name: 'login' }
   const teacherRoute = route.name === 'teacher' || route.name === 'teacherClass' || route.name === 'teacherBattle' || route.name === 'teacherLesson'
   if (role === 'teacher') return teacherRoute ? null : { name: 'teacher' }
   if (role === 'student') return teacherRoute || route.name === 'login' ? { name: 'map' } : null
@@ -250,7 +260,13 @@ function AppShell() {
         </div>
       </header>
 
-      {role === 'teacher' ? (
+      {role === 'parent' ? (
+        <main className="mx-auto max-w-[90rem] min-w-0 px-3 py-4 sm:px-6 sm:py-6">
+          <Suspense fallback={<ScreenLoading />}>
+            {route.name === 'parent' && <ParentScreen lang={lang} />}
+          </Suspense>
+        </main>
+      ) : role === 'teacher' ? (
         <main className="mx-auto max-w-[90rem] min-w-0 px-3 py-4 sm:px-6 sm:py-6">
           <Suspense fallback={<ScreenLoading />}>
           {route.name === 'teacher' && <TeacherHome lang={lang} />}

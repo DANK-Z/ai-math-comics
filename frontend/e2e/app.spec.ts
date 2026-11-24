@@ -249,3 +249,36 @@ test('the board lobby shows who joined, and the teacher can remove a joke name',
   await joker.click()
   await expect(joker).toHaveCount(0)
 })
+
+test('a parent links a child by the family code and sends a gift the child sees at home', async ({ page }) => {
+  await seed(page, 'student')
+  await page.goto('/#/profile')
+  const code = (await page.getByText(/^AMC-[A-Z0-9]{8}$/).innerText()).trim()
+
+  // A parent signs up on the same device (demo accounts live in this browser).
+  await page.evaluate(() => localStorage.removeItem('amc.auth.token'))
+  await page.reload()
+  await page.getByRole('link', { name: 'Войти', exact: true }).click()
+  await page.getByRole('button', { name: /Нет аккаунта/ }).click()
+  await page.getByText('Я родитель').click()
+  await page.getByLabel('Ваше имя').fill('Гульнара Омарова')
+  await page.getByLabel('Почта').fill('mama@e2e.test')
+  await page.getByLabel('Пароль').fill('e2e-pass-123')
+  await page.getByRole('button', { name: 'Создать аккаунт' }).click()
+  await expect(page).toHaveURL(/#\/parent$/)
+
+  await page.getByLabel('Семейный код').fill(code)
+  await page.getByRole('button', { name: 'Добавить ребёнка' }).click()
+  await expect(page.getByText('Сводка Пифика')).toBeVisible()
+  await page.getByRole('button', { name: /\+20 монет/ }).click()
+  await expect(page.getByText(/Следующий подарок можно отправить/)).toBeVisible()
+
+  // The child signs back in and finds the card with the coins on the home page.
+  await page.evaluate(() => localStorage.setItem('amc.auth.token', 'mock-1'))
+  await page.goto('/#/')
+  await page.reload()
+  await expect(page.getByText('Открытка от родных')).toBeVisible()
+  await expect(page.getByRole('link', { name: /Монеты: 140/ })).toBeVisible()
+  await page.getByRole('button', { name: /Спасибо!/ }).click()
+  await expect(page.getByText('Открытка от родных')).toHaveCount(0)
+})

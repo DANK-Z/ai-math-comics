@@ -18,6 +18,7 @@ import { MyHomeworkCard } from './HomeworkCards'
 import { ClassLeague } from './ClassLeague'
 import { WeakSpotCard } from './PracticeScreen'
 import { HomeHero } from './HomeHero'
+import { PraiseInbox } from './ParentScreen'
 
 /** How a cover is cropped in its card: box aspect ratio + CSS object-position focal point. */
 interface Framing {
@@ -139,6 +140,7 @@ export function HomeScreen({ lang, progress, finalesWon }: {
     <div className="flex flex-col gap-5">
       <LessonAlert lang={lang} />
       <BattleAlert lang={lang} />
+      <PraiseInbox lang={lang} />
       <HomeHero lang={lang} progress={progress} finalesWon={finalesWon} />
       <div className="grid items-start gap-5 lg:grid-cols-2">
         <div className="flex flex-col gap-5">

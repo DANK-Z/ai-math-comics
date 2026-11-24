@@ -11,6 +11,7 @@ interface AccountContextValue {
   logIn(login: string, password: string): Promise<Me>
   signUpStudent(body: { login: string; password: string; displayName: string; classCode?: string }): Promise<Me>
   signUpTeacher(body: { email: string; password: string; displayName: string }): Promise<Me>
+  signUpParent(body: { email: string; password: string; displayName: string }): Promise<Me>
   quickJoin(body: { classCode: string; displayName: string; deviceKey: string }): Promise<Me>
   logOut(): void
   joinClass(code: string): Promise<Me>
@@ -54,6 +55,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       logIn: (login, password) => accounts.logIn({ login, password }).then(finish),
       signUpStudent: (body) => accounts.signUpStudent(body).then(finish),
       signUpTeacher: (body) => accounts.signUpTeacher(body).then(finish),
+      signUpParent: (body) => accounts.signUpParent(body).then(finish),
       quickJoin: (body) => accounts.quickJoin(body).then(finish),
       logOut() {
         authToken.set(null)

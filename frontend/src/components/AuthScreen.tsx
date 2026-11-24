@@ -41,7 +41,7 @@ export function AuthScreen({ lang }: { lang: Lang }) {
   const id = useId()
   const form = useRef<HTMLFormElement>(null)
   const [mode, setMode] = useState<'signIn' | 'signUp'>('signIn')
-  const [role, setRole] = useState<'student' | 'teacher'>('student')
+  const [role, setRole] = useState<'student' | 'teacher' | 'parent'>('student')
   const [values, setValues] = useState({ displayName: '', login: '', email: '', password: '', classCode: '' })
   const [invalid, setInvalid] = useState<Partial<Record<Field, string>>>({})
   const [error, setError] = useState<string | null>(null)
@@ -52,9 +52,9 @@ export function AuthScreen({ lang }: { lang: Lang }) {
     const errors: Partial<Record<Field, string>> = {}
     if (mode === 'signUp') {
       const name = values.displayName.trim()
-      if (!name || /[0-9_<>@]/.test(name)) errors.displayName = c.displayNameHint
+      if (!name || /[0-9_<>@]/.test(name)) errors.displayName = role === 'parent' ? c.parentNameHint : c.displayNameHint
       if (role === 'student' && !LOGIN.test(values.login.trim().toLowerCase())) errors.login = c.loginHint
-      if (role === 'teacher' && !EMAIL.test(values.email.trim().toLowerCase())) errors.email = c.errors.validation
+      if (role !== 'student' && !EMAIL.test(values.email.trim().toLowerCase())) errors.email = c.errors.validation
       if (values.password.length < 8) errors.password = c.passwordHint
     } else {
       if (!values.login.trim()) errors.login = c.errors.validation
@@ -85,9 +85,11 @@ export function AuthScreen({ lang }: { lang: Lang }) {
                 displayName: values.displayName.trim(),
                 ...(values.classCode.trim() ? { classCode: values.classCode.trim() } : {}),
               })
-            : await account.signUpTeacher({ email: values.email.trim(), password: values.password, displayName: values.displayName.trim() })
+            : role === 'parent'
+              ? await account.signUpParent({ email: values.email.trim(), password: values.password, displayName: values.displayName.trim() })
+              : await account.signUpTeacher({ email: values.email.trim(), password: values.password, displayName: values.displayName.trim() })
       const back = user.role === 'student' ? peekAfterLogin() : null
-      window.location.hash = back ?? (user.role === 'teacher' ? SECTION_HREFS.teacher : SECTION_HREFS.map)
+      window.location.hash = back ?? (user.role === 'teacher' ? SECTION_HREFS.teacher : user.role === 'parent' ? SECTION_HREFS.parent : SECTION_HREFS.map)
     } catch (err) {
       const key = errorKey(err)
       setError(c.errors[key] ?? c.errors.network)
@@ -135,12 +137,12 @@ export function AuthScreen({ lang }: { lang: Lang }) {
           {mode === 'signUp' && (
             <fieldset>
               <legend className="mb-2 text-sm font-black text-ink/80">{c.who}</legend>
-              <div className="grid grid-cols-2 gap-2">
-                {(['student', 'teacher'] as const).map((r) => (
+              <div className="grid grid-cols-3 gap-2">
+                {(['student', 'teacher', 'parent'] as const).map((r) => (
                   <label key={r} className={CHOICE}>
                     <input type="radio" name={`${id}-role`} className="sr-only" checked={role === r} onChange={() => { setRole(r); setInvalid({}) }} />
-                    <span aria-hidden>{r === 'student' ? '🎒' : '🧑‍🏫'}</span>
-                    <span className="text-sm leading-tight sm:text-base">{r === 'student' ? c.student : c.teacher}</span>
+                    <span aria-hidden>{r === 'student' ? '🎒' : r === 'teacher' ? '🧑‍🏫' : '👨‍👩‍👧'}</span>
+                    <span className="text-sm leading-tight sm:text-base">{r === 'student' ? c.student : r === 'teacher' ? c.teacher : c.parent}</span>
                     <span aria-hidden className="absolute -top-2 -right-2 hidden size-6 place-items-center rounded-full border-2 border-ink bg-white text-xs group-has-checked:grid">✓</span>
                   </label>
                 ))}
@@ -148,10 +150,10 @@ export function AuthScreen({ lang }: { lang: Lang }) {
             </fieldset>
           )}
 
-          {mode === 'signUp' && input('displayName', c.displayName, { hint: c.displayNameHint, autoComplete: 'name', maxLength: 60 })}
+          {mode === 'signUp' && input('displayName', role === 'parent' ? c.parentName : c.displayName, { hint: role === 'parent' ? c.parentNameHint : c.displayNameHint, autoComplete: 'name', maxLength: 60 })}
           {mode === 'signIn' && input('login', c.loginOrEmail, { autoComplete: 'username', maxLength: 254 })}
           {mode === 'signUp' && role === 'student' && input('login', c.login, { hint: c.loginHint, autoComplete: 'username', maxLength: 24, placeholder: 'aruna_5a' })}
-          {mode === 'signUp' && role === 'teacher' && input('email', c.email, { type: 'email', autoComplete: 'email', maxLength: 254 })}
+          {mode === 'signUp' && role !== 'student' && input('email', c.email, { type: 'email', autoComplete: 'email', maxLength: 254 })}
           {input('password', c.password, { type: 'password', hint: mode === 'signUp' ? c.passwordHint : undefined, autoComplete: mode === 'signIn' ? 'current-password' : 'new-password', maxLength: 72 })}
           {mode === 'signUp' && role === 'student' && input('classCode', c.classCode, { hint: c.classCodeHint, maxLength: 32, placeholder: 'KOKSH-5A-2026' })}
 

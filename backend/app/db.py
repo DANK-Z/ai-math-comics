@@ -44,6 +44,7 @@ class Base(DeclarativeBase):
 class Role(str, enum.Enum):
     student = "student"
     teacher = "teacher"
+    parent = "parent"
 
 
 class User(Base):
@@ -265,6 +266,46 @@ class BoardPresence(Base):
         ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
     )
     seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class FamilyCode(Base):
+    """A student's family code: a parent types it to follow the child."""
+
+    __tablename__ = "family_codes"
+
+    student_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    code: Mapped[str] = mapped_column(String(16), unique=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class FamilyLink(Base):
+    """A parent following a child."""
+
+    __tablename__ = "family_links"
+
+    parent_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    student_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class Praise(Base):
+    """A card from a parent to a child (sometimes with gift coins), shown on the child's home."""
+
+    __tablename__ = "praises"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    parent_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    student_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(20))
+    coins: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class SignInWindow(Base):

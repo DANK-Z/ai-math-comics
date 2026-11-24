@@ -3,6 +3,7 @@ import { ApiError } from './errors'
 import type { BattleAnswerResult, BattleBoard, Leaderboard, PracticeReport, PracticeResult, PracticeTask, StudentBattle, StudentCredentials, WeakSpot } from './types'
 import type { ItemLore, VoiceAnswerKind } from './types'
 import type { HomeworkItem, LessonBoard, MyHomework, StudentLesson } from './types'
+import type { ChildSummary, PraiseCard } from './types'
 import type { AssignmentReport, ClassAssignment, ComicJobRequest, Lang, TeacherDraft, TeacherDraftJob, TeacherPublication, TeacherTask } from './types'
 import type { AccountApi, Api, AuthResponse, BossState, CheckResponse, ClassInfo, Comic, ComicJob, ComicJobCreated, ContinuationJobRequest, Dashboard, HintResponse, Me, Shop } from './types'
 
@@ -114,6 +115,30 @@ export function createHttpApi(baseUrl: string): Api & AccountApi & {
     },
     checkChapter(exerciseId, answer, signal) {
       return request(`/api/chapters/${encodeURIComponent(exerciseId)}/check`, { method: 'POST', body: JSON.stringify({ answer }), signal })
+    },
+    signUpParent(body) {
+      return request<AuthResponse>('/api/auth/parents', { method: 'POST', body: JSON.stringify(body) })
+    },
+    familyCode(signal) {
+      return request<{ code: string; parents: number }>('/api/me/family-code', { signal })
+    },
+    parentChildren(signal) {
+      return request<ChildSummary[]>('/api/parent/children', { signal })
+    },
+    addChild(code) {
+      return request<ChildSummary>('/api/parent/children', { method: 'POST', body: JSON.stringify({ code }) })
+    },
+    async removeChild(studentId) {
+      await request<unknown>(`/api/parent/children/${studentId}`, { method: 'DELETE' })
+    },
+    sendPraise(studentId, kind) {
+      return request<ChildSummary>(`/api/parent/children/${studentId}/praise`, { method: 'POST', body: JSON.stringify({ kind }) })
+    },
+    myPraise(signal) {
+      return request<PraiseCard[]>('/api/me/praise', { signal })
+    },
+    async praiseSeen() {
+      await request<unknown>('/api/me/praise/seen', { method: 'POST' })
     },
     quickJoin(body) {
       return request<AuthResponse>('/api/auth/quick-join', { method: 'POST', body: JSON.stringify(body) })

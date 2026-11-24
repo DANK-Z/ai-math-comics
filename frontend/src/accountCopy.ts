@@ -10,9 +10,12 @@ interface AccountCopy {
   signOut: string
   student: string
   teacher: string
+  parent: string
   who: string
   displayName: string
   displayNameHint: string
+  parentName: string
+  parentNameHint: string
   login: string
   loginHint: string
   loginOrEmail: string
@@ -77,10 +80,13 @@ export const ACCOUNT_COPY: Record<Lang, AccountCopy> = {
     signUp: 'Регистрация',
     signOut: 'Выйти',
     student: 'Я ученик',
+    parent: 'Я родитель',
     teacher: 'Я учитель',
     who: 'Кто входит?',
     displayName: 'Как тебя зовут',
     displayNameHint: 'Это имя увидит учитель.',
+    parentName: 'Ваше имя',
+    parentNameHint: 'Ребёнок увидит его в ваших открытках.',
     login: 'Логин',
     loginHint: 'Латинские буквы и цифры, от 3 символов: например, aruna_5a.',
     loginOrEmail: 'Логин (или почта учителя)',
@@ -172,10 +178,13 @@ export const ACCOUNT_COPY: Record<Lang, AccountCopy> = {
     signUp: 'Тіркелу',
     signOut: 'Шығу',
     student: 'Мен оқушымын',
+    parent: 'Мен ата-анамын',
     teacher: 'Мен мұғаліммін',
     who: 'Кім кіреді?',
     displayName: 'Атың кім',
     displayNameHint: 'Бұл атты мұғалім көреді.',
+    parentName: 'Сіздің атыңыз',
+    parentNameHint: 'Бала оны сіздің ашықхаттарыңызда көреді.',
     login: 'Логин',
     loginHint: 'Латын әріптері мен сандар, кемінде 3 таңба: мысалы, aruna_5a.',
     loginOrEmail: 'Логин (немесе мұғалімнің поштасы)',

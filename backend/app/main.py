@@ -30,6 +30,7 @@ from .classroom import router as classroom_router
 from .config import Settings
 from .content import FEEDBACK, HINTS, get_comic
 from .db import Database, Role, User, default_database_url
+from .family import router as family_router
 from .item_lore import router as lore_router
 from .lessons import router as lessons_router
 from .library_episode import EXERCISE_PREFIX, check_library_answer
@@ -136,6 +137,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(roster_router)
     app.include_router(lessons_router)
     app.include_router(chapters_router)
+    app.include_router(family_router)
     app.include_router(lore_router)
     app.include_router(voice_router)
 

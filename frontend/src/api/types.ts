@@ -160,7 +160,7 @@ export interface Api {
 }
 
 // ---- Accounts (docs/api-contract.md, "Accounts") ----
-export type Role = 'student' | 'teacher'
+export type Role = 'student' | 'teacher' | 'parent'
 
 /** Coins and stars a signed-in student earns once per beaten boss (from POST …/check). */
 export interface Reward {
@@ -417,9 +417,52 @@ export interface MyHomework {
   done: boolean
 }
 
+export type PraiseKind = 'proud' | 'keep-going' | 'star' | 'gift'
+
+/** What a parent sees about one child (built from the child's real data). */
+export interface ChildSummary {
+  id: number
+  name: string
+  className?: string | null
+  skin?: SkinKey | null
+  coins: number
+  stars: number
+  chaptersMonth: number
+  chaptersTotal: number
+  bossWins: number
+  cleanWins: number
+  strengths: string[]
+  weakSkill?: string | null
+  weakMistakes: number
+  drillsWeek: number
+  homeworkOpen: number
+  homeworkOverdue: number
+  lastActive?: string | null
+  recent: { kind: 'boss' | 'finale'; key: string; stars: number; at: string }[]
+  /** When the next gift with coins can be sent (null: now). */
+  giftReadyAt?: string | null
+}
+
+/** A card from a parent, shown on the child's home page. */
+export interface PraiseCard {
+  id: number
+  kind: PraiseKind
+  coins: number
+  fromName: string
+  at: string
+}
+
 export interface AccountApi {
   signUpStudent(body: { login: string; password: string; displayName: string; classCode?: string }): Promise<AuthResponse>
   signUpTeacher(body: { email: string; password: string; displayName: string }): Promise<AuthResponse>
+  signUpParent(body: { email: string; password: string; displayName: string }): Promise<AuthResponse>
+  familyCode(signal?: AbortSignal): Promise<{ code: string; parents: number }>
+  parentChildren(signal?: AbortSignal): Promise<ChildSummary[]>
+  addChild(code: string): Promise<ChildSummary>
+  removeChild(studentId: number): Promise<void>
+  sendPraise(studentId: number, kind: PraiseKind): Promise<ChildSummary>
+  myPraise(signal?: AbortSignal): Promise<PraiseCard[]>
+  praiseSeen(): Promise<void>
   logIn(body: { login: string; password: string }): Promise<AuthResponse>
   /** Joins a class from the board's QR code: a name and the phone's own key. */
   quickJoin(body: { classCode: string; displayName: string; deviceKey: string }): Promise<AuthResponse>

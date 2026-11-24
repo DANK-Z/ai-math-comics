@@ -1,4 +1,5 @@
 import { useId, useState, type FormEvent } from 'react'
+import { FamilyCodeCard } from './ParentScreen'
 import type { Lang } from '../api'
 import { useAccount } from '../account'
 import { ACCOUNT_COPY } from '../accountCopy'
@@ -85,6 +86,8 @@ export function ProfileScreen({ lang }: { lang: Lang }) {
           {joined !== null && <p role="status" className="rounded-xl border-2 border-emerald-700 bg-emerald-50 px-3 py-2 font-bold text-emerald-950">{c.profile.joined(joined)}</p>}
         </form>
       </section>
+
+      <FamilyCodeCard lang={lang} />
 
       <div className="flex flex-wrap gap-2">
         <a href={SECTION_HREFS.map} className={PRIMARY}>{c.profile.play} <span aria-hidden>→</span></a>
