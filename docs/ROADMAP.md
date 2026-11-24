@@ -141,7 +141,12 @@ The Guardian final challenge exists (`9dc0af2`): three rounds (fractions, percen
 | Weekly class league and class battles on the board | Done. Students hit one shared boss from their phones; the server picks and checks every problem. |
 | Review of weak spots | Done. A one-click battle on the recommended topic, a five-problem drill on the student's weakest skill, and a drill offer after two wrong answers in a chapter. |
 | Curriculum goals | Done. Every bundled chapter shows its grade, course section and lesson goal; the class page groups chapters by section. Official objective codes are not listed. |
-| Password reset, teacher-managed student accounts | Planned |
+| Teacher-managed student accounts and password resets | Done. Accounts from a list of names, printable login cards, a new password in one click (old sessions end), removal from the class. |
+| Lesson on the board | Done. A bundled chapter on the projector; students answer the exercise from phones, the board reveals right answers and common slips. |
+| Homework with due dates | Done. A chapter or a five-problem drill; done is marked from server-checked chapters and finished drills. |
+| Joining from the board QR | Done. A name is enough; the phone keeps a key and signs in by itself next time. The board shows a lobby with a remove button. |
+| Server-checked bundled chapters | Done. Chapter, secret and finale coins and homework count only after the server checks the answer. |
+| Generation and sign-up limits, nightly backups | Done. Daily generation limits per site, student, teacher and guest network; sign-up rate limits; a nightly backup on the pilot server. |
 | Rate limiting of sign-in | Done. Shared counters cap attempts per IP and per login/IP. |
 | Database migrations (Alembic) before a pilot | Done for the accounts database. See [migration instructions](account-migrations.md). |
 

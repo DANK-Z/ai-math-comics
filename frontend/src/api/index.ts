@@ -1,5 +1,6 @@
 import { createHttpApi } from './httpApi'
 import { mockAccounts } from './mockAccounts'
+import { isAbortError } from './errors'
 import { mockApi } from './mockApi'
 import { FAIR_CHAPTERS, LIBRARY_BOXES, SCHOOL_MAP } from './fairChapters'
 import { buildLocalComic, checkLocalAnswer, localHint, type LocalComicDef } from './localComics'
@@ -65,7 +66,19 @@ export const api: Api = {
     const local = byExerciseId.get(id)
     if (!local) return configuredApi.checkAnswer(id, request, signal)
     signal?.throwIfAborted()
-    return checkLocalAnswer(local, request.answer, request.lang)
+    // The browser gives the chapter's targeted feedback at once; in live mode the server checks
+    // too, and its verdict counts (it pays a signed-in student's coins and marks homework).
+    const result = checkLocalAnswer(local, request.answer, request.lang)
+    if (API_MODE === 'live' && result.status !== 'invalid') {
+      try {
+        const server = await accounts.checkChapter(id, request.answer, signal)
+        if (server.status !== result.status) return { ...result, status: server.status }
+      } catch (e) {
+        if (isAbortError(e)) throw e
+        // Offline or an old server: keep the browser's answer.
+      }
+    }
+    return result
   },
   async getHint(id, lang, step, signal) {
     const local = byExerciseId.get(id)

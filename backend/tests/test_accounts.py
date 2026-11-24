@@ -57,7 +57,7 @@ def env(request, tmp_path):
 
 
 def auth(token):
-    return {"Authorization": f"Bearer {token}"}
+    return {"Authorization": f"Bearer {token}"} if token else {}
 
 
 def teacher(client, email="aigul@school.kz", name="Айгуль Серикова"):
@@ -357,8 +357,21 @@ def test_season_progress_only_grows(env):
     )
 
 
+def solve(client, token, exercise_id, answer):
+    """Checks a bundled chapter on the server (what pays its coins)."""
+    response = client.post(
+        f"/api/chapters/{exercise_id}/check", json={"answer": str(answer)}, headers=auth(token)
+    )
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+def coins(client, token):
+    return client.get("/api/me", headers=auth(token)).json()["profile"]["coins"]
+
+
 def test_operation_rewards_pay_once(env):
-    """5 coins per chapter and secret, 10 per finale, each paid only once."""
+    """5 coins per checked chapter and secret, 10 per finale, each paid only once."""
     _, client = env
     token = student(client, "aruna", "Аруна")
 
@@ -369,37 +382,51 @@ def test_operation_rewards_pay_once(env):
         assert response.status_code == 200
         return response.json()["profile"]["coins"]
 
-    assert save("roads-flag") == 5
-    # Replaying the chapter, reloading the page and re-sending the same list pay nothing.
-    assert save("roads-flag") == 5
-    assert save("roads-flag", "pizza-fractions") == 10
-    assert save("roads-flag", "roads-bridge") == 15
-    assert save("roads-flag", "roads-bridge", "roads-finale") == 25
-    assert save("roads-finale") == 25
-    # Every season pays: other operations' chapters, finales and secrets too.
-    assert save("lights-park", "mars-crater", "fair-finale", "secret-lights-park") == 50
-    # Ids that are not rewards are progress only.
-    assert save("custom-chapter") == 50
+    # Claims from the browser alone pay nothing: chapters, secrets and finales need checks.
+    assert save("roads-flag", "secret-roads-flag", "roads-finale", "fair-finale") == 0
+    assert solve(client, token, "roads-chase", 7) == {"status": "incorrect", "verified": False}
+    assert coins(client, token) == 0
+    # A checked chapter pays once, and the secret claimed before is paid with it.
+    assert solve(client, token, "roads-chase", 4) == {"status": "correct", "verified": True}
+    assert coins(client, token) == 10
+    solve(client, token, "roads-chase", 4)
+    assert save("roads-flag") == 10
+    # The finale pays only once all four chapters of the season are checked.
+    for exercise, answer in (("roads-meeting", 5), ("roads-current", 4)):
+        solve(client, token, exercise, answer)
+    assert coins(client, token) == 20
+    solve(client, token, "roads-average", 9)
+    assert coins(client, token) == 35  # 4 chapters + secret + finale claimed earlier
+    assert save("roads-finale") == 35
+    # The demo pizza chapter is checked by the generic endpoint.
+    client.post(
+        "/api/exercises/pizza-share/check",
+        json={"answer": "3/4", "lang": "ru"},
+        headers=auth(token),
+    )
     profile = client.get("/api/me", headers=auth(token)).json()["profile"]
-    assert profile["coins"] == 50
-    assert "roads-finale" in profile["completedChapters"]
+    assert profile["coins"] == 40
+    assert {"roads-finale", "pizza-fractions"} <= set(profile["completedChapters"])
+    # Guests get the status only.
+    assert solve(client, None, "roads-chase", 4) == {"status": "correct", "verified": False}
 
 
-def test_parallel_progress_reports_pay_once(env):
-    """Two tabs report the same finale at once: one payout."""
+def test_parallel_checks_pay_once(env):
+    """Two tabs check the same chapter at once: one payout."""
     from concurrent.futures import ThreadPoolExecutor
 
     _, client = env
     token = student(client, "aldiyar", "Алдияр")
-    body = {"completedChapters": ["roads-hill", "roads-finale"]}
 
-    def put(_):
-        return client.put("/api/me/progress", json=body, headers=auth(token)).status_code
+    def check(_):
+        return client.post(
+            "/api/chapters/roads-chase/check", json={"answer": "4"}, headers=auth(token)
+        ).status_code
 
     with ThreadPoolExecutor(max_workers=4) as pool:
-        statuses = list(pool.map(put, range(4)))
+        statuses = list(pool.map(check, range(4)))
     assert statuses == [200] * 4
-    assert client.get("/api/me", headers=auth(token)).json()["profile"]["coins"] == 15
+    assert coins(client, token) == 5
 
 
 def test_boss_fight_awards_coins_once_and_survives_reload(env):

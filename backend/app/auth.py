@@ -111,10 +111,33 @@ async def enforce_generation_limit(request: Request, session: AsyncSession, user
         await consume(request, session, windows, "generation_limit")
 
 
+def password_mark(user: User, secret: str) -> str:
+    """A short fingerprint of the user's password hash: a new password retires old tokens."""
+    return hmac.new(secret.encode(), user.hashed_password.encode(), "sha256").hexdigest()[:16]
+
+
 def create_token(user: User, secret: str, lifetime: timedelta) -> str:
     now = datetime.now(UTC)
-    payload = {"sub": str(user.id), "role": user.role.value, "iat": now, "exp": now + lifetime}
+    payload = {
+        "sub": str(user.id),
+        "role": user.role.value,
+        "pv": password_mark(user, secret),
+        "iat": now,
+        "exp": now + lifetime,
+    }
     return jwt.encode(payload, secret, algorithm=ALGORITHM)
+
+
+async def token_user(request: Request, session: AsyncSession, token: str) -> User | None:
+    """The token's user, unless the token is invalid, expired or older than the password."""
+    secret = request.app.state.jwt_secret
+    payload = decode_token(token, secret)
+    user = await session.get(User, int(payload["sub"])) if payload else None
+    if user is None or not hmac.compare_digest(
+        str(payload.get("pv", "")), password_mark(user, secret)
+    ):
+        return None
+    return user
 
 
 def decode_token(token: str, secret: str) -> dict | None:
@@ -145,8 +168,7 @@ async def optional_user(
     """The signed-in user, or None for guests. An invalid token is an error, not a guest."""
     if credentials is None:
         return None
-    payload = decode_token(credentials.credentials, request.app.state.jwt_secret)
-    user = await session.get(User, int(payload["sub"])) if payload else None
+    user = await token_user(request, session, credentials.credentials)
     if user is None:
         raise HTTPException(401, "invalid_token", headers={"WWW-Authenticate": "Bearer"})
     return user
@@ -163,8 +185,7 @@ async def lenient_user(
     """
     if credentials is None:
         return None
-    payload = decode_token(credentials.credentials, request.app.state.jwt_secret)
-    return await session.get(User, int(payload["sub"])) if payload else None
+    return await token_user(request, session, credentials.credentials)
 
 
 async def current_user(user: Annotated[User | None, Depends(optional_user)]) -> User:

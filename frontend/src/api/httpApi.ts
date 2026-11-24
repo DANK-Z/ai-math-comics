@@ -112,6 +112,9 @@ export function createHttpApi(baseUrl: string): Api & AccountApi & {
     logIn(body) {
       return request<AuthResponse>('/api/auth/login', { method: 'POST', body: JSON.stringify(body) })
     },
+    checkChapter(exerciseId, answer, signal) {
+      return request(`/api/chapters/${encodeURIComponent(exerciseId)}/check`, { method: 'POST', body: JSON.stringify({ answer }), signal })
+    },
     quickJoin(body) {
       return request<AuthResponse>('/api/auth/quick-join', { method: 'POST', body: JSON.stringify(body) })
     },

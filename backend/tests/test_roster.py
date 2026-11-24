@@ -41,12 +41,16 @@ def test_teacher_creates_students_and_resets_a_password(env):
     assert me["displayName"] == "Әлия Сапарова" and me["schoolClass"]["id"] == school_class["id"]
     assert me["profile"]["coins"] == 0
 
+    old_token = signed.json()["token"]
+    assert client.get("/api/me", headers=auth(old_token)).status_code == 200
     reset = client.post(
         f"/api/teacher/classes/{school_class['id']}/students/{aliya['id']}/password",
         headers=auth(teacher_token),
     )
     assert reset.status_code == 200
     assert login(client, aliya["login"], aliya["password"]).status_code == 401
+    # The reset signs the student out everywhere: the old session no longer works.
+    assert client.get("/api/me", headers=auth(old_token)).status_code == 401
     assert login(client, aliya["login"], reset.json()["password"]).status_code == 200
 
     # Another teacher can't touch this class; nobody can reset a student of another class.

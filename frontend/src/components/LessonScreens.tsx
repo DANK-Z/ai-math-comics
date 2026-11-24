@@ -5,7 +5,7 @@ import { useAccount } from '../account'
 import { CURRICULUM, CURRICULUM_COPY } from '../curriculum'
 import { joinHref, lessonBoardHref, SECTION_HREFS, teacherClassHref } from '../route'
 import { CARD, PRIMARY, SECONDARY } from './AuthScreen'
-import { usePolled } from './ClassBattle'
+import { usePolled } from '../usePolled'
 import { chapterTitle } from './CurriculumCard'
 import { PanelArt } from './PanelArt'
 import { Lobby } from './Lobby'
@@ -263,26 +263,6 @@ export function LessonBoardScreen({ lessonId, lang }: { lessonId: string; lang: 
         <a href={teacherClassHref(board.classId)} className={SECONDARY}>{copy.back}</a>
       </nav>
     </div>
-  )
-}
-
-/** Home page: a card while the class has a lesson going. */
-export function LessonAlert({ lang }: { lang: Lang }) {
-  const copy = STUDENT_LESSON_COPY[lang]
-  const user = useAccount().user
-  const inClass = user?.role === 'student' && !!user.schoolClass
-  const load = useCallback((signal: AbortSignal) => accounts.myLesson(signal), [])
-  const { value: lesson } = usePolled(load, 20000, inClass)
-  if (!inClass || !lesson) return null
-  return (
-    <a href={SECTION_HREFS.lesson} className="flex items-center gap-3 rounded-2xl border-[3px] border-ink bg-[linear-gradient(135deg,#2a1f6b,#3366e0)] p-3 text-white shadow-[0_4px_0_var(--shadow-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun">
-      <span aria-hidden className="text-3xl">📽️</span>
-      <span className="min-w-0 flex-1">
-        <span className="block font-black leading-tight">{copy.alertTitle}</span>
-        <span className="mt-0.5 block text-sm font-semibold text-white/90">{copy.alertText}</span>
-      </span>
-      <span className="shrink-0 rounded-xl border-2 border-ink bg-sun px-3 py-1.5 font-black text-ink">{copy.join} →</span>
-    </a>
   )
 }
 

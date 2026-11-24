@@ -423,6 +423,8 @@ export interface AccountApi {
   logIn(body: { login: string; password: string }): Promise<AuthResponse>
   /** Joins a class from the board's QR code: a name and the phone's own key. */
   quickJoin(body: { classCode: string; displayName: string; deviceKey: string }): Promise<AuthResponse>
+  /** Live mode: the server checks a bundled chapter (and pays its coins to a signed-in student). */
+  checkChapter(exerciseId: string, answer: string, signal?: AbortSignal): Promise<{ status: CheckStatus; verified: boolean }>
   me(): Promise<Me>
   joinClass(code: string): Promise<Me>
   saveProgress(body: { completedChapters: string[]; stickers: string[] }): Promise<Me>

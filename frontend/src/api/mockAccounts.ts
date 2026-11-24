@@ -210,6 +210,10 @@ export const mockAccounts: AccountApi = {
       return signIn(state, user)
     })
   },
+  checkChapter() {
+    // Demo mode checks bundled chapters in the browser and pays coins from saveProgress.
+    return Promise.reject(fail(404, 'exercise_not_found'))
+  },
   quickJoin(body) {
     return later(() => {
       const state = load()

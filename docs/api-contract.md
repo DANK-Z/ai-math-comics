@@ -246,13 +246,63 @@ correctly, the check response carries
 `"reward": {"coins", "stars", "misses", "totalCoins"}` once: stars 3 / 2 / 1 for 0 / 1–2 / 3+
 misses before each round was solved, coins `10 + 10 × stars`.
 
-### One-time progress coins
+### One-time progress coins and checked chapters
 
-`PUT /api/me/progress` also pays coins once per student for ids listed in
-`frontend/src/progressRewards.json` (shared by the server and the frontend): every bundled
-chapter 5, every finale 10 (`fair-finale`, `roads-finale`, `lights-finale`, `museum-finale`,
-`weather-finale`, `mars-finale`) and every panel secret 5 (`secret-<chapter>`). Paid keys are
-stored in `progress_rewards`, so a replay, a reload or two parallel requests pay nothing more.
+Coins are paid once per student for ids listed in `frontend/src/progressRewards.json` (shared by
+the server and the frontend): every bundled chapter 5, every finale 10 (`fair-finale`,
+`roads-finale`, `lights-finale`, `museum-finale`, `weather-finale`, `mars-finale`) and every
+panel secret 5 (`secret-<chapter>`). Paid keys are stored in `progress_rewards`, so a replay, a
+reload or two parallel requests pay nothing more.
+
+A reward needs a chapter the server has checked: the chapter itself, the chapter of a secret,
+or every chapter of a finale's season. `PUT /api/me/progress` still merges the browser's
+progress for the map, but pays only rewards that are already allowed.
+
+| Method and path | Who | Body / result |
+| --- | --- | --- |
+| `POST /api/chapters/{exerciseId}/check` | anyone | `{"answer"}` → `{status, verified}`. Answers of the bundled chapters live in `backend/app/chapter_answers.json` (a test keeps them in sync with the frontend). A correct answer from a signed-in student records the chapter in `season.verifiedChapters` and pays what it allows. The demo chapter `pizza-share` is checked by `POST /api/exercises/pizza-share/check`. |
+
+In live mode the browser gives the chapter's targeted feedback at once and sends the answer here;
+the server's verdict counts.
+
+### Teacher tools: students, lessons and homework
+
+| Method and path | Who | Body / result |
+| --- | --- | --- |
+| `POST /api/teacher/classes/{id}/students` | teacher (owner) | `{"names": [...]}` (up to 40) → 201 `[{id, displayName, login, password}]`. Logins come from the name; passwords are easy (`fox-4821`) and shown once. |
+| `POST /api/teacher/classes/{id}/students/{studentId}/password` | teacher (owner) | A new password → `{id, displayName, login, password}`. Old sessions of the student stop working at once (tokens carry a fingerprint of the password). |
+| `POST /api/teacher/classes/{id}/students/{studentId}/remove` | teacher (owner) | 204. Takes the student out of the class (the account stays). |
+| `GET /api/teacher/classes/{id}/practice` | teacher (owner) | Review drills over 30 days: `{days, students:[{id, displayName, drills, finished, solved, topics, lastAt}]}`. |
+| `POST /api/teacher/classes/{id}/lessons` | teacher (owner) | `{"comicId","answer"}` → 201 lesson board. One open lesson per class. |
+| `GET /api/teacher/lessons/{lessonId}` | teacher (owner) | `{id, classId, className, classCode, comicId, panel, phase, students, answered, correct?, wrong, answer, present}`. `correct` and `wrong` (top three wrong answers) appear after the reveal. |
+| `POST /api/teacher/lessons/{lessonId}` | teacher (owner) | `{"panel"?, "phase"?}`; phases `reading`, `answering`, `reveal`, `closed`. |
+| `GET /api/me/lesson` | student in a class | The open lesson (`{id, comicId, panel, phase, myAnswer?, correct?}`) or `null`. |
+| `POST /api/me/lesson/{lessonId}/answer` | student in a class | `{"answer"}` while answering (409 otherwise, 422 if not a whole number). One answer per student, changeable until the reveal. |
+| `POST /api/teacher/classes/{id}/homework` | teacher (owner) | `{"kind":"chapter"|"practice","target","dueDate"}` → 201 item. |
+| `GET /api/teacher/classes/{id}/homework` | teacher (owner) | Items with `done`, `total`, `overdue` and per-student `students:[{id, name, done}]`. A chapter counts once checked by the server; a drill once a five-problem drill on the topic is finished after the homework was set. |
+| `DELETE /api/teacher/homework/{id}` | teacher (owner) | 204. |
+| `GET /api/me/homework` | student in a class | `[{id, kind, target, dueDate, overdue, done}]`. |
+
+Battle and lesson boards also carry `present: [{id, name}]`, the lobby: students of the class
+seen on that board in the last five minutes, in order of arrival.
+
+### Joining from the board's QR code
+
+The battle and lesson boards show a QR code to `#/join/{classCode}?to=battle|lesson`.
+
+| Method and path | Who | Body / result |
+| --- | --- | --- |
+| `POST /api/auth/quick-join` | anyone | `{"classCode","displayName","deviceKey"}` → 201 `{token,user}`. Creates a student in the class with a login from the name. `deviceKey` (24–72 characters, random, kept by the phone) is the account's password, so the same phone signs in again by itself and typing a classmate's name never opens their account. Shares the sign-in rate limits. |
+
+### Limits
+
+- Sign-in, sign-up and quick-join: per network 60 a minute, per login 8 in five minutes (429
+  `sign_in_rate_limited` with `Retry-After`).
+- Comic generation (`/api/comic-jobs`, `/api/continuation-jobs`, teacher drafts) per day: the
+  whole site `COMIC_DAILY_TOTAL` (300), each student `COMIC_DAILY_PER_STUDENT` (10), each teacher
+  `COMIC_DAILY_PER_TEACHER` (40), guests per network `COMIC_DAILY_PER_GUEST_IP` (3); 0 turns a
+  limit off. Over the limit: 429 `generation_limit` with `Retry-After`. A refused request
+  reserves nothing.
 
 ### Class league, class battles and review drills
 

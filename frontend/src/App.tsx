@@ -1,6 +1,3 @@
-import { BattleBoardScreen, BattleScreen } from './components/ClassBattle'
-import { LessonBoardScreen, StudentLessonScreen } from './components/LessonScreens'
-import { JoinScreen } from './components/JoinScreen'
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { API_MODE, type BattleTopic, type ComicJobRequest, type Lang } from './api'
 import { PRACTICE_TOPICS, PracticeScreen } from './components/PracticeScreen'
@@ -40,6 +37,11 @@ const FinaleScreen = lazy(() => import('./components/FinaleScreen').then((m) => 
 const OperationScreen = lazy(() => import('./components/OperationsScreen').then((m) => ({ default: m.OperationScreen })))
 const OperationsScreen = lazy(() => import('./components/OperationsScreen').then((m) => ({ default: m.OperationsScreen })))
 const RoadGuardianScreen = lazy(() => import('./components/RoadGuardianScreen').then((m) => ({ default: m.RoadGuardianScreen })))
+const BattleBoardScreen = lazy(() => import('./components/ClassBattle').then((m) => ({ default: m.BattleBoardScreen })))
+const BattleScreen = lazy(() => import('./components/ClassBattle').then((m) => ({ default: m.BattleScreen })))
+const LessonBoardScreen = lazy(() => import('./components/LessonScreens').then((m) => ({ default: m.LessonBoardScreen })))
+const StudentLessonScreen = lazy(() => import('./components/LessonScreens').then((m) => ({ default: m.StudentLessonScreen })))
+const JoinScreen = lazy(() => import('./components/JoinScreen').then((m) => ({ default: m.JoinScreen })))
 const MotionLeague = lazy(() => import('./components/MotionLeague'))
 const GuardianScreen = lazy(() => import('./components/GuardianScreen'))
 const MyComicsScreen = lazy(() => import('./components/MyComicsScreen'))

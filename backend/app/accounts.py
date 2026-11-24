@@ -149,6 +149,32 @@ class JoinClass(BaseModel):
 REWARDS_FILE = Path(__file__).resolve().parents[2] / "frontend" / "src" / "progressRewards.json"
 PROGRESS_REWARDS: dict[str, int] = json.loads(REWARDS_FILE.read_text(encoding="utf-8"))["rewards"]
 
+# Answers of the bundled chapters (exercise id -> comic id and answer). A chapter's coins, its
+# finale's coins and its panel secret are paid only once the server has checked the answer
+# (see app/chapters.py), so editing the browser's progress cannot claim them.
+CHAPTER_ANSWERS: dict[str, dict] = json.loads(
+    (Path(__file__).with_name("chapter_answers.json")).read_text(encoding="utf-8")
+)["chapters"]
+CHAPTER_IDS = frozenset(v["comicId"] for v in CHAPTER_ANSWERS.values())
+FAIR_CHAPTERS = frozenset(
+    {"pizza-fractions", "school-store-discount", "school-quest-map", "library-boxes",
+     "fair-lemonade", "fair-garland"}
+)  # fmt: skip
+
+
+def reward_allowed(key: str, verified: set[str]) -> bool:
+    """A reward needs server-checked chapters: the chapter, its secret's chapter or the season."""
+    if key in CHAPTER_IDS:
+        return key in verified
+    if key.startswith("secret-"):
+        return key.removeprefix("secret-") in verified
+    if key == "fair-finale":
+        return FAIR_CHAPTERS <= verified
+    if key.endswith("-finale"):
+        season = {c for c in CHAPTER_IDS if c.startswith(key.removesuffix("finale"))}
+        return bool(season) and season <= verified
+    return False
+
 
 class SeasonUpdate(BaseModel):
     model_config = {"extra": "forbid"}
@@ -709,17 +735,9 @@ async def save_progress(body: SeasonUpdate, user: Student, session: Session):
     return await me(session, user)
 
 
-async def merge_progress(session: AsyncSession, user: User, body: SeasonUpdate) -> None:
-    profile = await session.scalar(
-        select(StudentProfile)
-        .where(StudentProfile.user_id == user.id)
-        .execution_options(populate_existing=True)
-    )
-    season = dict(profile.season or {})
-    for key, values in (("completedChapters", body.completedChapters), ("stickers", body.stickers)):
-        season[key] = sorted(set(season.get(key, [])) | set(values))
-    profile.season = season
-    wanted = set(body.completedChapters) & PROGRESS_REWARDS.keys()
+async def pay_rewards(session: AsyncSession, user: User, keys: set[str]) -> None:
+    """Pays each reward key once (the primary key of progress_rewards); caller commits."""
+    wanted = keys & PROGRESS_REWARDS.keys()
     paid: set[str] = set()
     if wanted:
         query = select(ProgressReward.reward_key).where(
@@ -736,8 +754,45 @@ async def merge_progress(session: AsyncSession, user: User, body: SeasonUpdate) 
             .where(StudentProfile.user_id == user.id)
             .values(total_coins=StudentProfile.total_coins + sum(PROGRESS_REWARDS[k] for k in new))
         )
+
+
+async def merge_progress(session: AsyncSession, user: User, body: SeasonUpdate) -> None:
+    profile = await session.scalar(
+        select(StudentProfile)
+        .where(StudentProfile.user_id == user.id)
+        .execution_options(populate_existing=True)
+    )
+    season = dict(profile.season or {})
+    for key, values in (("completedChapters", body.completedChapters), ("stickers", body.stickers)):
+        season[key] = sorted(set(season.get(key, [])) | set(values))
+    profile.season = season
+    # Progress from the browser shows on the map; coins need a server-checked chapter.
+    verified = set(season.get("verifiedChapters", []))
+    await pay_rewards(
+        session, user, {k for k in body.completedChapters if reward_allowed(k, verified)}
+    )
     await session.commit()
     await session.refresh(profile)
+
+
+async def verify_chapter(session: AsyncSession, user: User, comic_id: str) -> None:
+    """Records a chapter the server checked and pays its coins (and a secret found before)."""
+    profile = await session.scalar(
+        select(StudentProfile)
+        .where(StudentProfile.user_id == user.id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    if profile is None:
+        return
+    season = dict(profile.season or {})
+    verified = set(season.get("verifiedChapters", [])) | {comic_id}
+    season["verifiedChapters"] = sorted(verified)
+    season["completedChapters"] = sorted(set(season.get("completedChapters", [])) | {comic_id})
+    profile.season = season
+    claimed = set(season["completedChapters"])
+    await pay_rewards(session, user, {k for k in claimed if reward_allowed(k, verified)})
+    await session.commit()
 
 
 @router.get("/me/boss/{comic_id}", response_model=BossState, response_model_exclude_none=True)

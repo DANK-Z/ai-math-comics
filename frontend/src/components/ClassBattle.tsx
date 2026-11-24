@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react'
-import { accounts, isAbortError, type BattleBoard, type BattleDifficulty, type BattleTopic, type Lang, type StudentBattle } from '../api'
+import { accounts, type BattleBoard, type BattleDifficulty, type BattleTopic, type Lang, type StudentBattle } from '../api'
 import { useAccount } from '../account'
 import { BOSS_COPY } from '../boss'
 import { BATTLE_BOSS, CLASSROOM_COPY } from '../classroomCopy'
+import { usePolled } from '../usePolled'
 import { battleBoardHref, joinHref, SECTION_HREFS, teacherClassHref } from '../route'
 import { CARD, PRIMARY, SECONDARY } from './AuthScreen'
 import { BossAvatar } from './BossFight'
@@ -17,25 +18,6 @@ export const BATTLE_TOPICS = ['equations', 'fractions', 'decimals', 'gcd', 'part
 
 const STUDENT_POLL_MS = 3000
 const BOARD_POLL_MS = 2000
-const HOME_POLL_MS = 20000
-
-/** Polls a loader while `active`; returns the latest value (undefined until the first load). */
-export function usePolled<T>(load: (signal: AbortSignal) => Promise<T>, ms: number, active = true) {
-  const [value, setValue] = useState<T | undefined>(undefined)
-  const [failed, setFailed] = useState(false)
-  const [tick, setTick] = useState(0)
-  useEffect(() => {
-    if (!active) return
-    const ctrl = new AbortController()
-    load(ctrl.signal).then(
-      (v) => { setValue(v); setFailed(false) },
-      (err) => { if (!isAbortError(err)) setFailed(true) },
-    )
-    const timer = setTimeout(() => setTick((n) => n + 1), ms)
-    return () => { ctrl.abort(); clearTimeout(timer) }
-  }, [load, ms, active, tick])
-  return { value, setValue, failed, refresh: () => setTick((n) => n + 1) }
-}
 
 function HpBar({ hp, max, big = false }: { hp: number; max: number; big?: boolean }) {
   const share = max ? hp / max : 0
@@ -47,26 +29,6 @@ function HpBar({ hp, max, big = false }: { hp: number; max: number; big?: boolea
         style={{ width: `${Math.max(0, Math.min(100, share * 100))}%` }}
       />
     </div>
-  )
-}
-
-/** Home page: a bright card while the class has a battle going. */
-export function BattleAlert({ lang }: { lang: Lang }) {
-  const copy = CLASSROOM_COPY[lang].battle
-  const user = useAccount().user
-  const inClass = user?.role === 'student' && !!user.schoolClass
-  const load = useCallback((signal: AbortSignal) => accounts.myBattle(lang, signal), [lang])
-  const { value: battle } = usePolled(load, HOME_POLL_MS, inClass)
-  if (!inClass || !battle || battle.status !== 'active') return null
-  return (
-    <a href={SECTION_HREFS.battle} className="boss-arena flex items-center gap-3 rounded-2xl border-[3px] border-ink bg-[linear-gradient(135deg,#2a1f6b,#e11d48)] p-3 text-white shadow-[0_4px_0_var(--shadow-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun">
-      <span aria-hidden className="text-3xl">⚔️</span>
-      <span className="min-w-0 flex-1">
-        <span className="block font-black leading-tight">{copy.alertTitle}</span>
-        <span className="mt-0.5 block text-sm font-semibold text-white/90">{copy.alertText(battle.hp, battle.maxHp)}</span>
-      </span>
-      <span className="shrink-0 rounded-xl border-2 border-ink bg-sun px-3 py-1.5 font-black text-ink">{copy.join} →</span>
-    </a>
   )
 }
 

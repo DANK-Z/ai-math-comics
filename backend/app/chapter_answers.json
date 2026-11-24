@@ -1,0 +1,109 @@
+{
+  "about": "Answers of the chapters bundled with the frontend, so the server can verify a solved chapter before paying coins or marking homework. Keep in sync with frontend/src/api/*Chapters.ts (tests/test_chapters.py checks).",
+  "chapters": {
+    "backpack-discount": {
+      "comicId": "school-store-discount",
+      "answer": "9000"
+    },
+    "map-scale": {
+      "comicId": "school-quest-map",
+      "answer": "120"
+    },
+    "library-boxes-equation": {
+      "comicId": "library-boxes",
+      "answer": "8"
+    },
+    "lemonade-proportion": {
+      "comicId": "fair-lemonade",
+      "answer": "1500"
+    },
+    "garland-perimeter": {
+      "comicId": "fair-garland",
+      "answer": "10"
+    },
+    "roads-chase": {
+      "comicId": "roads-flag",
+      "answer": "4"
+    },
+    "roads-meeting": {
+      "comicId": "roads-bridge",
+      "answer": "5"
+    },
+    "roads-current": {
+      "comicId": "roads-river",
+      "answer": "4"
+    },
+    "roads-average": {
+      "comicId": "roads-hill",
+      "answer": "9"
+    },
+    "lights-scale": {
+      "comicId": "lights-park",
+      "answer": "400"
+    },
+    "lights-grid": {
+      "comicId": "lights-launch",
+      "answer": "7"
+    },
+    "lights-perimeter": {
+      "comicId": "lights-garland",
+      "answer": "24"
+    },
+    "lights-discount": {
+      "comicId": "lights-kiosks",
+      "answer": "5400"
+    },
+    "museum-symmetry": {
+      "comicId": "museum-mirror",
+      "answer": "10"
+    },
+    "museum-model-scale": {
+      "comicId": "museum-tower",
+      "answer": "60"
+    },
+    "museum-balance": {
+      "comicId": "museum-scales",
+      "answer": "160"
+    },
+    "museum-tiles": {
+      "comicId": "museum-carpet",
+      "answer": "240"
+    },
+    "weather-negative": {
+      "comicId": "weather-frost",
+      "answer": "10"
+    },
+    "weather-graph": {
+      "comicId": "weather-rain",
+      "answer": "13"
+    },
+    "weather-units": {
+      "comicId": "weather-units",
+      "answer": "30"
+    },
+    "weather-mean": {
+      "comicId": "weather-average",
+      "answer": "7"
+    },
+    "mars-grid-route": {
+      "comicId": "mars-crater",
+      "answer": "1200"
+    },
+    "mars-fractions": {
+      "comicId": "mars-battery",
+      "answer": "300"
+    },
+    "mars-time": {
+      "comicId": "mars-signal",
+      "answer": "780"
+    },
+    "mars-ratio": {
+      "comicId": "mars-greenhouse",
+      "answer": "5"
+    },
+    "pizza-share": {
+      "comicId": "pizza-fractions",
+      "answer": "3/4"
+    }
+  }
+}

@@ -3,19 +3,12 @@
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 
-from test_accounts import answer, auth, generate_comic, make_class, student, teacher
+from test_accounts import answer, auth, generate_comic, make_class, solve, student, teacher
 from test_accounts import env as env
 
 from app import classroom
 from app.practice import Generated
 from app.problems import EquationProblem
-
-
-def put_progress(client, token, *chapters):
-    response = client.put(
-        "/api/me/progress", json={"completedChapters": list(chapters)}, headers=auth(token)
-    )
-    assert response.status_code == 200, response.text
 
 
 def test_week_starts_on_monday_in_almaty():
@@ -40,7 +33,8 @@ def test_leaderboard_ranks_the_class_by_this_weeks_earnings(env):
     _, rounds = generate_comic(settings, client)
     for rid, x in rounds:
         answer(client, aldiyar, rid, str(x))
-    put_progress(client, aruna, "roads-flag", "roads-bridge")
+    solve(client, aruna, "roads-chase", 4)
+    solve(client, aruna, "roads-meeting", 5)
 
     board = client.get("/api/me/leaderboard", headers=auth(aruna))
     assert board.status_code == 200, board.text

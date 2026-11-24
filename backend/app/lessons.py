@@ -7,8 +7,8 @@ were right and the most common wrong answers. Bundled chapters are checked in th
 the teacher's client sends the chapter's whole-number answer when the lesson starts; students
 never see it before the reveal.
 
-Homework: a chapter or a review drill with a due date. A chapter counts once the student's
-synced progress has it; a drill counts once the student finished a five-problem drill on that
+Homework: a chapter or a review drill with a due date. A chapter counts once the server has
+checked the student's answer; a drill counts once the student finished a five-problem drill on that
 topic after the homework was set.
 """
 
@@ -318,7 +318,7 @@ async def done_students(session, item: Homework, students: list[User]) -> set[in
         return {
             p.user_id
             for p in profiles
-            if item.target in (p.season or {}).get("completedChapters", [])
+            if item.target in (p.season or {}).get("verifiedChapters", [])
         }
     finished = await session.execute(
         select(PracticeTask.student_id).where(

@@ -2,7 +2,7 @@
 
 from datetime import date, timedelta
 
-from test_accounts import auth, make_class, student, teacher
+from test_accounts import auth, make_class, solve, student, teacher
 from test_accounts import env as env
 
 from app import practice
@@ -110,7 +110,7 @@ def test_homework_tracks_chapters_and_drills(env, monkeypatch):
     ]
 
     # Aruna finishes the chapter and a drill.
-    client.put("/api/me/progress", json={"completedChapters": ["roads-flag"]}, headers=auth(aruna))
+    solve(client, aruna, "roads-chase", 4)
     task = client.post(
         "/api/me/practice", json={"topic": "gcd", "lang": "ru"}, headers=auth(aruna)
     ).json()

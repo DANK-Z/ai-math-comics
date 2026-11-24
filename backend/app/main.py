@@ -12,7 +12,7 @@ from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
-from .accounts import record_attempt
+from .accounts import record_attempt, verify_chapter
 from .accounts import router as accounts_router
 from .answers import parse_answer, parse_equation_answer
 from .assignments import (
@@ -25,6 +25,7 @@ from .assignments import (
 )
 from .assignments import router as assignments_router
 from .auth import Session, enforce_generation_limit, lenient_user
+from .chapters import router as chapters_router
 from .classroom import router as classroom_router
 from .config import Settings
 from .content import FEEDBACK, HINTS, get_comic
@@ -134,6 +135,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(practice_router)
     app.include_router(roster_router)
     app.include_router(lessons_router)
+    app.include_router(chapters_router)
     app.include_router(lore_router)
     app.include_router(voice_router)
 
@@ -285,6 +287,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         elif exercise_id != "pizza-share" and status == "incorrect":
             message = INCORRECT[topic][body.lang]
         reward = None
+        if exercise_id == "pizza-share" and status == "correct" and user is not None:
+            if user.role == Role.student:
+                await verify_chapter(session, user, "pizza-fractions")
         if user is not None and user.role == Role.student and exercise is not None:
             # Teacher analytics and, once every boss round is solved, coins and stars.
             reward = await record_attempt(
