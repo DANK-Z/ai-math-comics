@@ -12,8 +12,8 @@ depends_on = None
 def upgrade():
     bind = op.get_bind()
     if bind.dialect.name == "postgresql":
-        with op.get_context().autocommit_block():
-            op.execute("ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'parent'")
+        # PostgreSQL 12+ allows this inside a transaction (the value is not used in it).
+        op.execute("ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'parent'")
     schema = sa.MetaData()
     sa.Table("users", schema, sa.Column("id", sa.Integer(), primary_key=True))
     codes = sa.Table(
