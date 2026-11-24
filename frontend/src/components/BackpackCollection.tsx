@@ -87,7 +87,7 @@ const COPY = {
 type Tab = 'finds' | 'pifik' | 'trophies' | 'shop'
 const TAB_ICONS: Record<Tab, string> = { finds: '🧭', pifik: '🤖', trophies: '🏆', shop: '🏬' }
 const TAB =
-  'min-h-11 rounded-xl border-[3px] border-ink px-3 font-black text-ink shadow-[0_3px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand aria-selected:translate-y-[2px] aria-selected:bg-sun aria-selected:shadow-[0_1px_0_var(--color-ink)] sm:px-4'
+  'min-h-11 rounded-xl border-[3px] border-ink px-3 font-black text-ink shadow-[0_3px_0_var(--shadow-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand aria-selected:translate-y-[2px] aria-selected:bg-sun aria-selected:shadow-[0_1px_0_var(--shadow-ink)] sm:px-4'
 const LINK = 'mt-1 inline-block text-xs font-black text-brand-dark underline-offset-2 hover:underline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand'
 
 export function BackpackCollection({ t, lang, completedChapters, bonusStickers, operationChapters, finalesWon }: {
@@ -117,7 +117,7 @@ export function BackpackCollection({ t, lang, completedChapters, bonusStickers, 
   const recentFair = recentOp ? undefined : (recentId as SchoolFairCollectible | undefined)
 
   return (
-    <section aria-labelledby="backpack-title" className="rounded-2xl border-2 border-ink bg-cream p-3 shadow-[0_4px_0_var(--color-ink)] sm:p-5">
+    <section aria-labelledby="backpack-title" className="rounded-2xl border-2 border-ink bg-cream p-3 shadow-[0_4px_0_var(--shadow-ink)] sm:p-5">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <h1 id="backpack-title" className="text-2xl font-black text-ink sm:text-3xl">{t.backpack.title}</h1>
         <p className="text-sm font-bold text-brand-dark">{c.finds(earnedIds.size, totalFinds)}</p>

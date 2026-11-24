@@ -13,10 +13,68 @@
   --color-sky: #e6f0ff;
 }
 
+/* Hard comic shadows: navy in the light theme, deep night in the dark one. */
+:root {
+  --shadow-ink: #1d2766;
+}
+
 html {
   font-family: var(--font-sans);
   background: var(--color-sky);
 }
+
+/* Night theme (🌙 in the header, or the system's dark mode): the same comic look, repainted.
+   Surfaces turn navy, ink turns light, light tints become their deep versions. */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --shadow-ink: #03061a;
+  --color-ink: #e8ecff;
+  --color-white: #182049;
+  --color-cream: #1f2858;
+  --color-paper: #1a2250;
+  --color-sky: #0f1533;
+  --color-sky-50: #19214a;
+  --color-sky-100: #1d2757;
+  --color-sky-200: #26326b;
+  --color-brand: #7d9bff;
+  --color-brand-dark: #a9bcff;
+  --color-emerald-50: #10372a;
+  --color-emerald-100: #123d2b;
+  --color-emerald-200: #17543a;
+  --color-emerald-700: #4ade80;
+  --color-emerald-800: #6ee7b7;
+  --color-emerald-900: #a7f3d0;
+  --color-rose-50: #3a1426;
+  --color-rose-100: #4a1830;
+  --color-rose-200: #5c1d3a;
+  --color-rose-700: #fda4af;
+  --color-amber-50: #3a300f;
+  --color-amber-100: #3f3210;
+  --color-lime-100: #2a3a12;
+  --color-violet-200: #3a2f6b;
+  --color-stone-100: #262c4d;
+}
+:root[data-theme='dark'] .site-bg {
+  background: linear-gradient(180deg, #0c1230 0%, #111a40 45%, #151c3d 100%);
+}
+/* The logo has navy lettering: keep it on a light plate. */
+:root[data-theme='dark'] .site-logo {
+  background: #fff;
+  border-radius: 14px;
+  padding: 2px 8px;
+}
+/* Yellow stays yellow, so text on it stays dark (plain, selected, pressed and checked states). */
+:root[data-theme='dark'] :is([class~='bg-sun'], [aria-current='page'][class*='aria-[current=page]:bg-sun'], [aria-pressed='true'][class*='aria-pressed:bg-sun'], [aria-selected='true'][class*='aria-selected:bg-sun'], [class*='hover:bg-sun']:hover, [class*='has-checked:bg-sun']:has(:checked)),
+:root[data-theme='dark'] :is([class~='bg-sun'], [aria-current='page'][class*='aria-[current=page]:bg-sun'], [aria-pressed='true'][class*='aria-pressed:bg-sun'], [aria-selected='true'][class*='aria-selected:bg-sun'], [class*='hover:bg-sun']:hover, [class*='has-checked:bg-sun']:has(:checked)) * {
+  color: #1d2766;
+}
+/* Light hard-coded tints. */
+:root[data-theme='dark'] [class*='bg-[#fff2bd]'] { background: #3d3414; }
+:root[data-theme='dark'] [class*='bg-[linear-gradient(120deg,#d9f2e6'],
+:root[data-theme='dark'] [class*='bg-[linear-gradient(135deg,#fff4d1'] {
+  background: #1f2858;
+}
+:root[data-theme='dark'] img:not(.site-logo) { filter: brightness(0.9); }
 
 /* Outlined comic lettering for the logo. */
 .comic-outline {

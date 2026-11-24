@@ -1,37 +1,42 @@
 import { BattleBoardScreen, BattleScreen } from './components/ClassBattle'
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
-import { API_MODE, type ComicJobRequest, type Lang } from './api'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { API_MODE, type BattleTopic, type ComicJobRequest, type Lang } from './api'
+import { PRACTICE_TOPICS, PracticeScreen } from './components/PracticeScreen'
 import logoUrl from './assets/logo.webp'
 import { AccountProvider, useAccount } from './account'
 import { ACCOUNT_COPY } from './accountCopy'
 import { AuthScreen } from './components/AuthScreen'
-import { ProfileScreen } from './components/ProfileScreen'
-import { ClassDashboard, TeacherHome } from './components/TeacherScreen'
 import { BackpackCollection } from './components/BackpackCollection'
-import { GenerateCard } from './components/GenerateCard'
 import { CatalogScreen, HomeScreen } from './components/HomeScreen'
 import { LanguageSwitcher } from './components/LanguageSwitcher'
-import { ReaderScreen } from './components/ReaderScreen'
-import { FinaleScreen } from './components/FinaleScreen'
-import { OperationScreen, OperationsScreen } from './components/OperationsScreen'
-import { FINALES, finaleWon } from './finales'
-import { RoadGuardianScreen } from './components/RoadGuardianScreen'
+import { FINALE_WON_EVENT, FINALES, finaleWon } from './finales'
 import { DesktopNavigation, MobileNavigation } from './components/SectionNavigation'
 import { useContinuationJob } from './continuation'
 import { useGuardianChallenge } from './guardian'
 import { guardianAssignmentHref, type GuardianAssignment } from './guardianAssignment'
 import { useRoadGuardian } from './roadGuardian'
 import { useLang } from './hooks'
+import { setTheme, useDarkTheme } from './theme'
 import { useMyComics } from './myComics'
 import { STRINGS } from './i18n'
 import { useBonusStickers } from './bonusStickers'
 import { comicHref, parseRoute, SCHOOL_MAP_COMIC_ID, SECTION_HREFS, useRoute, type Route } from './route'
 import { chaptersLeft, findOperation, operationChapter, useOperationProgress } from './operations'
 import { mergeSecrets, useFoundSecrets } from './panelSecrets'
-import { findForChapter, logFind, ROADS_FINALE_ID } from './rewards'
+import { FAIR_FINALE_ID, finaleProgressId, findForChapter, logFind, ROADS_FINALE_ID } from './rewards'
 import { useSeasonProgress } from './seasonProgress'
 import { SCHOOL_FAIR_CHAPTER_COUNT } from './schoolFair'
 
+// Screens load on demand: the first page only needs the route map.
+const ProfileScreen = lazy(() => import('./components/ProfileScreen').then((m) => ({ default: m.ProfileScreen })))
+const ClassDashboard = lazy(() => import('./components/TeacherScreen').then((m) => ({ default: m.ClassDashboard })))
+const TeacherHome = lazy(() => import('./components/TeacherScreen').then((m) => ({ default: m.TeacherHome })))
+const GenerateCard = lazy(() => import('./components/GenerateCard').then((m) => ({ default: m.GenerateCard })))
+const ReaderScreen = lazy(() => import('./components/ReaderScreen').then((m) => ({ default: m.ReaderScreen })))
+const FinaleScreen = lazy(() => import('./components/FinaleScreen').then((m) => ({ default: m.FinaleScreen })))
+const OperationScreen = lazy(() => import('./components/OperationsScreen').then((m) => ({ default: m.OperationScreen })))
+const OperationsScreen = lazy(() => import('./components/OperationsScreen').then((m) => ({ default: m.OperationsScreen })))
+const RoadGuardianScreen = lazy(() => import('./components/RoadGuardianScreen').then((m) => ({ default: m.RoadGuardianScreen })))
 const MotionLeague = lazy(() => import('./components/MotionLeague'))
 const GuardianScreen = lazy(() => import('./components/GuardianScreen'))
 const MyComicsScreen = lazy(() => import('./components/MyComicsScreen'))
@@ -44,7 +49,7 @@ function AssignedGuardian({ assignment, remaining, lang }: { assignment: Guardia
 function Logo({ tagline }: { tagline: string }) {
   return (
     <div className="flex min-w-0 flex-col items-start gap-1">
-      <img src={logoUrl} alt="AI Math Comics" width={773} height={176} className="h-10 w-auto max-w-full min-[380px]:h-11 sm:h-16 lg:h-[4.5rem]" />
+      <img src={logoUrl} alt="AI Math Comics" width={773} height={176} className="site-logo h-10 w-auto max-w-full min-[380px]:h-11 sm:h-16 lg:h-[4.5rem]" />
       <p className="hidden max-w-full rounded-full bg-sun px-3 py-0.5 text-xs leading-tight font-extrabold text-ink sm:block">{tagline}</p>
     </div>
   )
@@ -55,7 +60,7 @@ function AccountChip({ lang }: { lang: Lang }) {
   const { user, ready } = useAccount()
   const c = ACCOUNT_COPY[lang]
   const base =
-    'inline-flex min-h-11 max-w-[11rem] items-center gap-1.5 rounded-xl border-[3px] border-ink px-3 text-sm font-black text-ink shadow-[0_3px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun sm:max-w-[16rem] sm:text-base'
+    'inline-flex min-h-11 max-w-[11rem] items-center gap-1.5 rounded-xl border-[3px] border-ink px-3 text-sm font-black text-ink shadow-[0_3px_0_var(--shadow-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun sm:max-w-[16rem] sm:text-base'
   if (!ready) return null
   if (!user) return <a href={SECTION_HREFS.login} className={`${base} bg-sun`}>{c.signIn}</a>
   if (user.role === 'teacher') {
@@ -79,6 +84,25 @@ function screenFor(route: Route, role: 'student' | 'teacher' | null): Route | nu
   if (role === 'teacher') return teacherRoute ? null : { name: 'teacher' }
   if (role === 'student') return teacherRoute || route.name === 'login' ? { name: 'map' } : null
   return teacherRoute || route.name === 'profile' || route.name === 'battle' ? { name: 'login' } : null
+}
+
+const THEME_LABEL = { ru: { dark: 'Включить светлую тему', light: 'Включить ночную тему' }, kk: { dark: 'Жарық тақырыпты қосу', light: 'Түнгі тақырыпты қосу' } }
+
+/** 🌙 / ☀️ in the header: switches the whole site between light and night themes. */
+function ThemeToggle({ lang }: { lang: Lang }) {
+  const dark = useDarkTheme()
+  const label = THEME_LABEL[lang][dark ? 'dark' : 'light']
+  return (
+    <button type="button" onClick={() => setTheme(dark ? 'light' : 'dark')} title={label} aria-label={label}
+      className="grid size-11 shrink-0 place-items-center rounded-full border-[3px] border-ink bg-white text-lg shadow-[0_3px_0_var(--shadow-ink)] hover:bg-sky focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand">
+      <span aria-hidden>{dark ? '☀️' : '🌙'}</span>
+    </button>
+  )
+}
+
+/** Shown for a moment while a screen's code loads. */
+function ScreenLoading() {
+  return <p aria-busy="true" className="py-10 text-center font-bold text-ink/60 motion-safe:animate-pulse">…</p>
 }
 
 export default function App() {
@@ -146,17 +170,34 @@ function AppShell() {
     }
   }, [student, serverChapters, serverStickers, mergeChapters, mergeOperations, restoreBonusStickers])
   const { saveProgress } = account
+  const guardian = useGuardianChallenge()
+  // Won finales, as progress ids: each pays coins once and unlocks its trophy.
+  const [finaleTick, setFinaleTick] = useState(0)
+  useEffect(() => {
+    const onWin = () => setFinaleTick((n) => n + 1)
+    window.addEventListener(FINALE_WON_EVENT, onWin)
+    return () => window.removeEventListener(FINALE_WON_EVENT, onWin)
+  }, [])
+  const wonFinales = useMemo(
+    () => [
+      ...(guardian.run.won ? [FAIR_FINALE_ID] : []),
+      ...(roadGuardian.run.won ? [ROADS_FINALE_ID] : []),
+      ...Object.keys(FINALES).filter((id) => finaleWon(id)).map(finaleProgressId),
+    ],
+    // finaleTick: a finale screen saved a win in storage.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [guardian.run.won, roadGuardian.run.won, finaleTick],
+  )
   const secrets = useFoundSecrets()
   useEffect(() => {
     if (!student || synced.current !== student.id) return
     // A won «Дороги ярмарки» finale is reported as its own progress id, so its reward is paid once.
-    const chapters = [...completedChapters, ...operations.completed, ...(roadGuardian.run.won ? [ROADS_FINALE_ID] : []), ...secrets].sort()
+    const chapters = [...completedChapters, ...operations.completed, ...wonFinales, ...secrets].sort()
     const stickers = [...bonusStickers].sort()
     const known = new Set(serverChapters ?? [])
     const missing = chapters.some((id) => !known.has(id)) || stickers.some((id) => !serverStickers?.includes(id))
     if (missing) saveProgress(chapters, stickers).catch(() => {})
-  }, [student, completedChapters, operations.completed, roadGuardian.run.won, secrets, bonusStickers, serverChapters, serverStickers, saveProgress])
-  const guardian = useGuardianChallenge()
+  }, [student, completedChapters, operations.completed, wonFinales, secrets, bonusStickers, serverChapters, serverStickers, saveProgress])
   const continuationJob = useContinuationJob()
   const remaining = SCHOOL_FAIR_CHAPTER_COUNT - completedChapters.size
   const t = STRINGS[lang]
@@ -164,7 +205,7 @@ function AppShell() {
   // A saved generated comic belongs to My Comics; everything else to the catalog.
   const readerSection = route.name === 'comic' && myComics.some((c) => c.comicId === route.comicId) ? 'myComics' as const : 'comics' as const
   const readerNav = route.name === 'comic' && operationChapter(route.comicId) ? 'operations' as const : readerSection === 'comics' ? 'map' as const : readerSection
-  const activeSection = route.name === 'comic' ? readerNav : route.name === 'operation' || route.name === 'operationFinale' ? 'operations' : route.name === 'teacherClass' || route.name === 'teacherBattle' ? 'teacher' : route.name === 'battle' ? 'map' : route.name === 'motionLeague' || route.name === 'roadGuardian' ? 'operations' : route.name === 'guardianAssignment' || route.name === 'guardian' || route.name === 'comics' ? 'map' : route.name
+  const activeSection = route.name === 'comic' ? readerNav : route.name === 'operation' || route.name === 'operationFinale' ? 'operations' : route.name === 'teacherClass' || route.name === 'teacherBattle' ? 'teacher' : route.name === 'battle' || route.name === 'practice' || route.name === 'practiceTopic' ? 'map' : route.name === 'motionLeague' || route.name === 'roadGuardian' ? 'operations' : route.name === 'guardianAssignment' || route.name === 'guardian' || route.name === 'comics' ? 'map' : route.name
   const navigation = { t, active: activeSection, completed: completedChapters.size, remaining, myComics: myComics.length, guardianWon: guardian.run.won, operationsDone: operations.completed.size, lang }
 
   const openGenerated = useCallback(
@@ -176,7 +217,7 @@ function AppShell() {
   )
 
   return (
-    <div className="min-h-dvh bg-[linear-gradient(180deg,#d9e8ff_0%,#eef4ff_45%,#f6f1e7_100%)] text-ink">
+    <div className="site-bg min-h-dvh bg-[linear-gradient(180deg,#d9e8ff_0%,#eef4ff_45%,#f6f1e7_100%)] text-ink">
       <header className="border-b-4 border-ink bg-white shadow-[0_6px_0_rgb(29_39_102/0.12)]">
         <div className="mx-auto flex max-w-[90rem] flex-wrap items-center justify-between gap-2 px-3 py-2.5 sm:px-6 sm:py-3">
           <a href={SECTION_HREFS.map} className="min-w-0 rounded-xl focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-brand">
@@ -186,6 +227,7 @@ function AppShell() {
             {API_MODE === 'mock' && (
               <span className="hidden rounded-full bg-ink/10 px-2 py-0.5 text-[11px] font-bold text-ink/70 sm:inline">{t.mockBadge}</span>
             )}
+            <ThemeToggle lang={lang} />
             <LanguageSwitcher lang={lang} onChange={setLang} />
             <AccountChip lang={lang} />
           </div>
@@ -194,9 +236,11 @@ function AppShell() {
 
       {role === 'teacher' ? (
         <main className="mx-auto max-w-[90rem] min-w-0 px-3 py-4 sm:px-6 sm:py-6">
+          <Suspense fallback={<ScreenLoading />}>
           {route.name === 'teacher' && <TeacherHome lang={lang} />}
           {route.name === 'teacherClass' && <ClassDashboard key={route.classId} lang={lang} classId={route.classId} />}
           {route.name === 'teacherBattle' && <BattleBoardScreen key={route.battleId} lang={lang} battleId={route.battleId} />}
+        </Suspense>
         </main>
       ) : (
       <>
@@ -206,9 +250,14 @@ function AppShell() {
       <div className="mx-auto grid max-w-[90rem] gap-6 px-3 py-4 sm:px-6 sm:py-6 lg:grid-cols-[16rem_minmax(0,1fr)]">
         <DesktopNavigation {...navigation} />
         <main className="min-w-0">
+          <Suspense fallback={<ScreenLoading />}>
           {route.name === 'login' && <AuthScreen lang={lang} />}
           {route.name === 'profile' && role === 'student' && <ProfileScreen lang={lang} />}
           {route.name === 'battle' && role === 'student' && <BattleScreen lang={lang} />}
+          {route.name === 'practice' && <PracticeScreen lang={lang} topic={null} skill={null} />}
+          {route.name === 'practiceTopic' && (
+            <PracticeScreen lang={lang} topic={PRACTICE_TOPICS.includes(route.topic as BattleTopic) ? route.topic as BattleTopic : null} skill={route.skill} />
+          )}
           {route.name === 'map' && (
             <HomeScreen lang={lang} completedChapters={completedChapters} remaining={remaining} guardianWon={guardian.run.won}
               lastComicId={lastComicId} />
@@ -218,7 +267,7 @@ function AppShell() {
           {route.name === 'backpack' && (
             <BackpackCollection t={t} lang={lang} completedChapters={completedChapters} bonusStickers={bonusStickers}
               operationChapters={operations.completed}
-              finalesWon={new Set(roadGuardian.run.won || serverChapters?.includes(ROADS_FINALE_ID) ? [ROADS_FINALE_ID] : [])} />
+              finalesWon={new Set([...wonFinales, ...(serverChapters ?? []).filter((id) => id.endsWith('-finale'))])} />
           )}
           {route.name === 'guardian' && <Suspense><GuardianScreen lang={lang} remaining={remaining} challenge={guardian} /></Suspense>}
           {route.name === 'guardianAssignment' && <Suspense><AssignedGuardian key={guardianAssignmentHref(route.assignment)} assignment={route.assignment} remaining={remaining} lang={lang} /></Suspense>}
@@ -253,6 +302,7 @@ function AppShell() {
           <div hidden={route.name !== 'create'} className="max-w-2xl">
             <GenerateCard lang={lang} onReady={openGenerated} autoOpen={route.name === 'create'} />
           </div>
+        </Suspense>
         </main>
       </div>
       </>

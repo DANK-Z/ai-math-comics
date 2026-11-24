@@ -32,7 +32,7 @@ function MapHints({ lang }: { lang: Lang }) {
             aria-pressed={selected === id}
             aria-controls={resultId}
             onClick={() => setSelected(id)}
-            className={`min-h-11 rounded-xl border-[3px] border-ink px-3 py-2 text-start text-sm font-black shadow-[0_3px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun ${selected === id ? 'bg-sun' : 'bg-white'}`}
+            className={`min-h-11 rounded-xl border-[3px] border-ink px-3 py-2 text-start text-sm font-black shadow-[0_3px_0_var(--shadow-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun ${selected === id ? 'bg-sun' : 'bg-white'}`}
           >
             {selected === id && <span aria-hidden="true">✓ </span>}{copy[id].label}
           </button>
@@ -94,7 +94,7 @@ function SequentialHints({ exerciseId, lang, savedComicId, structured }: { exerc
         <button
           type="button"
           onClick={requestNext}
-          className="inline-flex min-h-11 items-center gap-2 rounded-full border-[3px] border-ink bg-sky-300 py-1 pr-4 pl-1 font-black text-ink shadow-[0_4px_0_var(--color-ink)] transition active:translate-y-[3px] active:shadow-[0_1px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun"
+          className="inline-flex min-h-11 items-center gap-2 rounded-full border-[3px] border-ink bg-sky-300 py-1 pr-4 pl-1 font-black text-ink shadow-[0_4px_0_var(--shadow-ink)] transition active:translate-y-[3px] active:shadow-[0_1px_0_var(--shadow-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun"
         >
           <PifikSprite className="w-8 rounded-full border-2 border-ink bg-white" />
           {buttonLabel}

@@ -17,7 +17,7 @@ interface Props {
 }
 
 // One radius (16px, rounded-2xl) for every card on the route; small inner art uses 8px.
-const CARD = 'flex min-h-16 items-center gap-2.5 rounded-2xl border-2 px-2.5 py-2 text-ink shadow-[0_2px_0_var(--color-ink)] transition hover:border-brand hover:bg-sky focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand sm:gap-4 sm:px-4'
+const CARD = 'flex min-h-16 items-center gap-2.5 rounded-2xl border-2 px-2.5 py-2 text-ink shadow-[0_2px_0_var(--shadow-ink)] transition hover:border-brand hover:bg-sky focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand sm:gap-4 sm:px-4'
 const MARKER = 'fair-route-marker grid size-8 place-items-center rounded-full border-[3px] border-ink text-sm font-black sm:size-9'
 
 /**
@@ -32,7 +32,7 @@ export function SchoolFairRoute({ t, covers, completedChapters, remaining, guard
     : guardianWon ? t.guardian.wonBadge : t.fairRoute.guardianUnlocked
 
   return (
-    <section aria-labelledby="fair-route-title" className="rounded-2xl border-[3px] border-ink bg-cream p-3 shadow-[0_5px_0_var(--color-ink)] sm:p-6">
+    <section aria-labelledby="fair-route-title" className="rounded-2xl border-[3px] border-ink bg-cream p-3 shadow-[0_5px_0_var(--shadow-ink)] sm:p-6">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <h2 id="fair-route-title" className="text-lg font-extrabold text-brand-dark sm:text-xl">{t.fairRoute.title}</h2>
         <p className="rounded-full border-2 border-ink bg-white px-3 py-1 text-sm font-bold text-ink">

@@ -14,6 +14,17 @@ npm run dev:live   # http://localhost:5173, talks to the FastAPI backend at http
 
 Other scripts: `npm run build` (type-check + production build to `dist/`), `npm run preview`.
 
+### End-to-end tests
+
+`e2e/app.spec.ts` drives the demo mode in a real browser: reading and solving a chapter, coins
+and secrets paid once, a review drill, a class battle from the teacher's board to a student's
+phone, and the night theme. Playwright starts its own dev server on port 5179.
+
+```sh
+npx playwright install chromium   # once; or use an installed browser: PW_CHANNEL=msedge
+npm run test:e2e
+```
+
 ## API mode
 
 | Variable            | Default                  | Meaning                                     |

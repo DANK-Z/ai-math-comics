@@ -6,15 +6,15 @@ import { SECTION_HREFS } from '../route'
 
 // Sign-in and sign-up for students (login + password) and teachers (e-mail + password).
 
-export const CARD = 'rounded-2xl border-[3px] border-ink bg-white p-4 shadow-[0_4px_0_var(--color-ink)] sm:p-6'
+export const CARD = 'rounded-2xl border-[3px] border-ink bg-white p-4 shadow-[0_4px_0_var(--shadow-ink)] sm:p-6'
 export const INPUT =
   'min-h-12 w-full min-w-0 rounded-xl border-[3px] border-ink bg-white px-3 py-2 font-semibold text-ink placeholder:font-normal placeholder:text-ink/50 focus-visible:outline-3 focus-visible:outline-offset-1 focus-visible:outline-brand aria-invalid:border-rose-600 aria-invalid:bg-rose-50'
 export const PRIMARY =
-  'inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border-[3px] border-ink bg-sun px-5 font-black text-ink shadow-[0_4px_0_var(--color-ink)] transition active:translate-y-[3px] active:shadow-[0_1px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:translate-y-0 disabled:cursor-wait disabled:opacity-60 disabled:shadow-none'
+  'inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border-[3px] border-ink bg-sun px-5 font-black text-ink shadow-[0_4px_0_var(--shadow-ink)] transition active:translate-y-[3px] active:shadow-[0_1px_0_var(--shadow-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:translate-y-0 disabled:cursor-wait disabled:opacity-60 disabled:shadow-none'
 export const SECONDARY =
-  'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border-[3px] border-ink bg-white px-4 font-black text-ink shadow-[0_3px_0_var(--color-ink)] hover:bg-sky focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand'
+  'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border-[3px] border-ink bg-white px-4 font-black text-ink shadow-[0_3px_0_var(--shadow-ink)] hover:bg-sky focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand'
 const CHOICE =
-  'group relative flex min-h-14 cursor-pointer items-center justify-center gap-2 rounded-xl border-[3px] border-ink bg-white px-3 py-2 text-center font-black text-ink shadow-[0_3px_0_var(--color-ink)] select-none hover:bg-sky has-checked:translate-y-[2px] has-checked:bg-sun has-checked:shadow-[0_1px_0_var(--color-ink)] has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-brand'
+  'group relative flex min-h-14 cursor-pointer items-center justify-center gap-2 rounded-xl border-[3px] border-ink bg-white px-3 py-2 text-center font-black text-ink shadow-[0_3px_0_var(--shadow-ink)] select-none hover:bg-sky has-checked:translate-y-[2px] has-checked:bg-sun has-checked:shadow-[0_1px_0_var(--shadow-ink)] has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-brand'
 
 const LOGIN = /^[a-z0-9_.-]{3,24}$/
 const EMAIL = /^[^@\s]{1,64}@[^@\s]{1,185}\.[a-z]{2,24}$/

@@ -56,7 +56,7 @@ export default function MotionLeague({ lang }: { lang: Lang }) {
   const activeRound = run ? MOTION_ROUNDS[run.index] : undefined
 
   return (
-    <section className="mx-auto grid max-w-2xl gap-4 rounded-2xl border-[3px] border-ink bg-white p-3 shadow-[0_5px_0_var(--color-ink)] sm:p-6">
+    <section className="mx-auto grid max-w-2xl gap-4 rounded-2xl border-[3px] border-ink bg-white p-3 shadow-[0_5px_0_var(--shadow-ink)] sm:p-6">
       <h1 className="text-2xl font-black sm:text-3xl">{t.title}</h1>
       <div className="flex flex-wrap gap-2">
         {(['practice', 'challenge'] as const).map((name) => (

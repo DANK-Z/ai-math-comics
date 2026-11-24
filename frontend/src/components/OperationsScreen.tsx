@@ -1,3 +1,4 @@
+import { CURRICULUM_COPY, curriculumFor } from '../curriculum'
 import type { Lang } from '../api'
 import lightsCover from '../assets/lights/park-4.webp'
 import marsCover from '../assets/mars/crater-2.webp'
@@ -58,7 +59,7 @@ const TINTS: Record<string, string> = {
   weather: 'from-sky-200 to-slate-200',
   mars: 'from-orange-300 to-rose-300',
 }
-const CTA = 'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border-[3px] border-ink px-4 font-black text-ink shadow-[0_3px_0_var(--color-ink)] transition active:translate-y-[2px] active:shadow-[0_1px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand'
+const CTA = 'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border-[3px] border-ink px-4 font-black text-ink shadow-[0_3px_0_var(--shadow-ink)] transition active:translate-y-[2px] active:shadow-[0_1px_0_var(--shadow-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand'
 
 function Cover({ operation, className = '' }: { operation: Operation; className?: string }) {
   const src = COVERS[operation.id]
@@ -89,7 +90,7 @@ export function OperationsScreen({ lang, completed }: { lang: Lang; completed: R
         {OPERATIONS.map((operation) => {
           const { ready, done } = progress(operation, completed)
           return (
-            <li key={operation.id} className="flex flex-col overflow-hidden rounded-2xl border-[3px] border-ink bg-white shadow-[0_5px_0_var(--color-ink)]">
+            <li key={operation.id} className="flex flex-col overflow-hidden rounded-2xl border-[3px] border-ink bg-white shadow-[0_5px_0_var(--shadow-ink)]">
               <Cover operation={operation} className="aspect-[2/1] border-b-[3px] border-ink" />
               <div className="flex flex-1 flex-col gap-2 p-3 sm:p-4">
                 <h2 className="text-lg leading-tight font-black text-ink"><span aria-hidden>{operation.icon} </span>{operation.title[lang]}</h2>
@@ -134,7 +135,7 @@ export function OperationScreen({ lang, operation, completed, finaleWon }: {
             </h1>
             <p className="mt-1.5 font-semibold text-ink/85">{operation.lead[lang]}</p>
           </div>
-          <div className="rounded-2xl border-[3px] border-ink bg-cream p-3 shadow-[0_5px_0_var(--color-ink)] sm:p-6">
+          <div className="rounded-2xl border-[3px] border-ink bg-cream p-3 shadow-[0_5px_0_var(--shadow-ink)] sm:p-6">
             {ready > 0 && (
               <p className="mb-4 w-fit rounded-full border-2 border-ink bg-white px-3 py-1 text-sm font-bold">{c.chapters(done, ready)}</p>
             )}
@@ -142,6 +143,7 @@ export function OperationScreen({ lang, operation, completed, finaleWon }: {
               {operation.chapters.map((chapter) => {
                 const solved = !!chapter.comicId && completed.has(chapter.comicId)
                 const isNext = chapter === next
+                const goal = chapter.comicId ? curriculumFor(chapter.comicId) : undefined
                 const body = (
                   <span className="min-w-0 flex-1">
                     <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs leading-tight font-bold">
@@ -153,9 +155,14 @@ export function OperationScreen({ lang, operation, completed, finaleWon }: {
                     </span>
                     <span className="mt-1 block text-[15px] leading-snug font-black sm:text-lg">{chapter.title[lang]}</span>
                     <span className="mt-0.5 block text-sm leading-snug font-semibold text-ink/75">{chapter.story[lang]}</span>
+                    {goal && (
+                      <span className="mt-1 block text-xs leading-snug font-bold text-brand-dark">
+                        <span aria-hidden>📘 </span>{CURRICULUM_COPY[lang].grade(goal.grade)} · {goal.goal[lang]}
+                      </span>
+                    )}
                   </span>
                 )
-                const card = 'flex min-h-16 items-center gap-2.5 rounded-2xl border-2 px-2.5 py-2 text-ink shadow-[0_2px_0_var(--color-ink)] sm:gap-4 sm:px-4'
+                const card = 'flex min-h-16 items-center gap-2.5 rounded-2xl border-2 px-2.5 py-2 text-ink shadow-[0_2px_0_var(--shadow-ink)] sm:gap-4 sm:px-4'
                 return (
                   <li key={chapter.number}>
                     <span aria-hidden className={`${MARKER} ${solved ? 'bg-emerald-300' : isNext ? 'bg-sun' : 'bg-white'}`}>{solved ? '✓' : chapter.number}</span>
@@ -182,7 +189,7 @@ export function OperationScreen({ lang, operation, completed, finaleWon }: {
                       <span className="mt-1 block text-sm font-bold text-brand-dark">{status}</span>
                     </span>
                   )
-                  const card = `flex min-h-20 items-center gap-2.5 rounded-2xl border-[3px] px-2.5 py-2 text-ink shadow-[0_2px_0_var(--color-ink)] sm:px-4 ${finaleOpen ? 'border-ink bg-sun/40' : 'border-dashed border-ink/60 bg-white'}`
+                  const card = `flex min-h-20 items-center gap-2.5 rounded-2xl border-[3px] px-2.5 py-2 text-ink shadow-[0_2px_0_var(--shadow-ink)] sm:px-4 ${finaleOpen ? 'border-ink bg-sun/40' : 'border-dashed border-ink/60 bg-white'}`
                   return operation.finale.href
                     ? <a href={operation.finale.href} className={`${card} hover:bg-sky focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand`}>{inner}</a>
                     : <div className={card}>{inner}</div>
@@ -193,7 +200,7 @@ export function OperationScreen({ lang, operation, completed, finaleWon }: {
         </div>
 
         <aside className="flex max-w-3xl flex-col gap-4 xl:sticky xl:top-5">
-          <section className="overflow-hidden rounded-2xl border-[3px] border-ink bg-white shadow-[0_5px_0_var(--color-ink)]">
+          <section className="overflow-hidden rounded-2xl border-[3px] border-ink bg-white shadow-[0_5px_0_var(--shadow-ink)]">
             <Cover operation={operation} className="aspect-[2/1] border-b-[3px] border-ink" />
             <div className="flex flex-col gap-2 p-3 sm:p-4">
               {next ? (
@@ -213,7 +220,7 @@ export function OperationScreen({ lang, operation, completed, finaleWon }: {
             </div>
           </section>
           {operation.practice && (
-            <a href={operation.practice.href} className="flex items-center gap-3 rounded-2xl border-[3px] border-ink bg-white p-3 text-ink shadow-[0_4px_0_var(--color-ink)] hover:bg-sky focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand">
+            <a href={operation.practice.href} className="flex items-center gap-3 rounded-2xl border-[3px] border-ink bg-white p-3 text-ink shadow-[0_4px_0_var(--shadow-ink)] hover:bg-sky focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand">
               <span aria-hidden className="text-2xl">🏁</span>
               <span className="min-w-0 flex-1">
                 <span className="block font-black leading-tight">{operation.practice.title[lang]}</span>

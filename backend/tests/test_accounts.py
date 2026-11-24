@@ -358,7 +358,7 @@ def test_season_progress_only_grows(env):
 
 
 def test_operation_rewards_pay_once(env):
-    """«Дороги ярмарки»: 5 coins per chapter and 10 for the finale, each paid only once."""
+    """5 coins per chapter and secret, 10 per finale, each paid only once."""
     _, client = env
     token = student(client, "aruna", "Аруна")
 
@@ -372,14 +372,16 @@ def test_operation_rewards_pay_once(env):
     assert save("roads-flag") == 5
     # Replaying the chapter, reloading the page and re-sending the same list pay nothing.
     assert save("roads-flag") == 5
-    assert save("roads-flag", "pizza-fractions") == 5
-    assert save("roads-flag", "roads-bridge") == 10
-    assert save("roads-flag", "roads-bridge", "roads-finale") == 20
-    assert save("roads-finale") == 20
-    # Chapters of other operations are progress only.
-    assert save("lights-park", "mars-crater") == 20
+    assert save("roads-flag", "pizza-fractions") == 10
+    assert save("roads-flag", "roads-bridge") == 15
+    assert save("roads-flag", "roads-bridge", "roads-finale") == 25
+    assert save("roads-finale") == 25
+    # Every season pays: other operations' chapters, finales and secrets too.
+    assert save("lights-park", "mars-crater", "fair-finale", "secret-lights-park") == 50
+    # Ids that are not rewards are progress only.
+    assert save("custom-chapter") == 50
     profile = client.get("/api/me", headers=auth(token)).json()["profile"]
-    assert profile["coins"] == 20
+    assert profile["coins"] == 50
     assert "roads-finale" in profile["completedChapters"]
 
 

@@ -111,7 +111,7 @@ export function skinName(lang: Lang, key: SkinKey): string {
   return COPY[lang].items[key].name
 }
 
-const BUTTON = 'min-h-11 w-full rounded-xl border-[3px] border-ink px-3 font-black text-ink shadow-[0_3px_0_var(--color-ink)] transition active:translate-y-[2px] active:shadow-[0_1px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none'
+const BUTTON = 'min-h-11 w-full rounded-xl border-[3px] border-ink px-3 font-black text-ink shadow-[0_3px_0_var(--shadow-ink)] transition active:translate-y-[2px] active:shadow-[0_1px_0_var(--shadow-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none'
 
 /** Shop data and one-at-a-time actions (a second click while one runs is ignored). */
 function useShop(lang: Lang) {
@@ -187,7 +187,7 @@ export function FairShop({ lang }: { lang: Lang }) {
       </div>
 
       {/* Fitting room: the previewed skin on a large Pifik. */}
-      <section aria-labelledby={`${id}-fitting`} className="flex flex-col items-center gap-3 rounded-2xl border-[3px] border-ink bg-white p-3 shadow-[0_4px_0_var(--color-ink)] min-[480px]:flex-row min-[480px]:items-center">
+      <section aria-labelledby={`${id}-fitting`} className="flex flex-col items-center gap-3 rounded-2xl border-[3px] border-ink bg-white p-3 shadow-[0_4px_0_var(--shadow-ink)] min-[480px]:flex-row min-[480px]:items-center">
         <PifikSprite rect={PORTRAITS.pifik} skin={preview} eager className="aspect-square w-32 shrink-0 rounded-xl border-2 border-ink/40 bg-sky sm:w-40" />
         <div className="min-w-0 text-center min-[480px]:text-left">
           <h3 id={`${id}-fitting`} className="text-xs font-black tracking-wide text-brand-dark uppercase">{c.fitting}</h3>
@@ -219,7 +219,7 @@ export function FairShop({ lang }: { lang: Lang }) {
             const missing = item.price - shop.coins
             const buying = busy === item.id && !item.owned
             return (
-              <li key={item.id} className={`flex flex-col gap-2 rounded-2xl border-[3px] border-ink p-3 shadow-[0_4px_0_var(--color-ink)] ${item.equipped ? 'bg-sun/40' : 'bg-white'}`}>
+              <li key={item.id} className={`flex flex-col gap-2 rounded-2xl border-[3px] border-ink p-3 shadow-[0_4px_0_var(--shadow-ink)] ${item.equipped ? 'bg-sun/40' : 'bg-white'}`}>
                 <div className="relative">
                   <PifikSprite rect={PORTRAITS.pifik} skin={item.id} className="aspect-square w-full rounded-xl border-2 border-ink/40 bg-sky" />
                   {item.equipped && (
@@ -296,7 +296,7 @@ export function PifikWardrobe({ lang, onOpenShop }: { lang: Lang; onOpenShop: ()
       {owned.length > 0 && (
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {owned.map((item) => (
-            <li key={item.id} className={`flex flex-col gap-2 rounded-2xl border-[3px] border-ink p-2 shadow-[0_3px_0_var(--color-ink)] ${item.equipped ? 'bg-sun/40' : 'bg-white'}`}>
+            <li key={item.id} className={`flex flex-col gap-2 rounded-2xl border-[3px] border-ink p-2 shadow-[0_3px_0_var(--shadow-ink)] ${item.equipped ? 'bg-sun/40' : 'bg-white'}`}>
               <PifikSprite rect={PORTRAITS.pifik} skin={item.id} className="aspect-square w-full rounded-xl border-2 border-ink/40 bg-sky" />
               <p className="text-sm leading-tight font-black text-ink">{c.items[item.id].name}</p>
               {item.equipped ? (

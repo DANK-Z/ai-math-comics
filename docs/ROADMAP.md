@@ -137,6 +137,9 @@ The Guardian final challenge exists (`9dc0af2`): three rounds (fractions, percen
 | Manual problems, AI task assistance and a problem bank | Done for manual answers, curated AI selection and a demonstration bank. Adding the teaching team's problem collection remains planned. |
 | Class assignment map and hint report | Done. Students see assignments on the map. The teacher can distinguish independent solutions from solutions with hints. |
 | Configurable Guardian rounds for review or assessment | Done. Teachers choose topics, a number set, and whether to allow boosts, then share a link. The season unlock rule still applies. |
+| Weekly class league and class battles on the board | Done. Students hit one shared boss from their phones; the server picks and checks every problem. |
+| Review of weak spots | Done. A one-click battle on the recommended topic, a five-problem drill on the student's weakest skill, and a drill offer after two wrong answers in a chapter. |
+| Curriculum goals | Done. Every bundled chapter shows its grade, course section and lesson goal; the class page groups chapters by section. Official objective codes are not listed. |
 | Password reset, teacher-managed student accounts | Planned |
 | Rate limiting of sign-in | Done. Shared counters cap attempts per IP and per login/IP. |
 | Database migrations (Alembic) before a pilot | Done for the accounts database. See [migration instructions](account-migrations.md). |
@@ -149,7 +152,7 @@ or student account. See the [classroom walkthrough](../frontend/README.md#classr
 
 | Part | Status | Notes |
 | --- | --- | --- |
-| New comics and exercise templates from the upcoming Grade 5–6 teaching materials | In progress | Generation supports grades 5–6, the `fractions` and `equations` topics (`a964b80`), and three difficulties. Bundled chapters also cover percentages, scale, proportions, and perimeter. |
+| New comics and exercise templates from the upcoming Grade 5–6 teaching materials | In progress | Generation supports grades 5–6, the `fractions` and `equations` topics (`a964b80`), and three difficulties. Bundled chapters also cover percentages, scale, proportions, and perimeter. Server templates for GCD/LCM, decimal fractions and problems on parts power class battles and review drills; comics for them still need artwork. |
 | Russian and Kazakh support | Done, keep for all new content | `LANGS = ['ru', 'kk']` |
 
 ### 12. Pilot hosting — In progress

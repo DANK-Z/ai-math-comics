@@ -1,6 +1,6 @@
 import { authToken } from './authToken'
 import { ApiError } from './errors'
-import type { BattleAnswerResult, BattleBoard, Leaderboard, StudentBattle } from './types'
+import type { BattleAnswerResult, BattleBoard, Leaderboard, PracticeResult, PracticeTask, StudentBattle, WeakSpot } from './types'
 import type { AssignmentReport, ClassAssignment, ComicJobRequest, Lang, TeacherDraft, TeacherDraftJob, TeacherPublication, TeacherTask } from './types'
 import type { AccountApi, Api, AuthResponse, BossState, CheckResponse, ClassInfo, Comic, ComicJob, ComicJobCreated, ContinuationJobRequest, Dashboard, HintResponse, Me, Shop } from './types'
 
@@ -171,6 +171,15 @@ export function createHttpApi(baseUrl: string): Api & AccountApi & {
     },
     myBattle(lang, signal) {
       return request<StudentBattle | null>(`/api/me/battle?lang=${lang}`, { signal })
+    },
+    startPractice(body) {
+      return request<PracticeTask>('/api/me/practice', { method: 'POST', body: JSON.stringify(body) })
+    },
+    answerPractice(body) {
+      return request<PracticeResult>('/api/me/practice/answer', { method: 'POST', body: JSON.stringify(body) })
+    },
+    weakSpot(signal) {
+      return request<WeakSpot | null>('/api/me/practice/weak', { signal })
     },
     answerBattle(battleId, body) {
       return request<BattleAnswerResult>(`/api/me/battle/${encodeURIComponent(battleId)}/answer`, { method: 'POST', body: JSON.stringify(body) })

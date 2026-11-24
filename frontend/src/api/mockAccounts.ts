@@ -2,6 +2,7 @@ import { authToken } from './authToken'
 import { PROGRESS_REWARDS } from '../rewards'
 import { ApiError } from './errors'
 import type { AccountApi, ClassInfo, Dashboard, Grade, Me, Shop, SkinKey } from './types'
+import { mockPracticeAnswer, mockPracticeTask } from './mockClassroom'
 import { BATTLE_HP, boardOf, checkMockAnswer, demoLeaderboard, latestBattle, MOCK_BATTLE_COPY, settle, shortName, studentView, type MockBattle } from './mockClassroom'
 
 // In-browser stand-in for the accounts API (demo mode, no backend): accounts and classes live
@@ -422,6 +423,27 @@ export const mockAccounts: AccountApi = {
       const view = studentView(battle, user.id, body.lang)
       save(state)
       return { status, message, damage, battle: view }
+    })
+  },
+  startPractice(body) {
+    return later(() => {
+      student(load())
+      return mockPracticeTask(body.topic, 1, body.lang)
+    })
+  },
+  answerPractice(body) {
+    return later(() => {
+      student(load())
+      const result = mockPracticeAnswer(body.taskId, body.answer, body.lang)
+      if (!result) throw fail(404, 'task_not_found')
+      return result
+    })
+  },
+  weakSpot() {
+    // Demo mode keeps no answer log: show a typical weak spot so the review card is visible.
+    return later(() => {
+      student(load())
+      return { topic: 'equations' as const, skill: 'mul_add', mistakes: 3 }
     })
   },
 }

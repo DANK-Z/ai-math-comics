@@ -8,15 +8,15 @@ import gate1 from '../assets/roads/gate-1.webp'
 import gate2 from '../assets/roads/gate-2.webp'
 import gate3 from '../assets/roads/gate-3.webp'
 import gate4 from '../assets/roads/gate-4.webp'
-import { useAccount } from '../account'
 import { FINALE_LOCK, findOperation, operationHref } from '../operations'
-import { PROGRESS_REWARDS, REWARD_COPY, ROADS_FINALE_ID, TROPHIES } from '../rewards'
+import { ROADS_FINALE_ID } from '../rewards'
+import { FinaleRewardNotes } from './FinaleRewardNotes'
 import { SECTION_HREFS } from '../route'
 import { RichText } from './RichText'
 import { SheetCrop } from './SheetCrop'
 
-const BUTTON = 'inline-flex min-h-11 items-center justify-center rounded-2xl border-[3px] border-ink px-4 py-2 text-center font-black text-ink shadow-[0_4px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-50 disabled:shadow-none'
-const CARD = 'rounded-[28px] border-[3px] border-ink p-4 shadow-[0_6px_0_var(--color-ink)] sm:p-6'
+const BUTTON = 'inline-flex min-h-11 items-center justify-center rounded-2xl border-[3px] border-ink px-4 py-2 text-center font-black text-ink shadow-[0_4px_0_var(--shadow-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-50 disabled:shadow-none'
+const CARD = 'rounded-[28px] border-[3px] border-ink p-4 shadow-[0_6px_0_var(--shadow-ink)] sm:p-6'
 const CHIP = 'rounded-full border-2 border-ink bg-white px-2 py-0.5 text-[11px] font-black whitespace-nowrap text-ink sm:text-xs'
 
 type Challenge = ReturnType<typeof useRoadGuardian>
@@ -204,24 +204,6 @@ export function MotionExercise({ lang, round, check }: { lang: Lang; round: (typ
   )
 }
 
-function FinaleRewards({ lang }: { lang: Lang }) {
-  const student = useAccount().user?.role === 'student'
-  const medal = TROPHIES.find((trophy) => trophy.unlockedBy === ROADS_FINALE_ID)
-  const copy = REWARD_COPY[lang]
-  return (
-    <div className="mt-3 flex flex-wrap items-center gap-2 text-sm font-bold">
-      {medal && (
-        <a href={SECTION_HREFS.backpack} className="rounded-lg border-2 border-ink bg-sun/40 px-2 py-0.5 text-ink hover:bg-sun focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand">
-          <span aria-hidden>{medal.icon} </span>{copy.trophy(medal.name[lang])}
-        </a>
-      )}
-      {student
-        ? <span className="rounded-lg border-2 border-amber-700 bg-sun px-2 py-0.5 text-ink"><span aria-hidden>🪙 </span>{copy.coins(PROGRESS_REWARDS[ROADS_FINALE_ID])}</span>
-        : <span className="text-ink/70">{copy.guest}</span>}
-    </div>
-  )
-}
-
 export function RoadGuardianScreen({ lang, challenge, remaining = 0 }: { lang: Lang; challenge: Challenge; remaining?: number }) {
   const t = STRINGS[lang]
   const copy = ROAD_COPY[lang]
@@ -304,7 +286,7 @@ export function RoadGuardianScreen({ lang, challenge, remaining = 0 }: { lang: L
         ) : (
           <>
             <p className="mt-2 font-semibold">{copy.victoryText}</p>
-            <FinaleRewards lang={lang} />
+            <FinaleRewardNotes lang={lang} progressId={ROADS_FINALE_ID} />
             <div className="mt-4 flex flex-wrap gap-2">
               <button type="button" onClick={replay} className={`${BUTTON} bg-sun`}>{copy.replay}</button>
               {catalog}

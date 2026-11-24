@@ -18,12 +18,14 @@ import docking4 from '../assets/mars/docking-4.webp'
 import { useFinale, type FinaleDef, type FinaleRound } from '../finales'
 import { STRINGS } from '../i18n'
 import { FINALE_LOCK, findOperation, operationHref } from '../operations'
+import { finaleProgressId } from '../rewards'
+import { FinaleRewardNotes } from './FinaleRewardNotes'
 import { RichText } from './RichText'
 
 // A season finale: three rounds, each lighting up one part of the scene.
 
-const BUTTON = 'inline-flex min-h-11 items-center justify-center rounded-2xl border-[3px] border-ink px-4 py-2 text-center font-black text-ink shadow-[0_4px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-50 disabled:shadow-none'
-const CARD = 'rounded-[28px] border-[3px] border-ink bg-white p-4 shadow-[0_6px_0_var(--color-ink)] sm:p-6'
+const BUTTON = 'inline-flex min-h-11 items-center justify-center rounded-2xl border-[3px] border-ink px-4 py-2 text-center font-black text-ink shadow-[0_4px_0_var(--shadow-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-50 disabled:shadow-none'
+const CARD = 'rounded-[28px] border-[3px] border-ink bg-white p-4 shadow-[0_6px_0_var(--shadow-ink)] sm:p-6'
 
 const COPY = {
   ru: { round: (n: number, total: number) => `Часть ${n} из ${total}`, wrong: 'Пока не так. Перечитай условие и попробуй ещё раз.', invalid: 'Введи только целое число, без единиц измерения.', placeholder: 'например, 15', cleared: 'решено', active: 'сейчас', upcoming: 'впереди' },
@@ -205,6 +207,7 @@ export function FinaleScreen({ lang, def, remaining }: { lang: Lang; def: Finale
         ) : (
           <>
             <p className="mt-2 font-semibold">{def.victoryText[lang]}</p>
+            <FinaleRewardNotes lang={lang} progressId={finaleProgressId(def.id)} />
             <div className="mt-4 flex flex-wrap gap-2">
               <button type="button" onClick={replay} className={`${BUTTON} bg-sun`}>{def.replay[lang]}</button>
               {back}

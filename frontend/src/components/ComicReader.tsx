@@ -26,6 +26,9 @@ import { PanelEffects, panelEffectFor } from './PanelEffects'
 import { PanelSecretSpot } from './PanelSecretSpot'
 import { PifikSprite } from './PifikSprite'
 import { secretFor } from '../panelSecrets'
+import { useDarkTheme } from '../theme'
+import { CURRICULUM_COPY, curriculumFor, practiceTopicFor } from '../curriculum'
+import { ChapterPracticeHint } from './PracticeScreen'
 
 // Panels after the exercise panel stay locked until the answer is correct,
 // so later panels don't spoil the solution.
@@ -48,7 +51,7 @@ interface Props {
 }
 
 const BTN =
-  'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-2xl border-[3px] border-ink px-4 py-2 font-black shadow-[0_4px_0_var(--color-ink)] transition active:translate-y-[3px] active:shadow-[0_1px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none'
+  'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-2xl border-[3px] border-ink px-4 py-2 font-black shadow-[0_4px_0_var(--shadow-ink)] transition active:translate-y-[3px] active:shadow-[0_1px_0_var(--shadow-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none'
 
 /** The find and the one-time coins of an operation chapter, under its ending. */
 function RewardNotes({ comicId, lang }: { comicId: string; lang: Lang }) {
@@ -73,9 +76,8 @@ function RewardNotes({ comicId, lang }: { comicId: string; lang: Lang }) {
 
 const NIGHT_LABEL = { ru: 'Ночное чтение', kk: 'Түнгі оқу' }
 const NIGHT_KEY = 'amc.reader.night'
-const DARK_QUERY = '(prefers-color-scheme: dark)'
 
-/** Night reading: follows the system's dark mode until the reader picks a side with the toggle. */
+/** Night reading: follows the site's theme until the reader picks a side with the toggle. */
 function useNightReading() {
   const [choice, setChoice] = useState<'on' | 'off' | null>(() => {
     try {
@@ -85,15 +87,8 @@ function useNightReading() {
       return null
     }
   })
-  const [systemDark, setSystemDark] = useState(() => typeof matchMedia === 'function' && matchMedia(DARK_QUERY).matches)
-  useEffect(() => {
-    if (typeof matchMedia !== 'function') return
-    const query = matchMedia(DARK_QUERY)
-    const onChange = () => setSystemDark(query.matches)
-    query.addEventListener('change', onChange)
-    return () => query.removeEventListener('change', onChange)
-  }, [])
-  const on = choice ? choice === 'on' : systemDark
+  const siteDark = useDarkTheme()
+  const on = choice ? choice === 'on' : siteDark
   const toggle = useCallback(() => {
     const next = on ? 'off' : 'on'
     setChoice(next)
@@ -149,7 +144,7 @@ function ProgressCard({ lang, total, current, maxIndex, exerciseIndex, solved, b
   const taskPanel = exerciseIndex + 1
   const closed = !solved && exerciseIndex >= 0 && maxIndex < total - 1
   return (
-    <section aria-label={g.title} className="rounded-2xl border-2 border-ink bg-white p-3 shadow-[0_3px_0_var(--color-ink)] sm:p-4">
+    <section aria-label={g.title} className="rounded-2xl border-2 border-ink bg-white p-3 shadow-[0_3px_0_var(--shadow-ink)] sm:p-4">
       <h2 className="text-base font-black">{g.title}</h2>
       <p className="mt-1 text-sm font-bold text-ink/80">{g.panels(maxIndex + 1, total)}</p>
       <ol aria-hidden className="mt-2 flex gap-1">
@@ -177,7 +172,7 @@ function ProgressCard({ lang, total, current, maxIndex, exerciseIndex, solved, b
           </p>
           {current !== exerciseIndex && (
             <button type="button" onClick={() => onGoTo(exerciseIndex)}
-              className="mt-2 min-h-10 w-full rounded-xl border-[3px] border-ink bg-sun px-3 text-sm font-black shadow-[0_3px_0_var(--color-ink)] active:translate-y-[2px] active:shadow-[0_1px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun">
+              className="mt-2 min-h-10 w-full rounded-xl border-[3px] border-ink bg-sun px-3 text-sm font-black shadow-[0_3px_0_var(--shadow-ink)] active:translate-y-[2px] active:shadow-[0_1px_0_var(--shadow-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun">
               {g.toTask(taskPanel)} <span aria-hidden>→</span>
             </button>
           )}
@@ -229,6 +224,8 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
   const bonusSticker = ending ? chapterBonus(comicId) : undefined
   const night = useNightReading()
   const effect = panelEffectFor(comicId)
+  const goal = curriculumFor(comicId)
+  const practiceTopic = practiceTopicFor(comicId)
   const secret = secretFor(comicId, panel.id)
 
   useEffect(() => {
@@ -257,13 +254,20 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
               {t.panelOf(current + 1, total)}
             </p>
             <button type="button" aria-pressed={night.on} onClick={night.toggle} title={NIGHT_LABEL[lang]}
-              className="grid size-9 place-items-center rounded-full border-2 border-ink bg-white text-base shadow-[0_2px_0_var(--color-ink)] hover:bg-sky focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun aria-pressed:bg-ink aria-pressed:text-white">
+              className="grid size-9 place-items-center rounded-full border-2 border-ink bg-white text-base shadow-[0_2px_0_var(--shadow-ink)] hover:bg-sky focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun aria-pressed:bg-ink aria-pressed:text-white">
               <span aria-hidden>{night.on ? '🌙' : '☀️'}</span>
               <span className="sr-only">{NIGHT_LABEL[lang]}</span>
             </button>
           </div>
         </div>
         {current === 0 && <ReaderGreeting lang={lang} title={comic.title} />}
+        {goal && (
+          <p className="reader-muted mb-3 px-1 text-sm leading-snug font-bold text-ink/75">
+            <span aria-hidden>📘 </span>
+            <span className="font-black">{CURRICULUM_COPY[lang].grade(goal.grade)} · {goal.section[lang]}.</span>{' '}
+            {CURRICULUM_COPY[lang].goal}: {goal.goal[lang].toLocaleLowerCase(lang)}
+          </p>
+        )}
         {comic.artwork === 'prepared' && (
           <p className="mb-3 px-1 text-sm font-semibold text-ink/70">{t.preparedArtwork}</p>
         )}
@@ -407,7 +411,12 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
             misses={bossProgress.misses} onMiss={bossProgress.miss}
             onReadOn={exerciseIndex + 1 < total ? () => onIndexChange(exerciseIndex + 1) : undefined} />
         ) : (
-          <ExerciseCard exercise={comic.exercise} lang={lang} check={{ ...check, solved: exerciseSolved }} reward={reward} />
+          <>
+            <ExerciseCard exercise={comic.exercise} lang={lang} check={{ ...check, solved: exerciseSolved }} reward={reward} />
+            {practiceTopic && check.misses >= 2 && !exerciseSolved && (
+              <div className="mt-4"><ChapterPracticeHint lang={lang} topic={practiceTopic} /></div>
+            )}
+          </>
         )}
       </div>
       {/* The progress card only shows on wide screens; narrow ones keep the sidebar for hints and cast. */}
@@ -416,7 +425,7 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
           <ProgressCard lang={lang} total={total} current={current} maxIndex={maxIndex} exerciseIndex={exerciseIndex}
             solved={solved} boss={boss ? { cleared: bossCleared, rounds: boss.rounds.length } : null} onGoTo={onIndexChange} />
         </div>
-        <aside hidden={!showHints} aria-label={t.navigation.hints} className="rounded-2xl border-2 border-ink bg-cream p-3 shadow-[0_3px_0_var(--color-ink)] sm:p-4">
+        <aside hidden={!showHints} aria-label={t.navigation.hints} className="rounded-2xl border-2 border-ink bg-cream p-3 shadow-[0_3px_0_var(--shadow-ink)] sm:p-4">
           <h2 className="mb-3 text-base font-black">{t.navigation.hints}</h2>
           <PifikHints key={hintExerciseId} exerciseId={hintExerciseId} lang={lang} mapHints={comicId === SCHOOL_MAP_COMIC_ID}
             structured={!!schoolFairChapter(comicId) || !!operationChapter(comicId)} savedComicId={rememberReading ? comicId : undefined} />

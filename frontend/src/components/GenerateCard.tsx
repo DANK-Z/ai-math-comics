@@ -34,7 +34,7 @@ function Segmented<T extends string | number>({
           <label
             key={String(o.value)}
             lang={o.lang}
-            className="group flex min-h-11 flex-auto cursor-pointer items-center justify-center gap-1.5 rounded-xl border-[3px] border-ink bg-white px-4 text-center leading-tight font-black text-ink shadow-[0_3px_0_var(--color-ink)] transition select-none hover:bg-sky has-checked:translate-y-[2px] has-checked:bg-sun has-checked:shadow-[0_1px_0_var(--color-ink)] has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-brand has-disabled:cursor-not-allowed has-disabled:opacity-60"
+            className="group flex min-h-11 flex-auto cursor-pointer items-center justify-center gap-1.5 rounded-xl border-[3px] border-ink bg-white px-4 text-center leading-tight font-black text-ink shadow-[0_3px_0_var(--shadow-ink)] transition select-none hover:bg-sky has-checked:translate-y-[2px] has-checked:bg-sun has-checked:shadow-[0_1px_0_var(--shadow-ink)] has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-brand has-disabled:cursor-not-allowed has-disabled:opacity-60"
           >
             <input
               type="radio"
@@ -142,7 +142,7 @@ function JobFailed({ failure, progress, t, onRetry, onEdit, onResume, resuming, 
           type="button"
           onClick={onResume ?? onRetry}
           disabled={resuming}
-          className="min-h-11 rounded-2xl border-[3px] border-ink bg-sun px-4 font-black text-ink shadow-[0_3px_0_var(--color-ink)] active:translate-y-[2px] active:shadow-none"
+          className="min-h-11 rounded-2xl border-[3px] border-ink bg-sun px-4 font-black text-ink shadow-[0_3px_0_var(--shadow-ink)] active:translate-y-[2px] active:shadow-none"
         >
           <span aria-hidden="true">↻ </span>{onResume ? (resuming ? t.submitting : t.resumeGeneration) : t.tryAgain}
         </button>
@@ -210,7 +210,7 @@ export function GenerateCard({ lang, onReady, autoOpen }: {
   return (
     <section
       aria-labelledby="generate-title"
-      className="overflow-hidden rounded-2xl border-[4px] border-ink bg-cream shadow-[0_6px_0_var(--color-ink)]"
+      className="overflow-hidden rounded-2xl border-[4px] border-ink bg-cream shadow-[0_6px_0_var(--shadow-ink)]"
     >
       <div className="flex items-center gap-3 bg-brand px-4 py-3 text-white sm:px-5">
         <span aria-hidden className="grid h-9 w-9 shrink-0 place-items-center rounded-full border-[3px] border-ink bg-sun text-lg">
@@ -233,7 +233,7 @@ export function GenerateCard({ lang, onReady, autoOpen }: {
               aria-pressed={mode === m}
               disabled={locked}
               onClick={() => setMode(m)}
-              className="flex min-h-11 items-center justify-center gap-1.5 rounded-xl px-2 text-sm leading-tight font-black text-ink transition sm:px-3 hover:bg-sky aria-pressed:bg-sun aria-pressed:shadow-[inset_0_0_0_2px_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-60 sm:text-base"
+              className="flex min-h-11 items-center justify-center gap-1.5 rounded-xl px-2 text-sm leading-tight font-black text-ink transition sm:px-3 hover:bg-sky aria-pressed:bg-sun aria-pressed:shadow-[inset_0_0_0_2px_var(--shadow-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-60 sm:text-base"
             >
               <span aria-hidden>{m === 'express' ? '⚡' : '✨'}</span><span>{sc.modes[m]}</span>
             </button>
@@ -319,7 +319,7 @@ export function GenerateCard({ lang, onReady, autoOpen }: {
         ) : state.phase === 'idle' ? (
           <button
             type="submit"
-            className="min-h-14 rounded-2xl border-[3px] border-ink bg-sun px-5 text-xl font-black text-ink shadow-[0_5px_0_var(--color-ink)] transition hover:brightness-105 active:translate-y-[4px] active:shadow-[0_1px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            className="min-h-14 rounded-2xl border-[3px] border-ink bg-sun px-5 text-xl font-black text-ink shadow-[0_5px_0_var(--shadow-ink)] transition hover:brightness-105 active:translate-y-[4px] active:shadow-[0_1px_0_var(--shadow-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
             <span aria-hidden="true">✨ </span>{t.generate}
           </button>

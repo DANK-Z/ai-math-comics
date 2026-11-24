@@ -6,7 +6,7 @@ export function LanguageSwitcher({ lang, onChange }: { lang: Lang; onChange: (l:
     <div
       role="radiogroup"
       aria-label={STRINGS[lang].langLabel}
-      className="inline-flex gap-1 rounded-full border-[3px] border-ink bg-white p-1.5 shadow-[0_3px_0_var(--color-ink)]"
+      className="inline-flex gap-1 rounded-full border-[3px] border-ink bg-white p-1.5 shadow-[0_3px_0_var(--shadow-ink)]"
     >
       {LANGS.map((l) => {
         const active = l === lang

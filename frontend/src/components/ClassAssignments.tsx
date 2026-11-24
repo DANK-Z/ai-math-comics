@@ -5,7 +5,7 @@ import { ASSIGNMENT_COPY } from '../assignmentCopy'
 import { GUIDE_COPY } from '../guideCopy'
 import { comicHref } from '../route'
 
-const CARD = 'min-w-0 rounded-2xl border-[3px] border-ink bg-white p-3 shadow-[0_4px_0_var(--color-ink)] sm:p-4'
+const CARD = 'min-w-0 rounded-2xl border-[3px] border-ink bg-white p-3 shadow-[0_4px_0_var(--shadow-ink)] sm:p-4'
 const BADGE = 'w-fit rounded-lg border-2 border-ink px-2 py-1 font-bold'
 
 function formattedDate(date: string, lang: Lang) {

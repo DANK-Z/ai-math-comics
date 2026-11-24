@@ -68,7 +68,7 @@ function SectionLinks({ t, active, completed, remaining, guardianWon, myComics, 
 
 export function DesktopNavigation(props: Props) {
   return (
-    <div className="sticky top-5 hidden self-start rounded-2xl border-2 border-ink bg-cream p-3 shadow-[0_4px_0_var(--color-ink)] lg:block">
+    <div className="sticky top-5 hidden self-start rounded-2xl border-2 border-ink bg-cream p-3 shadow-[0_4px_0_var(--shadow-ink)] lg:block">
       <SectionLinks {...props} />
     </div>
   )
@@ -106,7 +106,7 @@ export function MobileNavigation(props: Props) {
           setOpen(true)
           closeButton.current?.focus()
         }}
-        className="inline-flex min-h-11 items-center gap-2 rounded-xl border-2 border-ink bg-cream px-3 text-sm font-black shadow-[0_2px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        className="inline-flex min-h-11 items-center gap-2 rounded-xl border-2 border-ink bg-cream px-3 text-sm font-black shadow-[0_2px_0_var(--shadow-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand"
       >
         <span aria-hidden className="text-lg leading-none">☰</span>{t.navigation.menu}
       </button>

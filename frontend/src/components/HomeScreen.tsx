@@ -18,6 +18,7 @@ import { SchoolFairRoute } from './SchoolFairRoute'
 import { StudentAssignments } from './ClassAssignments'
 import { BattleAlert } from './ClassBattle'
 import { ClassLeague } from './ClassLeague'
+import { WeakSpotCard } from './PracticeScreen'
 
 /** How a cover is cropped in its card: box aspect ratio + CSS object-position focal point. */
 interface Framing {
@@ -101,11 +102,11 @@ function CatalogCard({ entry, lang, t, completed }: {
       >
         <img src={entry.cover} alt="" className="h-full w-full object-cover object-(--focus-phone) sm:object-(--focus-wide)" />
         <p className="absolute top-2 left-2 flex flex-wrap gap-1.5">
-          <span className="rounded-lg border-[3px] border-ink bg-sun px-2.5 py-0.5 text-sm font-black text-ink shadow-[0_2px_0_var(--color-ink)]">
+          <span className="rounded-lg border-[3px] border-ink bg-sun px-2.5 py-0.5 text-sm font-black text-ink shadow-[0_2px_0_var(--shadow-ink)]">
             {t.catalogTopics[entry.topic]}
           </span>
           {entry.grade !== undefined && (
-            <span className="rounded-lg border-[3px] border-ink bg-white px-2.5 py-0.5 text-sm font-black text-ink shadow-[0_2px_0_var(--color-ink)]">
+            <span className="rounded-lg border-[3px] border-ink bg-white px-2.5 py-0.5 text-sm font-black text-ink shadow-[0_2px_0_var(--shadow-ink)]">
               {t.gradeOption(entry.grade)}
             </span>
           )}
@@ -127,7 +128,7 @@ function CatalogCard({ entry, lang, t, completed }: {
         </h3>
         <p className="mt-0.5 font-bold text-ink/80">{entry.hook(lang, t)}</p>
       </div>
-      <span className="flex min-h-12 items-center justify-center rounded-xl border-[3px] border-ink bg-sun text-lg font-black text-ink shadow-[0_4px_0_var(--color-ink)] transition group-active:translate-y-[3px] group-active:shadow-[0_1px_0_var(--color-ink)]">
+      <span className="flex min-h-12 items-center justify-center rounded-xl border-[3px] border-ink bg-sun text-lg font-black text-ink shadow-[0_4px_0_var(--shadow-ink)] transition group-active:translate-y-[3px] group-active:shadow-[0_1px_0_var(--shadow-ink)]">
         {t.readComic} <span className="ml-2" aria-hidden>→</span>
       </span>
     </a>
@@ -139,7 +140,7 @@ const NEXT_OPERATIONS = {
   kk: { title: 'Жәрмеңкеден кейінгі операциялар', lead: 'Жолдар, қала шамдары, мұражай, ауа райы және Марс' },
 }
 
-const CTA = 'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border-[3px] border-ink px-4 font-black text-ink shadow-[0_3px_0_var(--color-ink)] transition active:translate-y-[2px] active:shadow-[0_1px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand'
+const CTA = 'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border-[3px] border-ink px-4 font-black text-ink shadow-[0_3px_0_var(--shadow-ink)] transition active:translate-y-[2px] active:shadow-[0_1px_0_var(--shadow-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand'
 
 /** Where the student stopped and what to do next: the next chapter with its thumbnail, or the finale. */
 function ContinueCard({ lang, completedChapters, guardianWon, lastComicId }: {
@@ -155,7 +156,7 @@ function ContinueCard({ lang, completedChapters, guardianWon, lastComicId }: {
   const showLast = lastComicId && lastComicId !== next?.comicId
 
   return (
-    <section aria-labelledby="continue-title" className="overflow-hidden rounded-2xl border-[3px] border-ink bg-white shadow-[0_5px_0_var(--color-ink)]">
+    <section aria-labelledby="continue-title" className="overflow-hidden rounded-2xl border-[3px] border-ink bg-white shadow-[0_5px_0_var(--shadow-ink)]">
       {next ? (
         art && (
           <a href={comicHref(next.comicId)} tabIndex={-1} aria-hidden className="relative block aspect-[5/2] border-b-[3px] xl:aspect-video border-ink bg-sky-100">
@@ -211,8 +212,9 @@ export function HomeScreen({ lang, completedChapters, remaining, guardianWon, la
           <ContinueCard lang={lang} completedChapters={completedChapters} guardianWon={guardianWon} lastComicId={lastComicId} />
           <BattleAlert lang={lang} />
           <StudentAssignments lang={lang} />
+          <WeakSpotCard lang={lang} />
           <ClassLeague lang={lang} />
-          <a href={SECTION_HREFS.operations} className="flex items-center gap-3 rounded-2xl border-[3px] border-ink bg-[linear-gradient(120deg,#d9f2e6,#dbe8ff)] p-3 font-black text-ink shadow-[0_4px_0_var(--color-ink)] hover:bg-sky focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand">
+          <a href={SECTION_HREFS.operations} className="flex items-center gap-3 rounded-2xl border-[3px] border-ink bg-[linear-gradient(120deg,#d9f2e6,#dbe8ff)] p-3 font-black text-ink shadow-[0_4px_0_var(--shadow-ink)] hover:bg-sky focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand">
             <span aria-hidden className="text-3xl">🧭</span>
             <span className="min-w-0 flex-1">
               <span className="block leading-tight">{NEXT_OPERATIONS[lang].title}</span>

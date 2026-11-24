@@ -34,6 +34,8 @@ export function useAnswerCheck(exerciseId: string, lang: Lang, onCorrect: (respo
   const [result, setResult] = useState<CheckResponse | null>(null)
   const [checking, setChecking] = useState(false)
   const [error, setError] = useState(false)
+  // Wrong answers so far: after a few, the reader suggests a short review drill.
+  const [misses, setMisses] = useState(0)
 
   useEffect(() => {
     if (!submitted) return
@@ -45,6 +47,7 @@ export function useAnswerCheck(exerciseId: string, lang: Lang, onCorrect: (respo
       .then((r) => {
         if (ctrl.signal.aborted) return
         if (r.status === 'correct') onCorrect(r)
+        if (r.status === 'incorrect') setMisses((n) => n + 1)
         setResult(r)
         setChecking(false)
       })
@@ -61,7 +64,7 @@ export function useAnswerCheck(exerciseId: string, lang: Lang, onCorrect: (respo
     setSubmitted((prev) => ({ answer, nonce: (prev?.nonce ?? 0) + 1 }))
   }, [])
 
-  return { result, checking, error, submit, solved: result?.status === 'correct' }
+  return { result, checking, error, submit, misses, solved: result?.status === 'correct' }
 }
 
 /**

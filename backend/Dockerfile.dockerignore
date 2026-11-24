@@ -10,4 +10,6 @@
 !frontend/public/
 !frontend/public/mock-images/
 !frontend/public/mock-images/**
+!frontend/src/
+!frontend/src/progressRewards.json
 **/__pycache__/

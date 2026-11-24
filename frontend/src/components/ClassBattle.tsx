@@ -11,6 +11,8 @@ import { RichText } from './RichText'
 // Class battle. The teacher puts a giant boss on the class board; students fight it from their
 // phones. The server chooses every problem and keeps the answers; the screens poll it.
 
+export const BATTLE_TOPICS = ['equations', 'fractions', 'decimals', 'gcd', 'parts'] as const
+
 const STUDENT_POLL_MS = 3000
 const BOARD_POLL_MS = 2000
 const HOME_POLL_MS = 20000
@@ -55,7 +57,7 @@ export function BattleAlert({ lang }: { lang: Lang }) {
   const { value: battle } = usePolled(load, HOME_POLL_MS, inClass)
   if (!inClass || !battle || battle.status !== 'active') return null
   return (
-    <a href={SECTION_HREFS.battle} className="boss-arena flex items-center gap-3 rounded-2xl border-[3px] border-ink bg-[linear-gradient(135deg,#2a1f6b,#e11d48)] p-3 text-white shadow-[0_4px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun">
+    <a href={SECTION_HREFS.battle} className="boss-arena flex items-center gap-3 rounded-2xl border-[3px] border-ink bg-[linear-gradient(135deg,#2a1f6b,#e11d48)] p-3 text-white shadow-[0_4px_0_var(--shadow-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun">
       <span aria-hidden className="text-3xl">⚔️</span>
       <span className="min-w-0 flex-1">
         <span className="block font-black leading-tight">{copy.alertTitle}</span>
@@ -98,7 +100,7 @@ export function BattleScreen({ lang }: { lang: Lang }) {
   return (
     <div className="flex max-w-2xl flex-col gap-4">
       {header}
-      <section aria-labelledby={`${id}-boss`} className="overflow-hidden rounded-2xl border-[3px] border-ink bg-white shadow-[0_6px_0_var(--color-ink)]">
+      <section aria-labelledby={`${id}-boss`} className="overflow-hidden rounded-2xl border-[3px] border-ink bg-white shadow-[0_6px_0_var(--shadow-ink)]">
         <div className={`flex items-center gap-4 p-4 ${kind === 'x-master' ? 'bg-[linear-gradient(160deg,#2a1f6b,#5b3cc4)]' : 'bg-[linear-gradient(160deg,#1f5132,#3f9a4d)]'}`}>
           <BossAvatar kind={kind} shielded={false} hitKey={battle.classHits} />
           <div className="min-w-0 flex-1">
@@ -173,9 +175,9 @@ function BattleTaskForm({ battle, lang, onResult, feedback, onFeedback: setFeedb
           autoFocus
           value={answer}
           onChange={(e) => setAnswer(e.target.value)}
-          inputMode={task.answerFormat === 'fraction' ? 'text' : 'numeric'}
+          inputMode={task.answerFormat === 'fraction' ? 'text' : task.answerFormat === 'decimal' ? 'decimal' : 'numeric'}
           autoComplete="off"
-          placeholder={task.answerFormat === 'fraction' ? copy.fractionHint : copy.wholeHint}
+          placeholder={task.answerFormat === 'fraction' ? copy.fractionHint : task.answerFormat === 'decimal' ? copy.decimalHint : copy.wholeHint}
           aria-invalid={feedback?.status === 'incorrect' || undefined}
           className="min-h-12 w-full min-w-0 flex-1 rounded-xl border-[3px] border-ink bg-white px-3 font-mono text-2xl font-bold tabular-nums outline-none placeholder:font-sans placeholder:text-base placeholder:font-semibold focus-visible:ring-4 focus-visible:ring-sun aria-invalid:border-rose-600 aria-invalid:bg-rose-50"
         />
@@ -187,6 +189,33 @@ function BattleTaskForm({ battle, lang, onResult, feedback, onFeedback: setFeedb
         {feedback?.message}
       </p>
     </form>
+  )
+}
+
+/** Class analytics: one click starts a short battle on the topic the class finds hardest. */
+export function ReviewBattleButton({ classId, lang, topic }: { classId: number; lang: Lang; topic: BattleTopic }) {
+  const copy = CLASSROOM_COPY[lang].board
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState(false)
+  async function start() {
+    setBusy(true)
+    setError(false)
+    try {
+      const board = await accounts.startBattle(classId, { topic, difficulty: 'basic', hp: 300 })
+      window.location.hash = battleBoardHref(board.id)
+    } catch {
+      setError(true)
+      setBusy(false)
+    }
+  }
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-2">
+      <button type="button" onClick={start} disabled={busy} className={PRIMARY}>
+        <span aria-hidden>⚔️ </span>{copy.reviewBattle(copy.topics[topic])}
+      </button>
+      <span className="text-sm font-semibold text-ink/75">{copy.reviewBattleHint}</span>
+      {error && <p role="alert" className="w-full font-bold text-rose-700">{copy.error}</p>}
+    </div>
   )
 }
 
@@ -215,7 +244,7 @@ export function BattleLauncher({ classId, lang }: { classId: number; lang: Lang 
   }
 
   const choice = (selected: boolean) =>
-    `min-h-11 rounded-xl border-[3px] border-ink px-3 text-sm font-black shadow-[0_3px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand ${selected ? 'translate-y-[2px] bg-sun shadow-[0_1px_0_var(--color-ink)]' : 'bg-white hover:bg-sky'}`
+    `min-h-11 rounded-xl border-[3px] border-ink px-3 text-sm font-black shadow-[0_3px_0_var(--shadow-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand ${selected ? 'translate-y-[2px] bg-sun shadow-[0_1px_0_var(--shadow-ink)]' : 'bg-white hover:bg-sky'}`
   return (
     <section className={CARD} aria-labelledby={`${id}-title`}>
       <h2 id={`${id}-title`} className="flex items-center gap-2 text-xl font-black text-ink"><span aria-hidden>⚔️</span>{copy.start}</h2>
@@ -230,7 +259,7 @@ export function BattleLauncher({ classId, lang }: { classId: number; lang: Lang 
         <fieldset>
           <legend className="mb-1.5 text-sm font-black text-ink/80">{copy.topic}</legend>
           <div className="flex flex-wrap gap-2">
-            {(['equations', 'fractions'] as const).map((t) => (
+            {BATTLE_TOPICS.map((t) => (
               <button key={t} type="button" aria-pressed={topic === t} onClick={() => setTopic(t)} className={choice(topic === t)}>{copy.topics[t]}</button>
             ))}
           </div>
@@ -278,7 +307,7 @@ export function BattleBoardScreen({ battleId, lang }: { battleId: string; lang: 
   const kind = BATTLE_BOSS[board.topic]
   return (
     <div ref={root} className="flex flex-col gap-4 bg-[var(--color-sky,#eef4ff)] p-1">
-      <section className={`overflow-hidden rounded-3xl border-[4px] border-ink text-white shadow-[0_8px_0_var(--color-ink)] ${kind === 'x-master' ? 'bg-[linear-gradient(160deg,#1d1450,#5b3cc4)]' : 'bg-[linear-gradient(160deg,#14361f,#3f9a4d)]'} ${board.status === 'active' ? 'boss-arena' : ''}`}>
+      <section className={`overflow-hidden rounded-3xl border-[4px] border-ink text-white shadow-[0_8px_0_var(--shadow-ink)] ${kind === 'x-master' ? 'bg-[linear-gradient(160deg,#1d1450,#5b3cc4)]' : 'bg-[linear-gradient(160deg,#14361f,#3f9a4d)]'} ${board.status === 'active' ? 'boss-arena' : ''}`}>
         <div className="flex flex-col items-center gap-5 p-5 sm:flex-row sm:p-8">
           <BossAvatar kind={kind} shielded={false} hitKey={board.hits} big />
           <div className="w-full min-w-0 flex-1">

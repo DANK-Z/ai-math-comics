@@ -9,7 +9,7 @@ import { MyStoryFields } from './MyStoryFields'
 import { PanelArt } from './PanelArt'
 import { GenerationProgress } from './GenerationProgress'
 
-const CARD = 'min-w-0 rounded-2xl border-[3px] border-ink bg-white p-3 shadow-[0_4px_0_var(--color-ink)] sm:p-4'
+const CARD = 'min-w-0 rounded-2xl border-[3px] border-ink bg-white p-3 shadow-[0_4px_0_var(--shadow-ink)] sm:p-4'
 const CONTROL = 'w-full min-w-0 rounded-xl border-[3px] border-ink bg-white px-3 py-2 font-semibold focus-visible:outline-3 focus-visible:outline-brand aria-invalid:border-rose-700'
 const BUTTON = 'inline-flex min-h-11 items-center rounded-xl border-[3px] border-ink bg-white px-3 py-2 text-start font-black focus-visible:outline-3 focus-visible:outline-brand disabled:opacity-50'
 const PRIMARY = BUTTON.replace('bg-white', 'bg-sun')

@@ -34,7 +34,7 @@ export function ExerciseCard({ exercise, lang, check, reward }: Props) {
   return (
     <section
       aria-labelledby={`${inputId}-title`}
-      className="overflow-hidden rounded-[28px] border-[4px] border-ink bg-cream shadow-[0_6px_0_var(--color-ink)]"
+      className="overflow-hidden rounded-[28px] border-[4px] border-ink bg-cream shadow-[0_6px_0_var(--shadow-ink)]"
     >
       <h2 id={`${inputId}-title`} className="flex items-center gap-2 bg-brand px-4 py-2 text-lg font-black text-white">
         <span aria-hidden className="grid h-7 w-7 place-items-center rounded-full border-2 border-ink bg-sun text-sm text-ink">
@@ -66,7 +66,7 @@ export function ExerciseCard({ exercise, lang, check, reward }: Props) {
             <button
               type="submit"
               disabled={!answer.trim() || checking || solved}
-              className="min-h-12 shrink-0 rounded-2xl border-[3px] border-ink bg-sun px-4 text-lg font-black text-ink shadow-[0_4px_0_var(--color-ink)] transition active:translate-y-[3px] active:shadow-[0_1px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+              className="min-h-12 shrink-0 rounded-2xl border-[3px] border-ink bg-sun px-4 text-lg font-black text-ink shadow-[0_4px_0_var(--shadow-ink)] transition active:translate-y-[3px] active:shadow-[0_1px_0_var(--shadow-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
             >
               {checking ? t.checking : t.check}
             </button>

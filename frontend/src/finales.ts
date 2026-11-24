@@ -337,6 +337,9 @@ function readRun(def: FinaleDef): FinaleRun {
 }
 
 /** Whether a finale was ever completed in this browser. */
+/** Fired on window when a finale is won. */
+export const FINALE_WON_EVENT = 'amc:finale-won'
+
 export function finaleWon(id: string): boolean {
   const def = FINALES[id]
   return !!def && readRun(def).won
@@ -352,6 +355,8 @@ export function useFinale(def: FinaleDef) {
     } catch {
       // Play continues in memory when storage is unavailable.
     }
+    // The app reports a first win to the server (its coins and trophy).
+    if (next.won) window.dispatchEvent(new Event(FINALE_WON_EVENT))
   }, [def.id])
 
   /** Checks the answer for the current round; a correct one opens the next part. */

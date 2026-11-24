@@ -6,10 +6,12 @@ answer of a signed-in student (``record_attempt``); when all rounds of a comic's
 the server computes stars from the logged misses and awards coins once.
 """
 
+import json
 import re
 import secrets
 from collections import Counter, defaultdict
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -141,20 +143,11 @@ class JoinClass(BaseModel):
     code: str = Field(min_length=4, max_length=32)
 
 
-# One-time coins for operation progress, by completed id. «Дороги ярмарки» is the pilot:
-# 5 coins per chapter and 10 for its finale (reported as ``roads-finale``), plus 5 for each
-# secret spotted on a chapter's first panel (``secret-<chapter>``).
-PROGRESS_REWARDS: dict[str, int] = {
-    "roads-flag": 5,
-    "roads-bridge": 5,
-    "roads-river": 5,
-    "roads-hill": 5,
-    "roads-finale": 10,
-    "secret-roads-flag": 5,
-    "secret-roads-bridge": 5,
-    "secret-roads-river": 5,
-    "secret-roads-hill": 5,
-}
+# One-time coins for progress (chapters 5, finales 10, panel secrets 5), by completed id.
+# The list is shared with the frontend: frontend/src/progressRewards.json (the Docker image
+# copies it next to the backend).
+REWARDS_FILE = Path(__file__).resolve().parents[2] / "frontend" / "src" / "progressRewards.json"
+PROGRESS_REWARDS: dict[str, int] = json.loads(REWARDS_FILE.read_text(encoding="utf-8"))["rewards"]
 
 
 class SeasonUpdate(BaseModel):

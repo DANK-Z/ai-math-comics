@@ -1,11 +1,16 @@
 import { useSyncExternalStore } from 'react'
+import { LIGHTS_PARK_ID } from './api/lightsChapters'
+import { MARS_CRATER_ID } from './api/marsChapters'
+import { MUSEUM_MIRROR_ID } from './api/museumChapters'
 import { ROADS_BRIDGE_ID, ROADS_FLAG_ID, ROADS_HILL_ID, ROADS_RIVER_ID } from './api/roadsChapters'
+import { WEATHER_FROST_ID } from './api/weatherChapters'
 import type { Lang } from './api/types'
 
 // Hidden secrets on the first panel of a chapter: a small twinkle on something in the
 // picture. Spotting it makes Pifik pop out with a line, and a signed-in student gets coins
 // once (the secret is reported as its own progress id; the server pays it once, see
-// PROGRESS_REWARDS). «Дороги ярмарки» is the pilot, like the other operation rewards.
+// progressRewards.json). Every chapter of «Дороги ярмарки» has one, the other operations one
+// in their first chapter.
 
 type Text = Record<Lang, string>
 const t = (ru: string, kk: string): Text => ({ ru, kk })
@@ -47,6 +52,26 @@ export const PANEL_SECRETS: readonly PanelSecret[] = [
     id: 'secret-roads-hill', comicId: ROADS_HILL_ID, panel: 1, x: 6, y: 25,
     name: t('башня с золотым шаром', 'алтын шары бар мұнара'),
     line: t('С холма видно башню с золотым шаром! Вот это высота.', 'Төбеден алтын шары бар мұнара көрінеді! Міне, биіктік!'),
+  },
+  {
+    id: 'secret-lights-park', comicId: LIGHTS_PARK_ID, panel: 1, x: 91, y: 9,
+    name: t('надпись «Kokshetau» на сопке', 'төбедегі «Kokshetau» жазуы'),
+    line: t('Это же сопка с надписью «Kokshetau»! Вечером её тоже подсветят.', 'Бұл «Kokshetau» жазуы бар төбе ғой! Кешке оны да жарықтандырады.'),
+  },
+  {
+    id: 'secret-museum-mirror', comicId: MUSEUM_MIRROR_ID, panel: 1, x: 86, y: 19,
+    name: t('золотая карта Казахстана', 'Қазақстанның алтын картасы'),
+    line: t('Золотая карта Казахстана! Найдёшь на ней Кокшетау?', 'Қазақстанның алтын картасы! Онда Көкшетауды таба аласың ба?'),
+  },
+  {
+    id: 'secret-weather-frost', comicId: WEATHER_FROST_ID, panel: 1, x: 93, y: 11,
+    name: t('флюгер на метеостанции', 'метеостанциядағы желбағар'),
+    line: t('Флюгер! Стрелка показывает, откуда дует ветер. Запишем в журнал.', 'Желбағар! Тілі желдің қайдан соғатынын көрсетеді. Журналға жазайық.'),
+  },
+  {
+    id: 'secret-mars-crater', comicId: MARS_CRATER_ID, panel: 1, x: 5, y: 9,
+    name: t('растение у окна станции', 'бекет терезесінің жанындағы өсімдік'),
+    line: t('Растение на станции! Совсем как в марсианской теплице — пригодится потом.', 'Бекеттегі өсімдік! Марс жылыжайындағыдай — кейін керек болады.'),
   },
 ]
 

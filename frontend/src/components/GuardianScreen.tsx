@@ -4,11 +4,13 @@ import type { GuardianRound, useGuardianChallenge } from '../guardian'
 import { GUARDIAN_SETUP } from '../guardianAssignment'
 import { STRINGS } from '../i18n'
 import { SECTION_HREFS } from '../route'
+import { FAIR_FINALE_ID } from '../rewards'
+import { FinaleRewardNotes } from './FinaleRewardNotes'
 import { RichText } from './RichText'
 import { PifikSprite } from './PifikSprite'
 
-const BUTTON = 'inline-flex min-h-11 items-center justify-center rounded-2xl border-[3px] border-ink px-4 py-2 text-center font-black text-ink shadow-[0_4px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-50 disabled:shadow-none'
-const CARD = 'rounded-[28px] border-[3px] border-ink bg-white p-4 shadow-[0_6px_0_var(--color-ink)] sm:p-6'
+const BUTTON = 'inline-flex min-h-11 items-center justify-center rounded-2xl border-[3px] border-ink px-4 py-2 text-center font-black text-ink shadow-[0_4px_0_var(--shadow-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-50 disabled:shadow-none'
+const CARD = 'rounded-[28px] border-[3px] border-ink bg-white p-4 shadow-[0_6px_0_var(--shadow-ink)] sm:p-6'
 
 type Challenge = ReturnType<typeof useGuardianChallenge>
 /** `lit`: a lantern lights up; `notYet`: the Keeper gently shakes his head; `open`: the arch opens. */
@@ -227,6 +229,7 @@ export default function GuardianScreen({ lang, remaining, challenge, assigned = 
         ) : (
           <>
             <p className="mt-2 font-semibold">{assigned ? copy.finished : c.victoryText}</p>
+            {!assigned && <FinaleRewardNotes lang={lang} progressId={FAIR_FINALE_ID} />}
             <div className="mt-4 flex flex-wrap gap-2">
               <button type="button" onClick={() => { setAnimation(undefined); replay() }} className={`${BUTTON} bg-sun`}>{c.replay}</button>
               {catalog}

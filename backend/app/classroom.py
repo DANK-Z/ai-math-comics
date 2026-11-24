@@ -22,11 +22,10 @@ from pydantic import BaseModel, Field
 from sqlalchemy import case, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .answers import parse_answer
 from .auth import Session, current_student, current_teacher
 from .db import BattleTask, BossResult, ClassBattle, ProgressReward, Role, SchoolClass, User
-from .problems import choose_problem, problem_from_dict
-from .schemas import JobRequest, Language
+from .practice import Topic, answer_format, check, from_stored, make_problem
+from .schemas import Language
 
 router = APIRouter(prefix="/api")
 Student = Annotated[User, Depends(current_student)]
@@ -39,7 +38,6 @@ BATTLE_HP = (300, 600, 1000)
 # After this many misses on one problem the student gets a new one (no endless guessing).
 MISSES_PER_TASK = 3
 
-Topic = Literal["fractions", "equations"]
 Difficulty = Literal["basic", "intermediate", "advanced"]
 
 
@@ -195,7 +193,7 @@ class BattleBoard(BaseModel):
 class BattleTaskOut(BaseModel):
     id: str
     prompt: str
-    answerFormat: Literal["fraction", "whole-number"]
+    answerFormat: Literal["fraction", "decimal", "whole-number"]
 
 
 class StudentBattle(BaseModel):
@@ -361,15 +359,11 @@ async def latest_battle(session: AsyncSession, class_id: int) -> ClassBattle | N
 
 
 def new_problem(battle: ClassBattle, grade: int):
-    request = JobRequest(
-        grade=min(6, max(5, grade)), topic=battle.topic, lang="ru", difficulty=battle.difficulty
-    )
-    return choose_problem(request)
+    return make_problem(battle.topic, grade, battle.difficulty)
 
 
 def stored(problem) -> dict:
-    inputs = getattr(problem, "stored_inputs", None)
-    return inputs() if inputs else problem.to_dict()
+    return problem.stored()
 
 
 async def open_task(
@@ -406,11 +400,9 @@ async def student_view(
     task = None
     if battle.status == "active":
         open_ = await open_task(session, battle, student, grade)
-        problem = problem_from_dict(open_.problem)
+        problem = from_stored(open_.problem)
         task = BattleTaskOut(
-            id=open_.id,
-            prompt=problem.prompt(lang),
-            answerFormat="whole-number" if battle.topic == "equations" else "fraction",
+            id=open_.id, prompt=problem.prompt(lang), answerFormat=answer_format(battle.topic)
         )
     mine = await session.scalar(
         select(func.count()).where(
@@ -469,9 +461,7 @@ async def answer_battle(battle_id: str, body: BattleAnswer, user: Student, sessi
         # The boss fell (or the teacher stopped the battle) while this answer was on its way.
         view = await student_view(session, battle, user, body.lang, school_class.grade)
         return BattleAnswerResult(status="invalid", message="", damage=0, battle=view)
-    problem = problem_from_dict(task.problem)
-    value = parse_answer(body.answer, battle.topic)
-    status = "invalid" if value is None else "correct" if value == problem.expected else "incorrect"
+    status = check(from_stored(task.problem), body.answer)
     damage = 0
     message = copy[status]
     if status == "correct":

@@ -105,7 +105,7 @@ function RoundForm({ round, lang, onHit, onMiss }: { round: BossRound; lang: Lan
         <button
           type="submit"
           disabled={!answer.trim() || checking || solved}
-          className="min-h-12 shrink-0 rounded-xl border-[3px] border-ink bg-sun px-5 text-lg font-black text-ink shadow-[0_4px_0_var(--color-ink)] transition active:translate-y-[3px] active:shadow-[0_1px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+          className="min-h-12 shrink-0 rounded-xl border-[3px] border-ink bg-sun px-5 text-lg font-black text-ink shadow-[0_4px_0_var(--shadow-ink)] transition active:translate-y-[3px] active:shadow-[0_1px_0_var(--shadow-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
         >
           {checking ? t.checking : t.check}
         </button>
@@ -221,7 +221,7 @@ export function BossFight({ boss, lang, active, cleared, onRoundCleared, misses,
   return (
     <section
       aria-labelledby={`${hpId}-title`}
-      className={`${shaking ? 'boss-miss-shake' : 'boss-enter'} relative overflow-hidden rounded-2xl border-[3px] border-ink bg-white shadow-[0_6px_0_var(--color-ink)]`}
+      className={`${shaking ? 'boss-miss-shake' : 'boss-enter'} relative overflow-hidden rounded-2xl border-[3px] border-ink bg-white shadow-[0_6px_0_var(--shadow-ink)]`}
     >
       {shaking && (
         <span key={missCount} aria-hidden className="boss-miss-flash pointer-events-none absolute inset-0 z-10 bg-rose-600/30 opacity-0" />
@@ -286,7 +286,7 @@ export function BossFight({ boss, lang, active, cleared, onRoundCleared, misses,
             <button
               type="button"
               onClick={() => setTriumph(true)}
-              className="min-h-11 shrink-0 rounded-xl border-[3px] border-ink bg-white px-3 text-sm font-black text-ink shadow-[0_3px_0_var(--color-ink)] hover:bg-sky focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand"
+              className="min-h-11 shrink-0 rounded-xl border-[3px] border-ink bg-white px-3 text-sm font-black text-ink shadow-[0_3px_0_var(--shadow-ink)] hover:bg-sky focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand"
             >
               {copy.triumph.reopen}
             </button>

@@ -8,7 +8,7 @@ import { comicHref, replayHref, SECTION_HREFS } from '../route'
 import { PanelArt } from './PanelArt'
 
 const ACTION =
-  'inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-xl border-[3px] border-ink px-4 text-center font-black text-ink shadow-[0_3px_0_var(--color-ink)] transition active:translate-y-[2px] active:shadow-[0_1px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun'
+  'inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-xl border-[3px] border-ink px-4 text-center font-black text-ink shadow-[0_3px_0_var(--shadow-ink)] transition active:translate-y-[2px] active:shadow-[0_1px_0_var(--shadow-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun'
 const FIELD = 'min-h-11 w-full rounded-xl border-[3px] border-ink bg-white px-3 font-semibold focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun'
 
 function formatDate(savedAt: number, lang: Lang) {
@@ -61,7 +61,7 @@ function MyComicCard({ entry, lang, t, search, onRemove, last }: {
   const closeEditor = () => { setEditing(false); changeTitle.current?.focus() }
 
   return (
-    <li hidden={!matches} className={`${matches ? 'flex' : 'hidden'} min-w-0 flex-col overflow-hidden rounded-2xl border-[3px] border-ink bg-white shadow-[0_5px_0_var(--color-ink)] ${last ? 'ring-4 ring-sun' : ''}`}>
+    <li hidden={!matches} className={`${matches ? 'flex' : 'hidden'} min-w-0 flex-col overflow-hidden rounded-2xl border-[3px] border-ink bg-white shadow-[0_5px_0_var(--shadow-ink)] ${last ? 'ring-4 ring-sun' : ''}`}>
       <div className="relative border-b-[3px] border-ink bg-sky-100">
         <Thumbnail comic={comic} loading={loading} lang={lang} />
         <span className="absolute top-2 left-2 rounded-lg border-2 border-ink bg-sun px-2 py-0.5 text-xs font-black text-ink">

@@ -13,6 +13,7 @@ COPY backend/app ./app
 COPY backend/migrations ./migrations
 COPY backend/alembic.ini ./
 COPY frontend/public/mock-images /app/frontend/public/mock-images
+COPY frontend/src/progressRewards.json /app/frontend/src/progressRewards.json
 USER amc
 
 CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips", "*"]

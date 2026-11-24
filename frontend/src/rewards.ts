@@ -1,27 +1,26 @@
 import { ROADS_FLAG_ID } from './api/roadsChapters'
 import type { Lang } from './api/types'
-import { PANEL_SECRETS, SECRET_COINS } from './panelSecrets'
 import { operationHref } from './operations'
 import type { SchoolFairCollectible } from './schoolFair'
 
-// Backpack and coin rewards for operation progress. «Дороги ярмарки» is the pilot:
-// – each chapter pays 5 coins and its finale 10, once (the server owns the balance and
-//   pays each reward once; see PROGRESS_REWARDS in backend/app/accounts.py);
-// – «Флажок на колёсах» unlocks the Yellow Flag (a find), the finale the Road Guardian Medal
-//   (a trophy). Finds and trophies also work for guests, from this browser's progress.
+import rewardsFile from './progressRewards.json'
+
+// Backpack and coin rewards for progress in every season:
+// – each chapter and panel secret pays 5 coins and each finale 10, once (the server owns the
+//   balance and pays each reward once; the list lives in progressRewards.json, shared with
+//   backend/app/accounts.py);
+// – every finale unlocks a trophy, «Флажок на колёсах» also the Yellow Flag (a find). Finds and
+//   trophies also work for guests, from this browser's progress.
 
 /** Progress id the client reports when the «Дороги ярмарки» finale is won. */
 export const ROADS_FINALE_ID = 'roads-finale'
+/** Progress id of the School Fair finale (the Fair Keeper). */
+export const FAIR_FINALE_ID = 'fair-finale'
+/** Progress id of an operation's finale. */
+export const finaleProgressId = (operationId: string) => `${operationId}-finale`
 
-/** Coins paid once for the first completion. Keep in sync with the server. */
-export const PROGRESS_REWARDS: Readonly<Record<string, number>> = {
-  'roads-flag': 5,
-  'roads-bridge': 5,
-  'roads-river': 5,
-  'roads-hill': 5,
-  [ROADS_FINALE_ID]: 10,
-  ...Object.fromEntries(PANEL_SECRETS.map((s) => [s.id, SECRET_COINS])),
-}
+/** Coins paid once for the first completion (shared with the server). */
+export const PROGRESS_REWARDS: Readonly<Record<string, number>> = rewardsFile.rewards
 
 type Text = Record<Lang, string>
 const t = (ru: string, kk: string): Text => ({ ru, kk })
@@ -51,7 +50,7 @@ export const OPERATION_FINDS: readonly OperationFind[] = [
 ]
 
 export interface Trophy {
-  id: 'road-guardian-medal'
+  id: string
   icon: string
   /** Progress id that unlocks the trophy. */
   unlockedBy: string
@@ -62,6 +61,15 @@ export interface Trophy {
 }
 
 export const TROPHIES: readonly Trophy[] = [
+  {
+    id: 'fair-keeper-cup',
+    icon: '🏆',
+    unlockedBy: FAIR_FINALE_ID,
+    href: '#/guardian',
+    name: t('Кубок Стража ярмарки', 'Жәрмеңке Сақшысының кубогы'),
+    earned: t('Все три фонаря на арке горят — Страж ярмарки вручил кубок.', 'Арканың үш шамы да жанып тұр — Жәрмеңке Сақшысы кубок берді.'),
+    howTo: t('Пройди все главы «Школьной ярмарки» и зажги три фонаря в финальном испытании.', '«Мектеп жәрмеңкесінің» барлық тарауынан өтіп, финалдық сынақта үш шамды жақ.'),
+  },
   {
     id: 'road-guardian-medal',
     icon: '🏅',
@@ -76,6 +84,42 @@ export const TROPHIES: readonly Trophy[] = [
       'Пройди все главы «Дорог ярмарки» и открой три замка в финале «Три замка Хранителя».',
       '«Жәрмеңке жолдарының» барлық тарауынан өтіп, «Сақшының үш құлпы» финалында үш құлыпты аш.',
     ),
+  },
+  {
+    id: 'kokshetau-lantern',
+    icon: '🏮',
+    unlockedBy: finaleProgressId('lights'),
+    href: operationHref('lights'),
+    name: t('Фонарь Кокшетау', 'Көкшетау шамы'),
+    earned: t('Мозаика огней собрана — город сияет к празднику.', 'Шамдар мозаикасы құрастырылды — қала мерекеге жарқырап тұр.'),
+    howTo: t('Пройди «Огни Кокшетау» и собери мозаику огней в финале.', '«Көкшетау шамдарынан» өтіп, финалда шамдар мозаикасын құрастыр.'),
+  },
+  {
+    id: 'museum-key',
+    icon: '🗝️',
+    unlockedBy: finaleProgressId('museum'),
+    href: operationHref('museum'),
+    name: t('Ключ от тайного зала', 'Құпия залдың кілті'),
+    earned: t('Тайный зал музея открыт — ключ остаётся у тебя.', 'Мұражайдың құпия залы ашылды — кілт сенде қалады.'),
+    howTo: t('Пройди «Музей после закрытия» и открой тайный зал в финале.', '«Жабылғаннан кейінгі мұражайдан» өтіп, финалда құпия залды аш.'),
+  },
+  {
+    id: 'weather-vane',
+    icon: '🌦️',
+    unlockedBy: finaleProgressId('weather'),
+    href: operationHref('weather'),
+    name: t('Флюгер синоптика', 'Синоптиктің желбағары'),
+    earned: t('Прогноз сбылся: сцену поставили там, где не было дождя.', 'Болжам дәл келді: сахна жаңбыр жоқ жерге қойылды.'),
+    howTo: t('Пройди «Погоду на завтра» и выбери место для сцены в финале.', '«Ертеңгі ауа райынан» өтіп, финалда сахнаға орын таңда.'),
+  },
+  {
+    id: 'mars-patch',
+    icon: '🚀',
+    unlockedBy: finaleProgressId('mars'),
+    href: operationHref('mars'),
+    name: t('Нашивка марсианской станции', 'Марс бекетінің белгісі'),
+    earned: t('Стыковка вслепую удалась — экипаж принял тебя в команду.', 'Соқыр түйісу сәтті болды — экипаж сені командаға қабылдады.'),
+    howTo: t('Пройди «Марс на перемене» и проведи стыковку в финале.', '«Үзілістегі Марстан» өтіп, финалда түйісуді жүргіз.'),
   },
 ]
 

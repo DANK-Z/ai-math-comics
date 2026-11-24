@@ -246,6 +246,33 @@ correctly, the check response carries
 `"reward": {"coins", "stars", "misses", "totalCoins"}` once: stars 3 / 2 / 1 for 0 / 1–2 / 3+
 misses before each round was solved, coins `10 + 10 × stars`.
 
+### One-time progress coins
+
+`PUT /api/me/progress` also pays coins once per student for ids listed in
+`frontend/src/progressRewards.json` (shared by the server and the frontend): every bundled
+chapter 5, every finale 10 (`fair-finale`, `roads-finale`, `lights-finale`, `museum-finale`,
+`weather-finale`, `mars-finale`) and every panel secret 5 (`secret-<chapter>`). Paid keys are
+stored in `progress_rewards`, so a replay, a reload or two parallel requests pay nothing more.
+
+### Class league, class battles and review drills
+
+| Method and path | Who | Body / result |
+| --- | --- | --- |
+| `GET /api/me/leaderboard` | student in a class | This week's table (Monday 00:00 Almaty): `{className, weekStart, classSize, rows:[{rank, name, stars, coins, cleanWins, me}]}`. Top 10 plus the student's own row. Names are «Имя Ф.». 404 `no_class`. |
+| `GET /api/teacher/classes/{id}/leaderboard` | teacher (owner) | The same table without `me`. |
+| `POST /api/teacher/classes/{id}/battles` | teacher (owner) | `{"topic","difficulty"?,"hp"}` → 201 board. `topic`: `fractions`, `equations`, `gcd`, `decimals`, `parts`; `hp`: 300, 600 or 1000. A new battle stops the class's active one. |
+| `GET /api/teacher/classes/{id}/battles/current` | teacher (owner) | The active battle, or one finished in the last hour, or `null`. |
+| `GET /api/teacher/battles/{battleId}` | teacher (owner) | Board: `{id, classId, className, classCode, topic, maxHp, hp, damagePerHit, status, hits, fighters, top, recent, startedAt, finishedAt}`. |
+| `POST /api/teacher/battles/{battleId}/stop` | teacher (owner) | Stops the battle → board. |
+| `GET /api/me/battle?lang=` | student in a class | `{id, topic, maxHp, hp, damagePerHit, status, myHits, classHits, task?}`; `task {id, prompt, answerFormat}` while active, or `null` without a battle. |
+| `POST /api/me/battle/{battleId}/answer` | student in a class | `{"taskId","answer","lang"}` → `{status, message, damage, battle}`. A correct answer deals 10 damage once; three misses bring a new problem. |
+| `POST /api/me/practice` | student | `{"topic","skill"?,"lang"}` → the first of five problems `{id, topic, prompt, answerFormat, number, total}`. |
+| `POST /api/me/practice/answer` | student | `{"taskId","answer","lang"}` → `{status, message, solved, total, next?}`. |
+| `GET /api/me/practice/weak` | student | The skill missed most in boss fights over 14 days (at least twice): `{topic, skill, mistakes}`, or `null`. |
+
+Problems for battles and drills are chosen on the server (`backend/app/practice.py`), stored
+with the task and checked there; `answerFormat` is `fraction`, `decimal` or `whole-number`.
+
 ### Fair shop and Pifik skins
 
 | Method and path | Who | Body / result |

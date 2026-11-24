@@ -35,7 +35,7 @@ export function PanelSecretSpot({ secret, lang }: { secret: PanelSecret; lang: L
         </button>
       )}
       {open && (
-        <div role="status" className="secret-pop absolute inset-x-[3%] bottom-[4%] flex items-center gap-2 rounded-2xl border-[3px] border-ink bg-cream p-2 text-ink shadow-[0_4px_0_var(--color-ink)] sm:inset-x-auto sm:right-[3%] sm:max-w-md sm:gap-3 sm:p-3">
+        <div role="status" className="secret-pop absolute inset-x-[3%] bottom-[4%] flex items-center gap-2 rounded-2xl border-[3px] border-ink bg-cream p-2 text-ink shadow-[0_4px_0_var(--shadow-ink)] sm:inset-x-auto sm:right-[3%] sm:max-w-md sm:gap-3 sm:p-3">
           <PifikSprite className="w-12 shrink-0 rounded-xl border-2 border-ink bg-sky-100 sm:w-14" />
           <div className="min-w-0 flex-1">
             <p className="text-xs font-black text-brand-dark uppercase">✨ {copy.found(secret.name[lang])}</p>

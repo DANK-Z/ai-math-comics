@@ -87,7 +87,7 @@ export function TriumphModal({ open, name, lang, rounds, misses, reward, onClose
       aria-labelledby={titleId}
       onClose={onClose}
       onClick={(e) => e.target === dialog.current && onClose()}
-      className="triumph m-auto w-[calc(100%-2rem)] max-w-md overflow-visible rounded-2xl border-[3px] border-ink bg-cream p-0 text-ink shadow-[0_8px_0_var(--color-ink)] backdrop:bg-ink/65"
+      className="triumph m-auto w-[calc(100%-2rem)] max-w-md overflow-visible rounded-2xl border-[3px] border-ink bg-cream p-0 text-ink shadow-[0_8px_0_var(--shadow-ink)] backdrop:bg-ink/65"
     >
       <div className="relative overflow-hidden rounded-t-[13px] bg-[radial-gradient(circle_at_50%_70%,#fff6c7,#f8cd45_60%,#f0a92a)] px-4 pt-4 pb-3">
         <button
@@ -116,7 +116,7 @@ export function TriumphModal({ open, name, lang, rounds, misses, reward, onClose
       </div>
 
       <div className="p-4 sm:p-5">
-        <section aria-label={t.trophy} className="rounded-2xl border-[3px] border-ink bg-white p-3 shadow-[0_3px_0_var(--color-ink)]">
+        <section aria-label={t.trophy} className="rounded-2xl border-[3px] border-ink bg-white p-3 shadow-[0_3px_0_var(--shadow-ink)]">
           <div className="flex items-center gap-3">
             <span aria-hidden className="grid size-12 shrink-0 place-items-center rounded-xl border-2 border-ink bg-sun text-2xl">🏆</span>
             <div className="min-w-0">
@@ -147,7 +147,7 @@ export function TriumphModal({ open, name, lang, rounds, misses, reward, onClose
               ref={primary}
               type="button"
               onClick={onReadOn}
-              className="min-h-12 flex-1 rounded-xl border-[3px] border-ink bg-sun px-4 font-black shadow-[0_4px_0_var(--color-ink)] transition active:translate-y-[3px] active:shadow-[0_1px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand"
+              className="min-h-12 flex-1 rounded-xl border-[3px] border-ink bg-sun px-4 font-black shadow-[0_4px_0_var(--shadow-ink)] transition active:translate-y-[3px] active:shadow-[0_1px_0_var(--shadow-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand"
             >
               {t.readOn} <span aria-hidden>→</span>
             </button>
@@ -155,7 +155,7 @@ export function TriumphModal({ open, name, lang, rounds, misses, reward, onClose
           <button
             type="button"
             onClick={share}
-            className="min-h-12 flex-1 rounded-xl border-[3px] border-ink bg-white px-4 font-black shadow-[0_4px_0_var(--color-ink)] transition hover:bg-sky active:translate-y-[3px] active:shadow-[0_1px_0_var(--color-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            className="min-h-12 flex-1 rounded-xl border-[3px] border-ink bg-white px-4 font-black shadow-[0_4px_0_var(--shadow-ink)] transition hover:bg-sky active:translate-y-[3px] active:shadow-[0_1px_0_var(--shadow-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
             <span aria-hidden>📣 </span>{t.share}
           </button>

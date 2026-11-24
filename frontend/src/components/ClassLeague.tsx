@@ -73,7 +73,7 @@ export function ClassLeague({ lang }: { lang: Lang }) {
   const me = board?.rows.find((r) => r.me)
   const nobody = board && board.rows.every((r) => r.stars === 0 && r.coins === 0)
   return (
-    <section aria-labelledby={`${id}-title`} className="rounded-2xl border-[3px] border-ink bg-white p-3 shadow-[0_4px_0_var(--color-ink)] sm:p-4">
+    <section aria-labelledby={`${id}-title`} className="rounded-2xl border-[3px] border-ink bg-white p-3 shadow-[0_4px_0_var(--shadow-ink)] sm:p-4">
       <h2 id={`${id}-title`} className="flex items-center gap-2 text-lg font-black text-ink">
         <span aria-hidden>🏆</span>{copy.title}{board && <span className="text-sm font-bold text-ink/60">· {board.className}</span>}
       </h2>
@@ -107,7 +107,7 @@ export function TeacherLeague({ classId, lang }: { classId: number; lang: Lang }
   }, [classId])
   if (!board) return null
   return (
-    <section aria-labelledby={`${id}-title`} className="rounded-2xl border-[3px] border-ink bg-white p-4 shadow-[0_4px_0_var(--color-ink)] sm:p-6">
+    <section aria-labelledby={`${id}-title`} className="rounded-2xl border-[3px] border-ink bg-white p-4 shadow-[0_4px_0_var(--shadow-ink)] sm:p-6">
       <h2 id={`${id}-title`} className="flex items-center gap-2 text-xl font-black text-ink"><span aria-hidden>🏆</span>{copy.title}</h2>
       <p className="mt-0.5 mb-2 text-sm font-bold text-ink/65">{copy.week}</p>
       <div className="max-w-xl"><LeagueTable board={board} lang={lang} /></div>

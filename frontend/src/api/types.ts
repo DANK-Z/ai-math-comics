@@ -261,7 +261,8 @@ export interface Leaderboard {
   classSize: number
 }
 
-export type BattleTopic = 'fractions' | 'equations'
+export type BattleTopic = 'fractions' | 'equations' | 'gcd' | 'decimals' | 'parts'
+export type AnswerFormat = 'fraction' | 'decimal' | 'whole-number'
 export type BattleDifficulty = 'basic' | 'intermediate' | 'advanced'
 export type BattleStatus = 'active' | 'won' | 'stopped'
 
@@ -295,7 +296,7 @@ export interface StudentBattle {
   status: BattleStatus
   myHits: number
   classHits: number
-  task?: { id: string; prompt: string; answerFormat: 'fraction' | 'whole-number' } | null
+  task?: { id: string; prompt: string; answerFormat: AnswerFormat } | null
 }
 
 export interface BattleAnswerResult {
@@ -303,6 +304,31 @@ export interface BattleAnswerResult {
   message: string
   damage: number
   battle: StudentBattle
+}
+
+/** A problem of the solo review drill (five in a row, checked on the server). */
+export interface PracticeTask {
+  id: string
+  topic: BattleTopic
+  prompt: string
+  answerFormat: AnswerFormat
+  number: number
+  total: number
+}
+
+export interface PracticeResult {
+  status: CheckStatus
+  message: string
+  solved: number
+  total: number
+  next?: PracticeTask | null
+}
+
+/** The skill a student missed most in recent boss fights. */
+export interface WeakSpot {
+  topic: BattleTopic
+  skill: string
+  mistakes: number
 }
 
 export interface AccountApi {
@@ -328,6 +354,9 @@ export interface AccountApi {
   stopBattle(battleId: string): Promise<BattleBoard>
   myBattle(lang: Lang, signal?: AbortSignal): Promise<StudentBattle | null>
   answerBattle(battleId: string, body: { taskId: string; answer: string; lang: Lang }): Promise<BattleAnswerResult>
+  startPractice(body: { topic: BattleTopic; skill?: string | null; lang: Lang }): Promise<PracticeTask>
+  answerPractice(body: { taskId: string; answer: string; lang: Lang }): Promise<PracticeResult>
+  weakSpot(signal?: AbortSignal): Promise<WeakSpot | null>
 }
 export interface TeacherTask {
   boss: BossKind

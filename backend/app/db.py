@@ -184,6 +184,22 @@ class BattleTask(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
+class PracticeTask(Base):
+    """One problem of a student's solo review drill (the answer stays on the server)."""
+
+    __tablename__ = "practice_tasks"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    run_id: Mapped[str] = mapped_column(String(36), index=True)
+    student_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    topic: Mapped[str] = mapped_column(String(20))
+    skill: Mapped[str | None] = mapped_column(String(20))
+    number: Mapped[int] = mapped_column(Integer)
+    problem: Mapped[dict] = mapped_column(JSON)
+    solved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
 class SignInWindow(Base):
     """Shared sign-in counters. Keys contain a digest, with no stored login or IP."""
 

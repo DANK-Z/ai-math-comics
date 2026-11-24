@@ -1,5 +1,5 @@
 import { PROGRESS_REWARDS } from '../rewards'
-import type { BattleBoard, BattleDifficulty, BattleTopic, ClassInfo, Lang, Leaderboard, LeaderRow, StudentBattle } from './types'
+import type { AnswerFormat, BattleBoard, BattleDifficulty, BattleTopic, ClassInfo, Lang, Leaderboard, LeaderRow, StudentBattle } from './types'
 
 // Classroom demo (no backend): a weekly table with demo classmates, and class battles in
 // localStorage where demo classmates keep hitting the boss so the board feels alive.
@@ -144,22 +144,49 @@ export function boardOf(schoolClass: ClassInfo, battle: MockBattle): BattleBoard
 
 const pick = (low: number, high: number) => low + Math.floor(Math.random() * (high - low + 1))
 
-function mockTask(topic: BattleTopic): MockBattle['tasks'][number] {
-  const id = `task-${Date.now()}-${pick(0, 9999)}`
+const gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : a)
+const tenths = (n: number) => `${Math.floor(n / 10)},${n % 10}`
+
+/** A server-like problem: prompt in both languages and the exact answer ("7", "3/4", "42/10"). */
+export function mockProblem(topic: BattleTopic): { prompt: Record<Lang, string>; answer: string } {
   if (topic === 'equations') {
     const [a, x] = [pick(2, 9), pick(3, 12)]
     const eq = Math.random() < 0.5 ? `x + ${a} = ${x + a}` : `${a} · x = ${a * x}`
     return {
-      id, answer: String(x), misses: 0,
+      answer: String(x),
       prompt: {
         ru: `Реши уравнение-загадку: ${eq}. Чему равен x? Запиши ответ целым числом.`,
         kk: `Теңдеу-жұмбақты шеш: ${eq}. x неге тең? Жауабыңды бүтін санмен жаз.`,
       },
     }
   }
+  if (topic === 'gcd') {
+    const base = pick(2, 6)
+    const [a, b] = [base * pick(2, 6), base * pick(7, 9)]
+    const lcm = (a * b) / gcd(a, b)
+    return Math.random() < 0.5
+      ? { answer: String(gcd(a, b)), prompt: { ru: `Найди наибольший общий делитель чисел ${a} и ${b}: НОД(${a}; ${b}).`, kk: `${a} және ${b} сандарының ең үлкен ортақ бөлгішін тап: ЕҮОБ(${a}; ${b}).` } }
+      : { answer: String(lcm), prompt: { ru: `Найди наименьшее общее кратное чисел ${a} и ${b}: НОК(${a}; ${b}).`, kk: `${a} және ${b} сандарының ең кіші ортақ еселігін тап: ЕКОЕ(${a}; ${b}).` } }
+  }
+  if (topic === 'decimals') {
+    const [a, b] = [pick(15, 59), pick(11, 39)]
+    const expr = `${tenths(a)} + ${tenths(b)}`
+    return { answer: `${a + b}/10`, prompt: { ru: `Вычисли: ${expr}. Запиши ответ десятичной дробью, например 4,2.`, kk: `Есепте: ${expr}. Жауапты ондық бөлшекпен жаз, мысалы 4,2.` } }
+  }
+  if (topic === 'parts') {
+    const [left, right] = [[1, 2], [2, 3], [3, 5], [1, 3]][pick(0, 3)]
+    const total = (left + right) * pick(3, 8)
+    return {
+      answer: String((total / (left + right)) * right),
+      prompt: {
+        ru: `Ленту длиной ${total} см разрезали на две части в отношении ${left} : ${right}. Какова длина большей части в сантиметрах?`,
+        kk: `Ұзындығы ${total} см таспаны ${left} : ${right} қатынасында екі бөлікке кесті. Үлкен бөліктің ұзындығы неше сантиметр?`,
+      },
+    }
+  }
   const [pizzas, friends] = [pick(1, 3), pick(4, 7)]
   return {
-    id, answer: `${pizzas}/${friends}`, misses: 0,
+    answer: `${pizzas}/${friends}`,
     prompt: {
       ru: `Пиццы: ${pizzas}. Их делят поровну на ${friends} друзей. Какую долю пиццы получит каждый? Запиши ответ дробью.`,
       kk: `Пицца саны: ${pizzas}. Оны ${friends} дос тең бөледі. Әрқайсысы пиццаның қандай үлесін алады? Жауабыңды бөлшекпен жаз.`,
@@ -167,16 +194,23 @@ function mockTask(topic: BattleTopic): MockBattle['tasks'][number] {
   }
 }
 
+export const answerFormatOf = (topic: BattleTopic): AnswerFormat => (topic === 'fractions' ? 'fraction' : topic === 'decimals' ? 'decimal' : 'whole-number')
+
+function mockTask(topic: BattleTopic): MockBattle['tasks'][number] {
+  return { id: `task-${Date.now()}-${pick(0, 9999)}`, misses: 0, ...mockProblem(topic) }
+}
+
 export function checkMockAnswer(answer: string, expected: string): 'correct' | 'incorrect' | 'invalid' {
   const value = answer.trim().replace(/^x\s*=\s*/i, '')
   const [en, ed] = expected.includes('/') ? expected.split('/').map(Number) : [Number(expected), 1]
   const fraction = /^(\d+)\s*\/\s*(\d+)$/.exec(value)
-  if (fraction) {
-    const [n, d] = [Number(fraction[1]), Number(fraction[2])]
-    return d === 0 ? 'invalid' : n * ed === en * d ? 'correct' : 'incorrect'
-  }
-  if (!/^\d+$/.test(value)) return 'invalid'
-  return Number(value) * ed === en ? 'correct' : 'incorrect'
+  const decimal = /^(\d+)(?:[.,](\d+))?$/.exec(value)
+  let n: number
+  let d: number
+  if (fraction) [n, d] = [Number(fraction[1]), Number(fraction[2])]
+  else if (decimal) [n, d] = [Number(decimal[1] + (decimal[2] ?? '')), 10 ** (decimal[2]?.length ?? 0)]
+  else return 'invalid'
+  return d === 0 ? 'invalid' : n * ed === en * d ? 'correct' : 'incorrect'
 }
 
 export function studentView(battle: MockBattle, userId: number, lang: Lang): StudentBattle {
@@ -185,7 +219,7 @@ export function studentView(battle: MockBattle, userId: number, lang: Lang): Stu
   let task: StudentBattle['task'] = null
   if (battle.status === 'active') {
     const open = (battle.tasks[userId] ??= mockTask(battle.topic))
-    task = { id: open.id, prompt: open.prompt[lang], answerFormat: battle.topic === 'equations' ? 'whole-number' : 'fraction' }
+    task = { id: open.id, prompt: open.prompt[lang], answerFormat: answerFormatOf(battle.topic) }
   }
   return {
     id: battle.id,
@@ -198,4 +232,33 @@ export function studentView(battle: MockBattle, userId: number, lang: Lang): Stu
     classHits: hits.length,
     task,
   }
+}
+
+// ---- solo review drill (demo) --------------------------------------------------------------
+
+const PRACTICE_LENGTH = 5
+const practiceTasks = new Map<string, { topic: BattleTopic; number: number; prompt: Record<Lang, string>; answer: string }>()
+
+export function mockPracticeTask(topic: BattleTopic, number: number, lang: Lang) {
+  const id = `practice-${Date.now()}-${pick(0, 9999)}`
+  const problem = mockProblem(topic)
+  practiceTasks.set(id, { topic, number, ...problem })
+  return { id, topic, prompt: problem.prompt[lang], answerFormat: answerFormatOf(topic), number, total: PRACTICE_LENGTH }
+}
+
+export function mockPracticeAnswer(taskId: string, answer: string, lang: Lang) {
+  const task = practiceTasks.get(taskId)
+  if (!task) return null
+  const status = checkMockAnswer(answer, task.answer)
+  const copy = MOCK_PRACTICE_COPY[lang]
+  const view = { id: taskId, topic: task.topic, prompt: task.prompt[lang], answerFormat: answerFormatOf(task.topic), number: task.number, total: PRACTICE_LENGTH }
+  if (status !== 'correct') return { status, message: copy[status], solved: task.number - 1, total: PRACTICE_LENGTH, next: view }
+  practiceTasks.delete(taskId)
+  const next = task.number < PRACTICE_LENGTH ? mockPracticeTask(task.topic, task.number + 1, lang) : null
+  return { status, message: next ? copy.correct : copy.done, solved: task.number, total: PRACTICE_LENGTH, next }
+}
+
+const MOCK_PRACTICE_COPY = {
+  ru: { correct: 'Верно! Следующая задача.', done: 'Верно! Тренировка пройдена — тема закреплена.', incorrect: 'Пока неверно. Проверь вычисления и попробуй ещё раз.', invalid: 'Запиши ответ числом или дробью, например 12, 3/4 или 4,2.' },
+  kk: { correct: 'Дұрыс! Келесі есеп.', done: 'Дұрыс! Жаттығу аяқталды — тақырып бекітілді.', incorrect: 'Әзірге дұрыс емес. Есебіңді тексеріп, қайта көр.', invalid: 'Жауапты санмен немесе бөлшекпен жаз, мысалы 12, 3/4 немесе 4,2.' },
 }

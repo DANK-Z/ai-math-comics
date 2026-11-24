@@ -7,8 +7,9 @@ import { GUIDE_COPY } from '../guideCopy'
 import { STRINGS } from '../i18n'
 import { comicHref, teacherClassHref, SECTION_HREFS } from '../route'
 import { SCHOOL_FAIR_STOPS } from '../schoolFair'
-import { BattleLauncher } from './ClassBattle'
+import { BattleLauncher, ReviewBattleButton } from './ClassBattle'
 import { TeacherLeague } from './ClassLeague'
+import { CurriculumCard } from './CurriculumCard'
 import { CARD, errorKey, FieldError, INPUT, PRIMARY, SECONDARY } from './AuthScreen'
 import { ClassAssignmentReports } from './ClassAssignments'
 import { TeacherWorkshop } from './TeacherWorkshop'
@@ -16,7 +17,7 @@ import { TeacherWorkshop } from './TeacherWorkshop'
 // Teacher area: classes with join codes, and a class dashboard (ranking + error heatmap).
 
 const CHOICE =
-  'group relative flex min-h-12 cursor-pointer items-center justify-center rounded-xl border-[3px] border-ink bg-white px-3 font-black text-ink shadow-[0_3px_0_var(--color-ink)] select-none hover:bg-sky has-checked:translate-y-[2px] has-checked:bg-sun has-checked:shadow-[0_1px_0_var(--color-ink)] has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-brand'
+  'group relative flex min-h-12 cursor-pointer items-center justify-center rounded-xl border-[3px] border-ink bg-white px-3 font-black text-ink shadow-[0_3px_0_var(--shadow-ink)] select-none hover:bg-sky has-checked:translate-y-[2px] has-checked:bg-sun has-checked:shadow-[0_1px_0_var(--shadow-ink)] has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-brand'
 
 function CopyCode({ code, lang, large = false }: { code: string; lang: Lang; large?: boolean }) {
   const c = ACCOUNT_COPY[lang].teacherArea
@@ -399,6 +400,7 @@ export function ClassDashboard({ lang, classId }: { lang: Lang; classId: number 
           <ClassAssignmentReports classId={classId} lang={lang} />
           <ChapterAssignment lang={lang} />
           <GuardianAssignmentForm lang={lang} />
+          <CurriculumCard lang={lang} />
         </div>
       </section>
       <section id={`${id}-games`} aria-labelledby={`${id}-button-games`} hidden={section !== 'games'}>
@@ -424,6 +426,7 @@ export function ClassDashboard({ lang, classId }: { lang: Lang; classId: number 
             <p className="mt-1 font-semibold text-ink">
               {rec && recSkill ? d.recommendation(Math.round(rec.mistakeRate * 100), rec.round, recSkill.name, recSkill.review) : d.fewAnswers}
             </p>
+            {rec && <ReviewBattleButton classId={classId} lang={lang} topic={rec.topic} />}
           </section>
         )}
 

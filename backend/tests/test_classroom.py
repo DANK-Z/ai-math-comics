@@ -7,6 +7,7 @@ from test_accounts import answer, auth, generate_comic, make_class, student, tea
 from test_accounts import env as env
 
 from app import classroom
+from app.practice import Generated
 from app.problems import EquationProblem
 
 
@@ -71,7 +72,7 @@ def test_leaderboard_ranks_the_class_by_this_weeks_earnings(env):
 
 def fixed_problem(monkeypatch):
     # x + 3 = 10 -> x = 7, for every task.
-    problem = EquationProblem("add", 3, 10)
+    problem = Generated(EquationProblem("add", 3, 10), "equations")
     monkeypatch.setattr(classroom, "new_problem", lambda battle, grade: problem)
 
 

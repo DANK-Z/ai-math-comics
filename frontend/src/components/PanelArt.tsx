@@ -289,7 +289,7 @@ function PlaceholderPanel({ setting, speaker, text, thumb, imageAspect, emotion,
       <span aria-hidden className={`absolute opacity-35 ${thumb ? 'text-3xl' : 'text-[clamp(4rem,22cqw,10rem)]'}`}>{scene.icon}</span>
       <span
         aria-hidden
-        className={`relative grid place-items-center rounded-full border-[3px] border-ink bg-sun font-black text-ink shadow-[0_4px_0_var(--color-ink)] ${thumb ? 'size-9 text-lg' : 'size-[clamp(4.5rem,20cqw,8rem)] text-[clamp(2rem,9cqw,3.75rem)]'}`}
+        className={`relative grid place-items-center rounded-full border-[3px] border-ink bg-sun font-black text-ink shadow-[0_4px_0_var(--shadow-ink)] ${thumb ? 'size-9 text-lg' : 'size-[clamp(4.5rem,20cqw,8rem)] text-[clamp(2rem,9cqw,3.75rem)]'}`}
       >
         {speaker.trim().charAt(0).toLocaleUpperCase()}
       </span>
