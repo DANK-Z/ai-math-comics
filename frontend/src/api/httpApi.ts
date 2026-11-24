@@ -1,6 +1,6 @@
 import { authToken } from './authToken'
 import { ApiError } from './errors'
-import type { BattleAnswerResult, BattleBoard, Leaderboard, PracticeResult, PracticeTask, StudentBattle, WeakSpot } from './types'
+import type { BattleAnswerResult, BattleBoard, Leaderboard, PracticeReport, PracticeResult, PracticeTask, StudentBattle, StudentCredentials, WeakSpot } from './types'
 import type { AssignmentReport, ClassAssignment, ComicJobRequest, Lang, TeacherDraft, TeacherDraftJob, TeacherPublication, TeacherTask } from './types'
 import type { AccountApi, Api, AuthResponse, BossState, CheckResponse, ClassInfo, Comic, ComicJob, ComicJobCreated, ContinuationJobRequest, Dashboard, HintResponse, Me, Shop } from './types'
 
@@ -177,6 +177,15 @@ export function createHttpApi(baseUrl: string): Api & AccountApi & {
     },
     answerPractice(body) {
       return request<PracticeResult>('/api/me/practice/answer', { method: 'POST', body: JSON.stringify(body) })
+    },
+    createStudents(classId, names) {
+      return request<StudentCredentials[]>(`/api/teacher/classes/${classId}/students`, { method: 'POST', body: JSON.stringify({ names }) })
+    },
+    resetStudentPassword(classId, studentId) {
+      return request<StudentCredentials>(`/api/teacher/classes/${classId}/students/${studentId}/password`, { method: 'POST' })
+    },
+    practiceReport(classId, signal) {
+      return request<PracticeReport>(`/api/teacher/classes/${classId}/practice`, { signal })
     },
     weakSpot(signal) {
       return request<WeakSpot | null>('/api/me/practice/weak', { signal })

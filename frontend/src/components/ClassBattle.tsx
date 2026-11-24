@@ -6,6 +6,7 @@ import { BATTLE_BOSS, CLASSROOM_COPY } from '../classroomCopy'
 import { battleBoardHref, SECTION_HREFS, teacherClassHref } from '../route'
 import { CARD, PRIMARY, SECONDARY } from './AuthScreen'
 import { BossAvatar } from './BossFight'
+import { QrCode } from './QrCode'
 import { RichText } from './RichText'
 
 // Class battle. The teacher puts a giant boss on the class board; students fight it from their
@@ -305,6 +306,7 @@ export function BattleBoardScreen({ battleId, lang }: { battleId: string; lang: 
 
   if (!board) return failed ? <p role="alert" className="font-bold text-rose-700">{copy.error}</p> : null
   const kind = BATTLE_BOSS[board.topic]
+  const battleUrl = `${window.location.origin}${window.location.pathname}${SECTION_HREFS.battle}`
   return (
     <div ref={root} className="flex flex-col gap-4 bg-[var(--color-sky,#eef4ff)] p-1">
       <section className={`overflow-hidden rounded-3xl border-[4px] border-ink text-white shadow-[0_8px_0_var(--shadow-ink)] ${kind === 'x-master' ? 'bg-[linear-gradient(160deg,#1d1450,#5b3cc4)]' : 'bg-[linear-gradient(160deg,#14361f,#3f9a4d)]'} ${board.status === 'active' ? 'boss-arena' : ''}`}>
@@ -328,7 +330,14 @@ export function BattleBoardScreen({ battleId, lang }: { battleId: string; lang: 
       </section>
 
       {board.status === 'active' && (
-        <p className="rounded-2xl border-[3px] border-ink bg-sun p-3 text-center text-lg font-black text-ink sm:text-2xl">{copy.join(board.classCode)}</p>
+        <section className="flex flex-col items-center gap-4 rounded-2xl border-[3px] border-ink bg-sun p-4 text-ink sm:flex-row sm:p-5">
+          <QrCode value={battleUrl} label={copy.qrLabel} className="size-44 shrink-0 border-[3px] border-ink p-1 sm:size-52" />
+          <div className="min-w-0 text-center sm:text-left">
+            <p className="text-2xl font-black sm:text-3xl">{copy.qrTitle}</p>
+            <p className="mt-1 text-lg font-bold sm:text-xl">{copy.join(board.classCode)}</p>
+            <p className="mt-2 font-mono text-base font-bold break-all opacity-80 sm:text-lg">{battleUrl}</p>
+          </div>
+        </section>
       )}
 
       <div className="grid gap-4 md:grid-cols-2">

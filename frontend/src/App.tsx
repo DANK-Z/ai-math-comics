@@ -17,6 +17,7 @@ import { guardianAssignmentHref, type GuardianAssignment } from './guardianAssig
 import { useRoadGuardian } from './roadGuardian'
 import { useLang } from './hooks'
 import { setTheme, useDarkTheme } from './theme'
+import { rememberAfterLogin, takeAfterLogin } from './afterLogin'
 import { useMyComics } from './myComics'
 import { STRINGS } from './i18n'
 import { useBonusStickers } from './bonusStickers'
@@ -146,8 +147,17 @@ function AppShell() {
   useEffect(() => {
     if (!ready) return
     // Read the live address: right after sign-out the route state can lag one render behind.
-    const target = screenFor(parseRoute(window.location.hash), role)
-    if (target) navigate(SECTION_HREFS[target.name as keyof typeof SECTION_HREFS])
+    const current = parseRoute(window.location.hash)
+    const target = screenFor(current, role)
+    // A guest who scanned the battle QR (or opened a drill) comes back there after signing in.
+    if (target?.name === 'login' && (current.name === 'battle' || current.name === 'practiceTopic' || current.name === 'practice')) {
+      rememberAfterLogin(window.location.hash)
+    }
+    // A student who just signed in goes back where they were heading (the battle QR, a drill).
+    const back = role === 'student' && current.name === 'login' ? takeAfterLogin() : null
+    if (back) navigate(back)
+    else if (target) navigate(SECTION_HREFS[target.name as keyof typeof SECTION_HREFS])
+    else if (role === 'student') takeAfterLogin()
   }, [route, role, ready, navigate])
 
   // A signed-in student's season progress lives on the server too: pull it in once per

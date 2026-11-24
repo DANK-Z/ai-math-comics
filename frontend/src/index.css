@@ -75,6 +75,13 @@ html {
   background: #1f2858;
 }
 :root[data-theme='dark'] img:not(.site-logo) { filter: brightness(0.9); }
+/* Dark scenes (boss arenas, the battle card) keep real white text and light bars inside. */
+:root[data-theme='dark'] :is([class*='bg-[linear-gradient(160deg,#2a1f6b'], [class*='bg-[linear-gradient(160deg,#1f5132'],
+  [class*='bg-[linear-gradient(160deg,#1d1450'], [class*='bg-[linear-gradient(160deg,#14361f'],
+  [class*='bg-[linear-gradient(135deg,#2a1f6b'], [class~='bg-rose-600'], [class~='bg-rose-700'], [class~='bg-emerald-600'], [class~='bg-emerald-700']) {
+  --color-white: #ffffff;
+  --color-ink: #1d2766;
+}
 
 /* Outlined comic lettering for the logo. */
 .comic-outline {

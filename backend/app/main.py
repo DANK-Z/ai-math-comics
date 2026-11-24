@@ -31,6 +31,7 @@ from .db import Database, Role, User, default_database_url
 from .library_episode import EXERCISE_PREFIX, check_library_answer
 from .practice import router as practice_router
 from .prepared_art import ART_DIR, PREPARED_PANELS
+from .roster import router as roster_router
 from .schemas import (
     CheckRequest,
     CheckResponse,
@@ -126,6 +127,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(assignments_router)
     app.include_router(classroom_router)
     app.include_router(practice_router)
+    app.include_router(roster_router)
 
     @app.post("/api/comic-jobs", status_code=202, response_model=JobAccepted)
     def create_job(body: JobRequest, request: Request, user: Viewer) -> JobAccepted:

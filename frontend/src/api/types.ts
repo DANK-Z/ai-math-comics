@@ -331,6 +331,19 @@ export interface WeakSpot {
   mistakes: number
 }
 
+/** A student account the teacher made or reset: the password is shown once. */
+export interface StudentCredentials {
+  id: number
+  displayName: string
+  login: string
+  password: string
+}
+
+export interface PracticeReport {
+  days: number
+  students: { id: number; displayName: string; drills: number; finished: number; solved: number; topics: Record<string, number>; lastAt?: string | null }[]
+}
+
 export interface AccountApi {
   signUpStudent(body: { login: string; password: string; displayName: string; classCode?: string }): Promise<AuthResponse>
   signUpTeacher(body: { email: string; password: string; displayName: string }): Promise<AuthResponse>
@@ -357,6 +370,9 @@ export interface AccountApi {
   startPractice(body: { topic: BattleTopic; skill?: string | null; lang: Lang }): Promise<PracticeTask>
   answerPractice(body: { taskId: string; answer: string; lang: Lang }): Promise<PracticeResult>
   weakSpot(signal?: AbortSignal): Promise<WeakSpot | null>
+  createStudents(classId: number, names: string[]): Promise<StudentCredentials[]>
+  resetStudentPassword(classId: number, studentId: number): Promise<StudentCredentials>
+  practiceReport(classId: number, signal?: AbortSignal): Promise<PracticeReport>
 }
 export interface TeacherTask {
   boss: BossKind

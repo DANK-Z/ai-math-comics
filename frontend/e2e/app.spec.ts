@@ -125,3 +125,26 @@ test('the night theme switches the whole site and is remembered', async ({ page 
   await page.getByRole('button', { name: 'Включить светлую тему' }).click()
   await expect(html).toHaveAttribute('data-theme', 'light')
 })
+
+test('a teacher makes a student account; the student signs in from the battle QR link', async ({ page }) => {
+  await seed(page, 'teacher')
+  await page.goto('/#/teacher/class/1')
+  await page.getByRole('button', { name: 'Ученики', exact: true }).click()
+  await page.getByLabel('Имена учеников').fill('Әлия Сапарова')
+  await page.getByRole('button', { name: 'Создать аккаунты' }).click()
+  const row = page.getByRole('row', { name: /Әлия Сапарова/ })
+  await expect(row).toBeVisible()
+  const [, login, password] = await row.getByRole('cell').allInnerTexts()
+  expect(login).toMatch(/^aliya\d{3}$/)
+
+  // The teacher signs out; the student scans the QR (opens #/battle), signs in, lands in the battle.
+  await page.evaluate(() => localStorage.removeItem('amc.auth.token'))
+  await page.reload()
+  await page.goto('/#/battle')
+  await expect(page).toHaveURL(/#\/login$/)
+  await page.getByLabel('Логин (или почта учителя)').fill(login)
+  await page.getByLabel('Пароль').fill(password)
+  await page.getByRole('button', { name: 'Войти', exact: true }).last().click()
+  await expect(page).toHaveURL(/#\/battle$/)
+  await expect(page.getByRole('heading', { name: 'Классный батл' })).toBeVisible()
+})

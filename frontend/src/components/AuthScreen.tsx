@@ -2,6 +2,7 @@ import { useId, useRef, useState, type FormEvent } from 'react'
 import { ApiError, type Lang } from '../api'
 import { useAccount } from '../account'
 import { ACCOUNT_COPY } from '../accountCopy'
+import { peekAfterLogin } from '../afterLogin'
 import { SECTION_HREFS } from '../route'
 
 // Sign-in and sign-up for students (login + password) and teachers (e-mail + password).
@@ -85,7 +86,8 @@ export function AuthScreen({ lang }: { lang: Lang }) {
                 ...(values.classCode.trim() ? { classCode: values.classCode.trim() } : {}),
               })
             : await account.signUpTeacher({ email: values.email.trim(), password: values.password, displayName: values.displayName.trim() })
-      window.location.hash = user.role === 'teacher' ? SECTION_HREFS.teacher : SECTION_HREFS.map
+      const back = user.role === 'student' ? peekAfterLogin() : null
+      window.location.hash = back ?? (user.role === 'teacher' ? SECTION_HREFS.teacher : SECTION_HREFS.map)
     } catch (err) {
       const key = errorKey(err)
       setError(c.errors[key] ?? c.errors.network)

@@ -1,7 +1,7 @@
 import { authToken } from './authToken'
 import { PROGRESS_REWARDS } from '../rewards'
 import { ApiError } from './errors'
-import type { AccountApi, ClassInfo, Dashboard, Grade, Me, Shop, SkinKey } from './types'
+import type { AccountApi, ClassInfo, Dashboard, Grade, Me, PracticeReport, Shop, SkinKey } from './types'
 import { mockPracticeAnswer, mockPracticeTask } from './mockClassroom'
 import { BATTLE_HP, boardOf, checkMockAnswer, demoLeaderboard, latestBattle, MOCK_BATTLE_COPY, settle, shortName, studentView, type MockBattle } from './mockClassroom'
 
@@ -439,6 +439,53 @@ export const mockAccounts: AccountApi = {
       return result
     })
   },
+  createStudents(classId, names) {
+    return later(() => {
+      const state = load()
+      ownClass(state, classId)
+      const made = names.map((raw) => {
+        const displayName = raw.trim().replace(/\s+/g, ' ')
+        if (!displayName || /[0-9_]/.test(displayName)) throw fail(422, 'invalid_name')
+        const base = translit(displayName.split(' ')[0]).replace(/[^a-z]/g, '').slice(0, 14) || 'student'
+        let login = ''
+        do login = `${base}${100 + Math.floor(Math.random() * 900)}`
+        while (state.users.some((u) => u.login === login))
+        const password = easyPassword()
+        const user: MockUser = { id: state.users.length + 1, role: 'student', login, displayName, password, classId, completedChapters: [], stickers: [] }
+        state.users.push(user)
+        return { id: user.id, displayName, login, password }
+      })
+      save(state)
+      return made
+    })
+  },
+  resetStudentPassword(classId, studentId) {
+    return later(() => {
+      const state = load()
+      ownClass(state, classId)
+      const user = state.users.find((u) => u.id === studentId && u.role === 'student' && u.classId === classId)
+      // Demo dashboard rows are not real accounts: show what a reset looks like.
+      if (!user) return { id: studentId, displayName: 'Демо-ученик', login: `demo${studentId}`, password: easyPassword() }
+      user.password = easyPassword()
+      save(state)
+      return { id: user.id, displayName: user.displayName, login: user.login ?? '', password: user.password }
+    })
+  },
+  practiceReport(classId) {
+    return later(() => {
+      const state = load()
+      ownClass(state, classId)
+      // Demo: the drills of this browser are not logged; real classmates show zero, plus two examples.
+      const real: PracticeReport['students'] = state.users.filter((u) => u.role === 'student' && u.classId === classId)
+        .map((u) => ({ id: u.id, displayName: u.displayName, drills: 0, finished: 0, solved: 0, topics: {}, lastAt: null }))
+      const demo: PracticeReport['students'] = [
+        { id: -1, displayName: 'Аружан Бекова', drills: 3, finished: 2, solved: 13, topics: { equations: 8, gcd: 5 }, lastAt: new Date(Date.now() - 3600_000).toISOString() },
+        { id: -2, displayName: 'Тимур Ахметов', drills: 1, finished: 0, solved: 3, topics: { fractions: 3 }, lastAt: new Date(Date.now() - 86400_000).toISOString() },
+      ]
+      const students: PracticeReport['students'] = [...demo, ...real]
+      return { days: 30, students }
+    })
+  },
   weakSpot() {
     // Demo mode keeps no answer log: show a typical weak spot so the review card is visible.
     return later(() => {
@@ -447,6 +494,14 @@ export const mockAccounts: AccountApi = {
     })
   },
 }
+
+const TRANSLIT: Record<string, string> = {
+  а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ё: 'e', ж: 'zh', з: 'z', и: 'i', й: 'i', к: 'k', л: 'l', м: 'm', н: 'n', о: 'o',
+  п: 'p', р: 'r', с: 's', т: 't', у: 'u', ф: 'f', х: 'kh', ц: 'ts', ч: 'ch', ш: 'sh', щ: 'sh', ъ: '', ы: 'y', ь: '', э: 'e',
+  ю: 'yu', я: 'ya', ә: 'a', ғ: 'g', қ: 'k', ң: 'n', ө: 'o', ұ: 'u', ү: 'u', һ: 'h', і: 'i',
+}
+const translit = (name: string) => [...name.toLowerCase()].map((ch) => TRANSLIT[ch] ?? ch).join('')
+const easyPassword = () => `${['kit', 'sun', 'star', 'book', 'fox', 'tree', 'sky', 'moon'][Math.floor(Math.random() * 8)]}-${1000 + Math.floor(Math.random() * 9000)}`
 
 function ownClass(state: MockState, classId: number) {
   const user = currentUser(state)

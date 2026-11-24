@@ -10,6 +10,7 @@ import { SCHOOL_FAIR_STOPS } from '../schoolFair'
 import { BattleLauncher, ReviewBattleButton } from './ClassBattle'
 import { TeacherLeague } from './ClassLeague'
 import { CurriculumCard } from './CurriculumCard'
+import { PracticeReportCard, RosterCard } from './RosterCard'
 import { CARD, errorKey, FieldError, INPUT, PRIMARY, SECONDARY } from './AuthScreen'
 import { ClassAssignmentReports } from './ClassAssignments'
 import { TeacherWorkshop } from './TeacherWorkshop'
@@ -301,16 +302,16 @@ export function TeacherHome({ lang }: { lang: Lang }) {
 }
 
 const HEAT = (rate: number) => (rate >= 0.6 ? 'bg-rose-200 border-rose-700' : rate >= 0.3 ? 'bg-amber-100 border-amber-600' : 'bg-emerald-100 border-emerald-700')
-const CLASS_SECTIONS = ['overview', 'assignments', 'games'] as const
+const CLASS_SECTIONS = ['overview', 'roster', 'assignments', 'games'] as const
 const CLASS_DASHBOARD = {
   ru: {
-    overview: 'Аналитика', assignments: 'Задания', games: 'Бои и лига',
+    overview: 'Аналитика', roster: 'Ученики', assignments: 'Задания', games: 'Бои и лига',
     section: 'Разделы класса', students: 'Учеников в классе', finished: 'Победили хотя бы одного босса',
     empty: 'Статистика появится после первых проверенных ответов учеников.',
     first: 'С чего начать повторение',
   },
   kk: {
-    overview: 'Талдау', assignments: 'Тапсырмалар', games: 'Шайқас пен лига',
+    overview: 'Талдау', roster: 'Оқушылар', assignments: 'Тапсырмалар', games: 'Шайқас пен лига',
     section: 'Сынып бөлімдері', students: 'Сыныптағы оқушылар', finished: 'Кемінде бір боссты жеңді',
     empty: 'Оқушылардың алғашқы жауаптары тексерілген соң статистика шығады.',
     first: 'Қайталауды неден бастау керек',
@@ -395,6 +396,12 @@ export function ClassDashboard({ lang, classId }: { lang: Lang; classId: number 
         ))}
       </nav>
 
+      <section id={`${id}-roster`} aria-labelledby={`${id}-button-roster`} hidden={section !== 'roster'}>
+        <div className="grid gap-4">
+          <RosterCard classId={classId} lang={lang} students={data.students} />
+          <PracticeReportCard classId={classId} lang={lang} />
+        </div>
+      </section>
       <section id={`${id}-assignments`} aria-labelledby={`${id}-button-assignments`} hidden={section !== 'assignments'}>
         <div className="grid gap-4">
           <ClassAssignmentReports classId={classId} lang={lang} />
