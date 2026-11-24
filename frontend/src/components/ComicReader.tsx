@@ -11,7 +11,7 @@ import { GUIDE_COPY } from '../guideCopy'
 import { STRINGS } from '../i18n'
 import { comicHref, DEMO_COMIC_ID, GARLAND_COMIC_ID, GUARDIAN_HREF, SCHOOL_MAP_COMIC_ID, SECTION_HREFS } from '../route'
 import { useAccount } from '../account'
-import { operationChapter } from '../operations'
+import { operationChapter, operationHref } from '../operations'
 import { findForChapter, PROGRESS_REWARDS, REWARD_COPY } from '../rewards'
 import { schoolFairChapter, type SchoolFairCollectible } from '../schoolFair'
 import { BossFight } from './BossFight'
@@ -123,7 +123,10 @@ function ReaderGreeting({ lang, title }: { lang: Lang; title: string }) {
 /** Ending line and onward link for a School Fair or operation chapter. */
 function chapterEnding(comicId: string) {
   const fair = schoolFairChapter(comicId)
-  if (fair) return { ...fair, doneHref: SECTION_HREFS.map, doneLabel: undefined }
+  if (fair) {
+    const story = operationChapter(comicId)?.operation
+    return { ...fair, doneHref: story ? operationHref(story.id) : SECTION_HREFS.map, doneLabel: story?.title }
+  }
   const op = operationChapter(comicId)
   if (!op) return undefined
   return { speaker: op.speaker, ending: op.ending, nextComicId: op.nextComicId, doneHref: op.doneHref, doneLabel: op.operation.finale.href ? op.operation.finale.title : op.operation.title }

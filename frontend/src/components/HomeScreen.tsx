@@ -10,16 +10,14 @@ import mapCover from '../assets/school-map/cover.webp'
 import pizzaCover from '../assets/pizza/cover.png'
 import storeCover from '../assets/school-store/cover.png'
 import { STRINGS, type UiStrings } from '../i18n'
-import { GUIDE_COPY } from '../guideCopy'
-import { comicHref, DEMO_COMIC_ID, GUARDIAN_HREF, SECTION_HREFS } from '../route'
-import { SCHOOL_FAIR_STOPS, schoolFairChapter } from '../schoolFair'
-import { PifikSprite } from './PifikSprite'
-import { SchoolFairRoute } from './SchoolFairRoute'
+import { comicHref, DEMO_COMIC_ID } from '../route'
+import { schoolFairChapter } from '../schoolFair'
 import { StudentAssignments } from './ClassAssignments'
 import { BattleAlert, LessonAlert } from './BoardAlerts'
 import { MyHomeworkCard } from './HomeworkCards'
 import { ClassLeague } from './ClassLeague'
 import { WeakSpotCard } from './PracticeScreen'
+import { HomeHero } from './HomeHero'
 
 /** How a cover is cropped in its card: box aspect ratio + CSS object-position focal point. */
 interface Framing {
@@ -65,10 +63,6 @@ const CATALOG: CatalogEntry[] = [
   // Wide group shot around the board: keep a wider crop so both kids stay in.
   local(GARLAND, garlandCover, 'perimeter', { phone: { aspect: '3 / 2', focus: '45% 55%' }, wide: { aspect: '16 / 9', focus: '50% 55%' } }),
 ]
-
-const ROUTE_COVERS = new Map(CATALOG.map(({ id, cover, framing }) => [
-  id, { src: cover, focus: framing.wide.focus },
-]))
 
 function local(def: LocalComicDef, cover: string, topic: CatalogEntry['topic'], framing: CatalogEntry['framing']): CatalogEntry {
   return { id: def.id, cover, framing, topic, title: (lang) => def.text[lang].title, hook: (lang) => def.text[lang].hook }
@@ -136,100 +130,23 @@ function CatalogCard({ entry, lang, t, completed }: {
   )
 }
 
-const NEXT_OPERATIONS = {
-  ru: { title: 'Операции после ярмарки', lead: 'Дороги, огни города, музей, погода и Марс' },
-  kk: { title: 'Жәрмеңкеден кейінгі операциялар', lead: 'Жолдар, қала шамдары, мұражай, ауа райы және Марс' },
-}
-
-const CTA = 'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border-[3px] border-ink px-4 font-black text-ink shadow-[0_3px_0_var(--shadow-ink)] transition active:translate-y-[2px] active:shadow-[0_1px_0_var(--shadow-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand'
-
-/** Where the student stopped and what to do next: the next chapter with its thumbnail, or the finale. */
-function ContinueCard({ lang, completedChapters, guardianWon, lastComicId }: {
+export function HomeScreen({ lang, progress, finalesWon }: {
   lang: Lang
-  completedChapters: ReadonlySet<string>
-  guardianWon: boolean
-  lastComicId: string | null
+  progress: ReadonlySet<string>
+  finalesWon: ReadonlySet<string>
 }) {
-  const t = STRINGS[lang]
-  const g = GUIDE_COPY[lang].map
-  const next = SCHOOL_FAIR_STOPS.find(({ comicId }) => !completedChapters.has(comicId))
-  const art = next && ROUTE_COVERS.get(next.comicId)
-  const showLast = lastComicId && lastComicId !== next?.comicId
-
-  return (
-    <section aria-labelledby="continue-title" className="overflow-hidden rounded-2xl border-[3px] border-ink bg-white shadow-[0_5px_0_var(--shadow-ink)]">
-      {next ? (
-        art && (
-          <a href={comicHref(next.comicId)} tabIndex={-1} aria-hidden className="relative block aspect-[5/2] border-b-[3px] xl:aspect-video border-ink bg-sky-100">
-            <img src={art.src} alt="" style={{ objectPosition: art.focus }} className="h-full w-full object-cover" />
-            <span className="absolute top-2 left-2 rounded-lg border-2 border-ink bg-sun px-2 py-0.5 text-xs font-black">{t.chapterLabel(next.number)}</span>
-          </a>
-        )
-      ) : (
-        <div aria-hidden className="grid place-items-center border-b-[3px] border-ink bg-[radial-gradient(circle_at_50%_60%,#fff6c7,#f8cd45_70%)] py-4">
-          <PifikSprite eager className="w-20 rounded-xl" />
-        </div>
-      )}
-      <div className="flex flex-col gap-2 p-3 sm:p-4">
-        <h2 id="continue-title" className="text-lg leading-tight font-black text-ink">
-          {next ? (completedChapters.size ? g.continueFrom(next.number) : g.startSeason) : guardianWon ? g.seasonDone : g.allChapters}
-        </h2>
-        <p className="text-sm font-bold text-ink/80">
-          {next ? t.fairRoute.locations[next.location] : guardianWon ? g.seasonDoneLead : g.allChaptersLead}
-        </p>
-        <a
-          href={next ? comicHref(next.comicId) : guardianWon ? SECTION_HREFS.create : GUARDIAN_HREF}
-          className={`${CTA} bg-sun`}
-        >
-          {next ? g.read(next.number) : guardianWon ? g.createComic : g.toGuardian} <span aria-hidden>→</span>
-        </a>
-        {showLast && (
-          <a href={comicHref(lastComicId)} className={`${CTA} bg-white text-sm`}>
-            <span aria-hidden>↺</span> {g.lastOpened}
-          </a>
-        )}
-      </div>
-    </section>
-  )
-}
-
-export function HomeScreen({ lang, completedChapters, remaining, guardianWon, lastComicId }: {
-  lang: Lang
-  completedChapters: ReadonlySet<string>
-  remaining: number
-  guardianWon: boolean
-  lastComicId: string | null
-}) {
-  const t = STRINGS[lang]
   return (
     <div className="flex flex-col gap-5">
-      <div>
-        <h1 className="text-3xl leading-tight font-black text-ink sm:text-4xl">{t.schoolFairTitle}</h1>
-        <p className="mt-1.5 text-base font-semibold text-ink/85 sm:text-lg">{t.catalogLead}</p>
-      </div>
-      {/* Wide screens: the route on the left, "what next" in the free column on the right. */}
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,48rem)_minmax(15rem,20rem)]">
-        <aside className="flex max-w-3xl flex-col gap-4 xl:sticky xl:top-5 xl:col-start-2 xl:row-start-1">
-          <ContinueCard lang={lang} completedChapters={completedChapters} guardianWon={guardianWon} lastComicId={lastComicId} />
-          <LessonAlert lang={lang} />
-          <BattleAlert lang={lang} />
+      <LessonAlert lang={lang} />
+      <BattleAlert lang={lang} />
+      <HomeHero lang={lang} progress={progress} finalesWon={finalesWon} />
+      <div className="grid items-start gap-5 lg:grid-cols-2">
+        <div className="flex flex-col gap-5">
           <MyHomeworkCard lang={lang} />
           <StudentAssignments lang={lang} />
           <WeakSpotCard lang={lang} />
-          <ClassLeague lang={lang} />
-          <a href={SECTION_HREFS.operations} className="flex items-center gap-3 rounded-2xl border-[3px] border-ink bg-[linear-gradient(120deg,#d9f2e6,#dbe8ff)] p-3 font-black text-ink shadow-[0_4px_0_var(--shadow-ink)] hover:bg-sky focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand">
-            <span aria-hidden className="text-3xl">🧭</span>
-            <span className="min-w-0 flex-1">
-              <span className="block leading-tight">{NEXT_OPERATIONS[lang].title}</span>
-              <span className="mt-0.5 block text-sm font-semibold text-ink/75">{NEXT_OPERATIONS[lang].lead}</span>
-            </span>
-            <span aria-hidden>→</span>
-          </a>
-        </aside>
-        <div className="max-w-3xl min-w-0 xl:col-start-1 xl:row-start-1">
-          <SchoolFairRoute t={t} covers={ROUTE_COVERS} completedChapters={completedChapters}
-            remaining={remaining} guardianWon={guardianWon} />
         </div>
+        <ClassLeague lang={lang} />
       </div>
     </div>
   )

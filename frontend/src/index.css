@@ -577,3 +577,32 @@ html {
 .reader-card[data-night] p.comic-bubble { color: #fff3b0; }
 .reader-card[data-night] .comic-bubble svg .stroke-ink { stroke: #8fa3ff; }
 .reader-card[data-night] figure { border-color: #8fa3ff; }
+
+/* Home hero: a starry stage, Pifik bobbing, the Play button breathing. */
+.home-hero-stars {
+  background-image:
+    radial-gradient(circle at 12% 22%, rgb(255 255 255 / 0.9) 0 2px, transparent 3px),
+    radial-gradient(circle at 34% 78%, rgb(255 236 150 / 0.9) 0 2px, transparent 3px),
+    radial-gradient(circle at 58% 12%, rgb(255 255 255 / 0.8) 0 1.5px, transparent 2.5px),
+    radial-gradient(circle at 82% 64%, rgb(255 236 150 / 0.8) 0 2px, transparent 3px),
+    radial-gradient(circle at 92% 18%, rgb(255 255 255 / 0.7) 0 1.5px, transparent 2.5px),
+    radial-gradient(circle at 6% 88%, rgb(255 255 255 / 0.6) 0 1.5px, transparent 2.5px);
+  opacity: 0.8;
+}
+.home-hero-art img { transform: rotate(1.5deg); }
+@media (prefers-reduced-motion: no-preference) {
+  .home-hero-stars { animation: hero-twinkle 3.5s ease-in-out infinite alternate; }
+  .home-hero-pifik { animation: road-bob 1.4s ease-in-out infinite alternate; }
+  .home-hero-play { animation: hero-breathe 2.2s ease-in-out infinite; }
+  .home-hero-art:hover img { transform: rotate(0deg) scale(1.02); transition: transform 300ms ease; }
+}
+@keyframes hero-twinkle { to { opacity: 0.35; } }
+@keyframes hero-breathe {
+  0%, 100% { box-shadow: 0 6px 0 var(--shadow-ink), 0 0 0 0 rgb(248 205 69 / 0.7); }
+  50% { box-shadow: 0 6px 0 var(--shadow-ink), 0 0 0 10px rgb(248 205 69 / 0); }
+}
+/* At night the hero keeps its own white text. */
+:root[data-theme='dark'] .home-hero {
+  --color-white: #ffffff;
+  --color-ink: #1d2766;
+}

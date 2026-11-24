@@ -1,5 +1,6 @@
 import { CURRICULUM_COPY, curriculumFor } from '../curriculum'
 import type { Lang } from '../api'
+import fairCover from '../assets/pizza/cover.png'
 import lightsCover from '../assets/lights/park-4.webp'
 import marsCover from '../assets/mars/crater-2.webp'
 import museumCover from '../assets/museum/mirror-1.webp'
@@ -8,13 +9,13 @@ import weatherCover from '../assets/weather/units-1.webp'
 import { OPERATIONS, operationHref, type Operation } from '../operations'
 import { comicHref, SECTION_HREFS } from '../route'
 
-// The seasons after the School Fair: a list of operations and one page per operation
-// with its chapters in story order and the finale.
+// The stories (the School Fair and the operations after it): a list of seasons and one page
+// per season with its chapters in story order and the finale.
 
 const COPY = {
   ru: {
-    title: 'Операции после ярмарки',
-    lead: 'Новые истории с Алдияром, Аруной и Пификом. В каждой — четыре главы и финальное испытание.',
+    title: 'Истории',
+    lead: 'Все сезоны с Алдияром, Аруной и Пификом по порядку. В каждом — главы с задачами и финальное испытание.',
     chapters: (done: number, ready: number) => `Глав пройдено: ${done} из ${ready}`,
     soon: 'Скоро',
     soonLong: 'Готовим иллюстрации — глава скоро откроется.',
@@ -26,13 +27,13 @@ const COPY = {
     finaleLocked: (left: number) => `Откроется после глав: осталось ${left}`,
     finaleOpen: 'Испытание открыто',
     finaleWon: 'Испытание пройдено',
-    back: 'Все операции',
+    back: 'Все истории',
     solved: 'Пройдено',
     next: 'Следующая',
   },
   kk: {
-    title: 'Жәрмеңкеден кейінгі операциялар',
-    lead: 'Алдияр, Аруна және Пификпен жаңа оқиғалар. Әрқайсысында төрт тарау және соңғы сынақ бар.',
+    title: 'Оқиғалар',
+    lead: 'Алдияр, Аруна және Пификпен барлық маусымдар ретімен. Әрқайсысында есептері бар тараулар мен соңғы сынақ бар.',
     chapters: (done: number, ready: number) => `Өтілген тараулар: ${done} / ${ready}`,
     soon: 'Жақында',
     soonLong: 'Суреттерін дайындап жатырмыз — тарау жақында ашылады.',
@@ -44,15 +45,16 @@ const COPY = {
     finaleLocked: (left: number) => `Тараулардан кейін ашылады: ${left} қалды`,
     finaleOpen: 'Сынақ ашық',
     finaleWon: 'Сынақ өтілді',
-    back: 'Барлық операциялар',
+    back: 'Барлық оқиғалар',
     solved: 'Өтілді',
     next: 'Келесі',
   },
 }
 
 // Covers are season panels that do not spoil the finale; seasons without art show their icon.
-const COVERS: Record<string, string> = { roads: roadsCover, lights: lightsCover, museum: museumCover, weather: weatherCover, mars: marsCover }
+const COVERS: Record<string, string> = { fair: fairCover, roads: roadsCover, lights: lightsCover, museum: museumCover, weather: weatherCover, mars: marsCover }
 const TINTS: Record<string, string> = {
+  fair: 'from-amber-200 to-rose-200',
   roads: 'from-emerald-200 to-sky-200',
   lights: 'from-indigo-300 to-amber-200',
   museum: 'from-amber-100 to-rose-200',

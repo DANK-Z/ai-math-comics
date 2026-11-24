@@ -7,8 +7,10 @@ import type { Lang } from './api/types'
 import { WEATHER_AVERAGE_ID, WEATHER_FROST_ID, WEATHER_RAIN_ID, WEATHER_UNITS_ID } from './api/weatherChapters'
 import type { CharacterId } from './characters'
 import { finaleHref } from './finales'
+import { DEMO_COMIC_ID, GARLAND_COMIC_ID, GUARDIAN_HREF, LEMONADE_COMIC_ID, LIBRARY_BOXES_COMIC_ID, SCHOOL_MAP_COMIC_ID, SCHOOL_STORE_COMIC_ID } from './route'
 
-// Operations after the School Fair: five short seasons of four chapters and a finale.
+// The stories: the School Fair (six chapters and the Fair Keeper) and five operations after it
+// (four chapters and a finale each).
 // A chapter with `comicId` is playable; the others are announced on the season page until
 // their comic is written. Progress is kept apart from the School Fair season.
 
@@ -41,6 +43,29 @@ export interface Operation {
 const t = (ru: string, kk: string): Text => ({ ru, kk })
 
 export const OPERATIONS: readonly Operation[] = [
+  {
+    id: 'fair',
+    icon: '🎪',
+    title: t('Операция «Школьная ярмарка»', '«Мектеп жәрмеңкесі» операциясы'),
+    lead: t(
+      'Алдияр, Аруна и робот Пифик готовят школьную ярмарку: пицца, магазин, квест по карте, библиотека, лимонад и гирлянда.',
+      'Алдияр, Аруна және Пифик робот мектеп жәрмеңкесін дайындайды: пицца, дүкен, карта бойынша квест, кітапхана, лимонад және гирлянда.',
+    ),
+    chapters: [
+      { number: 1, comicId: DEMO_COMIC_ID, title: t('Пицца для четырёх друзей', 'Төрт досқа арналған пицца'), story: t('Три пиццы на четверых друзей. Сколько получит каждый?', 'Үш пицца төрт досқа. Әрқайсысы қанша алады?'), math: t('Дроби', 'Бөлшектер') },
+      { number: 2, comicId: SCHOOL_STORE_COMIC_ID, title: t('Скидка в школьном магазине', 'Мектеп дүкеніндегі жеңілдік'), story: t('Рюкзак со скидкой. Сколько нужно заплатить?', 'Жеңілдіктегі арқа сөмкесі. Қанша төлеу керек?'), math: t('Проценты', 'Пайыздар') },
+      { number: 3, comicId: SCHOOL_MAP_COMIC_ID, title: t('Школьный квест по карте', 'Карта бойынша мектеп квесті'), story: t('Карта из рюкзака. Сколько метров до следующей станции?', 'Сөмкедегі карта. Келесі бекетке дейін неше метр?'), math: t('Масштаб', 'Масштаб') },
+      { number: 4, comicId: LIBRARY_BOXES_COMIC_ID, title: t('Загадка библиотечных коробок', 'Кітапхана қораптарының құпиясы'), story: t('Три коробки и шесть книг рядом. Сколько книг в каждой коробке?', 'Үш қорап және жанында алты кітап. Әр қорапта неше кітап бар?'), math: t('Уравнения', 'Теңдеулер') },
+      { number: 5, comicId: LEMONADE_COMIC_ID, title: t('Лимонад для ярмарки', 'Жәрмеңкеге лимонад'), story: t('Четыре стакана — 600 мл воды. А если стаканов десять?', 'Төрт стақанға 600 мл су керек. Ал он стақанға ше?'), math: t('Пропорции', 'Пропорциялар') },
+      { number: 6, comicId: GARLAND_COMIC_ID, title: t('Гирлянда для ярмарки', 'Жәрмеңкеге гирлянда'), story: t('Гирлянда для стенда. Сколько метров нужно на все края?', 'Стендке гирлянда. Барлық шетіне неше метр керек?'), math: t('Периметр', 'Периметр') },
+    ],
+    finale: {
+      title: t('Страж ярмарки', 'Жәрмеңке Сақшысы'),
+      story: t('Три фонаря на арке: дроби, проценты и масштаб. Зажги все — и ярмарка откроется.', 'Аркадағы үш шам: бөлшектер, пайыздар және масштаб. Барлығын жақ — жәрмеңке ашылады.'),
+      math: t('Дроби, проценты и масштаб', 'Бөлшектер, пайыздар және масштаб'),
+      href: GUARDIAN_HREF,
+    },
+  },
   {
     id: 'roads',
     icon: '🚲',

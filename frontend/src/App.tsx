@@ -25,7 +25,7 @@ import { chaptersLeft, findOperation, operationChapter, useOperationProgress } f
 import { mergeSecrets, useFoundSecrets } from './panelSecrets'
 import { FAIR_FINALE_ID, finaleProgressId, findForChapter, logFind, ROADS_FINALE_ID } from './rewards'
 import { useSeasonProgress } from './seasonProgress'
-import { SCHOOL_FAIR_CHAPTER_COUNT } from './schoolFair'
+import { SCHOOL_FAIR_CHAPTER_COUNT, schoolFairChapter } from './schoolFair'
 
 // Screens load on demand: the first page only needs the route map.
 const ProfileScreen = lazy(() => import('./components/ProfileScreen').then((m) => ({ default: m.ProfileScreen })))
@@ -136,7 +136,7 @@ function AppShell() {
   const { complete: completeOperation, merge: mergeOperations } = operations
   // One completion callback for the reader: School Fair chapters give a collectible, operation chapters don't.
   const finishChapter = useCallback((comicId: string) => {
-    if (operationChapter(comicId)) {
+    if (operationChapter(comicId) && !schoolFairChapter(comicId)) {
       // A first completion unlocks the chapter's find (the coins are paid by the server).
       const find = findForChapter(comicId)
       if (completeOperation(comicId) && find) logFind(find.id)
@@ -192,6 +192,8 @@ function AppShell() {
     window.addEventListener(FINALE_WON_EVENT, onWin)
     return () => window.removeEventListener(FINALE_WON_EVENT, onWin)
   }, [])
+  // Every story's chapters in one set: the School Fair keeps its own progress (collectibles).
+  const storyProgress = useMemo(() => new Set([...operations.completed, ...completedChapters]), [operations.completed, completedChapters])
   const wonFinales = useMemo(
     () => [
       ...(guardian.run.won ? [FAIR_FINALE_ID] : []),
@@ -220,7 +222,7 @@ function AppShell() {
   const readerSection = route.name === 'comic' && myComics.some((c) => c.comicId === route.comicId) ? 'myComics' as const : 'comics' as const
   const readerNav = route.name === 'comic' && operationChapter(route.comicId) ? 'operations' as const : readerSection === 'comics' ? 'map' as const : readerSection
   const activeSection = route.name === 'comic' ? readerNav : route.name === 'operation' || route.name === 'operationFinale' ? 'operations' : route.name === 'teacherClass' || route.name === 'teacherBattle' || route.name === 'teacherLesson' ? 'teacher' : route.name === 'join' || route.name === 'lesson' || route.name === 'battle' || route.name === 'practice' || route.name === 'practiceTopic' ? 'map' : route.name === 'motionLeague' || route.name === 'roadGuardian' ? 'operations' : route.name === 'guardianAssignment' || route.name === 'guardian' || route.name === 'comics' ? 'map' : route.name
-  const navigation = { t, active: activeSection, completed: completedChapters.size, remaining, myComics: myComics.length, guardianWon: guardian.run.won, operationsDone: operations.completed.size, lang }
+  const navigation = { t, active: activeSection, completed: completedChapters.size, remaining, myComics: myComics.length, guardianWon: guardian.run.won, operationsDone: storyProgress.size, lang }
 
   const openGenerated = useCallback(
     (comicId: string, request: ComicJobRequest) => {
@@ -276,8 +278,7 @@ function AppShell() {
             <PracticeScreen lang={lang} topic={PRACTICE_TOPICS.includes(route.topic as BattleTopic) ? route.topic as BattleTopic : null} skill={route.skill} />
           )}
           {route.name === 'map' && (
-            <HomeScreen lang={lang} completedChapters={completedChapters} remaining={remaining} guardianWon={guardian.run.won}
-              lastComicId={lastComicId} />
+            <HomeScreen lang={lang} progress={storyProgress} finalesWon={new Set(wonFinales)} />
           )}
           {route.name === 'comics' && <CatalogScreen lang={lang} completedChapters={completedChapters} />}
           {route.name === 'myComics' && <Suspense><MyComicsScreen lang={lang} comics={myComics} lastComicId={lastComicId} /></Suspense>}
@@ -289,12 +290,12 @@ function AppShell() {
           {route.name === 'guardian' && <Suspense><GuardianScreen lang={lang} remaining={remaining} challenge={guardian} /></Suspense>}
           {route.name === 'guardianAssignment' && <Suspense><AssignedGuardian key={guardianAssignmentHref(route.assignment)} assignment={route.assignment} remaining={remaining} lang={lang} /></Suspense>}
           {route.name === 'roadGuardian' && <RoadGuardianScreen lang={lang} challenge={roadGuardian} remaining={chaptersLeft('roads', operations.completed)} />}
-          {route.name === 'operations' && <OperationsScreen lang={lang} completed={operations.completed} />}
+          {route.name === 'operations' && <OperationsScreen lang={lang} completed={storyProgress} />}
           {route.name === 'operation' && (() => {
             const operation = findOperation(route.id)
             return operation
-              ? <OperationScreen lang={lang} operation={operation} completed={operations.completed} finaleWon={operation.id === 'roads' ? roadGuardian.run.won : finaleWon(operation.id)} />
-              : <OperationsScreen lang={lang} completed={operations.completed} />
+              ? <OperationScreen lang={lang} operation={operation} completed={storyProgress} finaleWon={operation.id === 'fair' ? guardian.run.won : operation.id === 'roads' ? roadGuardian.run.won : finaleWon(operation.id)} />
+              : <OperationsScreen lang={lang} completed={storyProgress} />
           })()}
           {route.name === 'operationFinale' && (FINALES[route.id]
             ? <FinaleScreen key={route.id} lang={lang} def={FINALES[route.id]} remaining={chaptersLeft(route.id, operations.completed)} />

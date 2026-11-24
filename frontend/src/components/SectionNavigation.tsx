@@ -4,10 +4,21 @@ import type { UiStrings } from '../i18n'
 import { SECTION_HREFS, type Section } from '../route'
 import { SCHOOL_FAIR_CHAPTER_COUNT } from '../schoolFair'
 
-const OPERATIONS_NAV = {
-  ru: { label: 'Операции', detail: (n: number) => n ? `Глав пройдено: ${n}` : '5 новых историй' },
-  kk: { label: 'Операциялар', detail: (n: number) => n ? `Өтілген тараулар: ${n}` : '5 жаңа оқиға' },
+const NAV = {
+  ru: {
+    home: 'Главная',
+    homeDetail: 'Что делать сейчас',
+    stories: 'Истории',
+    storiesDetail: (n: number, total: number) => (n ? `Глав пройдено: ${n} из ${total}` : '6 сезонов, 26 глав'),
+  },
+  kk: {
+    home: 'Басты бет',
+    homeDetail: 'Қазір не істеу керек',
+    stories: 'Оқиғалар',
+    storiesDetail: (n: number, total: number) => (n ? `Өтілген тараулар: ${total}-ден ${n}` : '6 маусым, 26 тарау'),
+  },
 }
+const STORY_CHAPTERS = 26
 
 interface Props {
   t: UiStrings
@@ -27,14 +38,11 @@ interface Props {
  * One entry per season plus the student's own things. Finales live inside their season
  * (the fair route, the operation pages), so they are not separate menu entries.
  */
-function SectionLinks({ t, active, completed, remaining, guardianWon, myComics, operationsDone, lang, onSelect }: Props & { onSelect?: () => void }) {
+function SectionLinks({ t, active, completed, myComics, operationsDone, lang, onSelect }: Props & { onSelect?: () => void }) {
   const id = useId()
-  const fairDetail = remaining > 0
-    ? t.seasonProgress(completed, SCHOOL_FAIR_CHAPTER_COUNT)
-    : guardianWon ? t.guardian.wonBadge : t.fairRoute.guardianUnlocked
   const links = [
-    { section: 'map', icon: '🗺️', label: t.fairRoute.title, detail: fairDetail },
-    { section: 'operations', icon: '🧭', label: OPERATIONS_NAV[lang].label, detail: OPERATIONS_NAV[lang].detail(operationsDone) },
+    { section: 'map', icon: '🏠', label: NAV[lang].home, detail: NAV[lang].homeDetail },
+    { section: 'operations', icon: '📚', label: NAV[lang].stories, detail: NAV[lang].storiesDetail(operationsDone, STORY_CHAPTERS) },
     { section: 'myComics', icon: '🖍️', label: t.myComics.title, detail: myComics > 0 ? t.myComics.count(myComics) : undefined },
     { section: 'backpack', icon: '🎒', label: t.backpack.title, detail: t.backpack.progress(completed, SCHOOL_FAIR_CHAPTER_COUNT) },
     { section: 'create', icon: '✨', label: t.createOwn },
