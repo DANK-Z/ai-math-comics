@@ -49,6 +49,8 @@ class Settings:
     generation_daily_guest: int = 0
     # Guests (no account) may generate comics; off on the public site (COMIC_GUESTS=1 turns it on).
     generation_guests: bool = True
+    # Parent payments: "test" credits at once without money (no provider yet), "off" hides them.
+    payments_mode: str = "test"
 
     def __post_init__(self):
         if self.provider not in ("openai", "gemini"):
@@ -115,6 +117,7 @@ class Settings:
             generation_daily_teacher=int(os.getenv("COMIC_DAILY_PER_TEACHER", "40")),
             generation_daily_guest=int(os.getenv("COMIC_DAILY_PER_GUEST_IP", "3")),
             generation_guests=os.getenv("COMIC_GUESTS", "0").strip() == "1",
+            payments_mode=os.getenv("PAYMENTS_MODE", "test").strip() or "test",
             embedding_model=os.getenv(
                 "EMBEDDING_MODEL", "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
             ).strip(),

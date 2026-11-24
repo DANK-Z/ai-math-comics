@@ -1,6 +1,7 @@
 import { useEffect, useId, useState, type FormEvent } from 'react'
 import { dayMonth } from '../dates'
-import { accounts, isAbortError, type ChildSummary, type Lang, type PraiseCard, type PraiseKind } from '../api'
+import { accounts, isAbortError, type Billing, type CardKind, type ChildSummary, type Lang, type PraiseCard, type PraiseKind } from '../api'
+import { CoinPacks, FamilyPlanCard } from './ParentBilling'
 import { useAccount } from '../account'
 import { ACCOUNT_COPY, skillCopy } from '../accountCopy'
 import { PORTRAITS } from '../art/sheet'
@@ -13,11 +14,12 @@ import { PifikSprite } from './PifikSprite'
 
 const t = (ru: string, kk: string) => ({ ru, kk })
 
-export const PRAISE: Record<PraiseKind, { icon: string; text: Record<Lang, string> }> = {
+export const PRAISE: Record<CardKind, { icon: string; text: Record<Lang, string> }> = {
   proud: { icon: '🎉', text: t('Горжусь тобой!', 'Сенімен мақтанамын!') },
   'keep-going': { icon: '💪', text: t('Ты молодец, продолжай!', 'Жарайсың, жалғастыр!') },
   star: { icon: '⭐', text: t('Ты моя звёздочка!', 'Сен менің жұлдызымсың!') },
   gift: { icon: '🎁', text: t('Подарок для магазина ярмарки', 'Жәрмеңке дүкеніне сыйлық') },
+  coins: { icon: '🪙', text: t('Монеты для магазина ярмарки — трать с умом!', 'Жәрмеңке дүкеніне тиындар — ақылмен жұмса!') },
 }
 
 const COPY = {
@@ -41,7 +43,7 @@ const COPY = {
     praise: 'Похвалить и поддержать',
     praiseSent: 'Открытка отправлена — ребёнок увидит её на главной.',
     giftLater: (date: string) => `Следующий подарок можно отправить ${date}`,
-    giftCoins: '+20 монет',
+    giftCoins: (n: number) => `+${n} монет`,
     recent: 'Последние успехи',
     boss: (topic: string, stars: number) => `Победа над боссом: ${topic} ${'⭐'.repeat(stars)}`,
     finale: 'Пройдено финальное испытание истории',
@@ -77,7 +79,7 @@ const COPY = {
     praise: 'Мақтау және қолдау',
     praiseSent: 'Ашықхат жіберілді — бала оны басты бетте көреді.',
     giftLater: (date: string) => `Келесі сыйлықты ${date} жіберуге болады`,
-    giftCoins: '+20 тиын',
+    giftCoins: (n: number) => `+${n} тиын`,
     recent: 'Соңғы жетістіктер',
     boss: (topic: string, stars: number) => `Босты жеңді: ${topic} ${'⭐'.repeat(stars)}`,
     finale: 'Оқиғаның финалдық сынағынан өтті',
@@ -111,7 +113,14 @@ export function childSummaryText(child: ChildSummary, lang: Lang): string[] {
   return lines
 }
 
-function ChildCard({ child, lang, onChange, onRemove }: { child: ChildSummary; lang: Lang; onChange: (c: ChildSummary) => void; onRemove: () => void }) {
+function ChildCard({ child, lang, billing, onChange, onPaid, onRemove }: {
+  child: ChildSummary
+  lang: Lang
+  billing: Billing | null
+  onChange: (c: ChildSummary) => void
+  onPaid: () => void
+  onRemove: () => void
+}) {
   const c = COPY[lang]
   const topics = ACCOUNT_COPY[lang].topics
   const [busy, setBusy] = useState(false)
@@ -162,12 +171,14 @@ function ChildCard({ child, lang, onChange, onRemove }: { child: ChildSummary; l
             </button>
           ))}
           <button type="button" disabled={busy || !!child.giftReadyAt} onClick={() => praise('gift')} className={PRIMARY}>
-            🎁 {c.giftCoins}
+            🎁 {c.giftCoins(child.giftCoins ?? 20)}
           </button>
         </div>
         {child.giftReadyAt && <p className="mt-2 text-sm font-semibold text-ink/70">{c.giftLater(date(child.giftReadyAt, lang))}</p>}
         {sent && <p role="status" className="mt-2 font-bold text-emerald-700">✓ {c.praiseSent}</p>}
       </section>
+
+      {billing && billing.mode !== 'off' && <CoinPacks child={child} lang={lang} billing={billing} onChange={onChange} onPaid={onPaid} />}
 
       {child.recent.length > 0 && (
         <section className={CARD}>
@@ -193,6 +204,7 @@ export function ParentScreen({ lang }: { lang: Lang }) {
   const { user, logOut } = useAccount()
   const id = useId()
   const [children, setChildren] = useState<ChildSummary[] | null>(null)
+  const [billing, setBilling] = useState<Billing | null>(null)
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -200,6 +212,7 @@ export function ParentScreen({ lang }: { lang: Lang }) {
   useEffect(() => {
     const ctrl = new AbortController()
     accounts.parentChildren(ctrl.signal).then(setChildren, (err) => { if (!isAbortError(err)) setError(c.error) })
+    accounts.billing(ctrl.signal).then(setBilling, () => {})
     return () => ctrl.abort()
   }, [c])
 
@@ -234,8 +247,9 @@ export function ParentScreen({ lang }: { lang: Lang }) {
       </div>
       {children?.length === 0 && <p className={`${CARD} font-bold`}>{c.empty}</p>}
       {children?.map((child) => (
-        <ChildCard key={child.id} child={child} lang={lang}
+        <ChildCard key={child.id} child={child} lang={lang} billing={billing}
           onChange={(next) => setChildren((prev) => (prev ?? []).map((x) => (x.id === next.id ? next : x)))}
+          onPaid={() => { accounts.billing().then(setBilling, () => {}) }}
           onRemove={() => remove(child)} />
       ))}
       <form onSubmit={add} className={CARD}>
@@ -249,6 +263,10 @@ export function ParentScreen({ lang }: { lang: Lang }) {
         </div>
         {error && <p role="alert" className="mt-2 font-bold text-rose-700">{error}</p>}
       </form>
+      {billing && billing.mode !== 'off' && (
+        <FamilyPlanCard lang={lang} billing={billing} onChange={setBilling}
+          onPlan={() => { accounts.parentChildren().then(setChildren, () => {}) }} />
+      )}
     </div>
   )
 }

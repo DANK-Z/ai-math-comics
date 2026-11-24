@@ -2,7 +2,7 @@ import { authToken } from './authToken'
 import { PROGRESS_REWARDS } from '../rewards'
 import { ApiError } from './errors'
 import { COSMETICS, isCosmetic, type CosmeticKey } from '../cosmetics'
-import type { AccountApi, ChildSummary, ClassInfo, Dashboard, Grade, Me, PracticeReport, PraiseKind, Shop, SkinKey } from './types'
+import type { AccountApi, ChildSummary, ClassInfo, Dashboard, Grade, Me, PracticeReport, Shop, SkinKey, Billing, CardKind, CoinPack } from './types'
 import { mockPracticeAnswer, mockPracticeTask, mockPracticeTopic } from './mockClassroom'
 import { currentLesson, homeworkOf, lessonBoardOf, myHomeworkOf, studentLessonOf, wholeAnswer, type MockHomework, type MockLesson, type PracticeDone } from './mockLessons'
 import { DEMO_LOBBY } from './mockClassroom'
@@ -40,7 +40,9 @@ interface MockState {
   presence?: Record<string, Record<number, number>>
   familyCodes?: Record<number, string>
   familyLinks?: { parentId: number; studentId: number }[]
-  praises?: { id: number; parentId: number; studentId: number; kind: PraiseKind; coins: number; at: number; seen: boolean }[]
+  praises?: { id: number; parentId: number; studentId: number; kind: CardKind; coins: number; at: number; seen: boolean }[]
+  plans?: Record<number, number>
+  payments?: { id: number; parentId: number; childId: number | null; product: string; amount: number; coins: number; at: number }[]
 }
 
 const KEY = 'amc.mock.accounts'
@@ -300,13 +302,45 @@ export const mockAccounts: AccountApi = {
       const praises = (state.praises ??= [])
       let coins = 0
       if (kind === 'gift') {
-        const last = praises.filter((p) => p.parentId === user.id && p.studentId === studentId && p.coins > 0).at(-1)
+        const last = praises.filter((p) => p.parentId === user.id && p.studentId === studentId && p.kind === 'gift').at(-1)
         if (last && Date.now() - last.at < 7 * 86400_000) throw fail(409, 'gift_too_soon')
-        coins = 20
+        coins = planActive(state, user.id) ? 50 : 20
         const child = state.users.find((u) => u.id === studentId)
         if (child) child.coins = (child.coins ?? DEMO_COINS) + coins
       }
       praises.push({ id: praises.length + 1, parentId: user.id, studentId, kind, coins, at: Date.now(), seen: false })
+      save(state)
+      return childSummary(state, user.id, studentId)
+    })
+  },
+  billing() {
+    return later(() => {
+      const state = load()
+      return billingOf(state, parentOf(state).id)
+    })
+  },
+  buyPlan() {
+    return later(() => {
+      const state = load()
+      const user = parentOf(state)
+      pay(state, user.id, { childId: null, product: 'family', amount: 1990, coins: 0 })
+      const plans = (state.plans ??= {})
+      plans[user.id] = Math.max(Date.now(), plans[user.id] ?? 0) + 30 * 86400_000
+      save(state)
+      return billingOf(state, user.id)
+    })
+  },
+  buyCoins(studentId, pack) {
+    return later(() => {
+      const state = load()
+      const user = parentOf(state)
+      if (!(state.familyLinks ?? []).some((l) => l.parentId === user.id && l.studentId === studentId)) throw fail(404, 'child_not_found')
+      const { coins, price } = PACKS[pack]
+      pay(state, user.id, { childId: studentId, product: pack, amount: price, coins })
+      const child = state.users.find((u) => u.id === studentId)
+      if (child) child.coins = (child.coins ?? DEMO_COINS) + coins
+      const praises = (state.praises ??= [])
+      praises.push({ id: praises.length + 1, parentId: user.id, studentId, kind: 'coins', coins, at: Date.now(), seen: false })
       save(state)
       return childSummary(state, user.id, studentId)
     })
@@ -769,7 +803,7 @@ function childSummary(state: MockState, parentId: number, studentId: number): Ch
   const child = state.users.find((u) => u.id === studentId)!
   const schoolClass = state.classes.find((c) => c.id === child.classId)
   const chapters = (child.rewards ?? []).filter((k) => !k.startsWith('secret-') && !k.endsWith('-finale'))
-  const lastGift = (state.praises ?? []).filter((p) => p.parentId === parentId && p.studentId === studentId && p.coins > 0).at(-1)
+  const lastGift = (state.praises ?? []).filter((p) => p.parentId === parentId && p.studentId === studentId && p.kind === 'gift').at(-1)
   const giftReady = lastGift ? lastGift.at + 7 * 86400_000 : 0
   return {
     id: child.id,
@@ -794,7 +828,30 @@ function childSummary(state: MockState, parentId: number, studentId: number): Ch
       { kind: 'boss', key: 'fractions', stars: 2, at: new Date(Date.now() - 86400_000).toISOString() },
     ],
     giftReadyAt: giftReady > Date.now() ? new Date(giftReady).toISOString() : null,
+    giftCoins: planActive(state, parentId) ? 50 : 20,
   }
+}
+
+const planActive = (state: MockState, parentId: number) => (state.plans?.[parentId] ?? 0) > Date.now()
+const PACKS: Record<CoinPack, { coins: number; price: number }> = { 'coins-100': { coins: 100, price: 490 }, 'coins-300': { coins: 300, price: 1290 }, 'coins-700': { coins: 700, price: 2490 } }
+
+function billingOf(state: MockState, parentId: number): Billing {
+  const until = state.plans?.[parentId] ?? 0
+  return {
+    mode: 'test',
+    plan: until > Date.now() ? 'family' : null,
+    paidUntil: until > Date.now() ? new Date(until).toISOString() : null,
+    plans: [{ id: 'family', price: 1990 }],
+    packs: (Object.keys(PACKS) as CoinPack[]).map((id) => ({ id, ...PACKS[id] })),
+    history: (state.payments ?? []).filter((p) => p.parentId === parentId).reverse().slice(0, 10)
+      .map((p) => ({ id: p.id, product: p.product, amount: p.amount, coins: p.coins, childId: p.childId, status: 'test', at: new Date(p.at).toISOString() })),
+  }
+}
+
+function pay(state: MockState, parentId: number, payment: { childId: number | null; product: string; amount: number; coins: number }) {
+  const payments = (state.payments ??= [])
+  if (payments.filter((p) => p.parentId === parentId && Date.now() - p.at < 86400_000).length >= 5) throw fail(429, 'payments_limit')
+  payments.push({ id: payments.length + 1, parentId, at: Date.now(), ...payment })
 }
 
 const classSize = (state: MockState, classId: number) => state.users.filter((u) => u.role === 'student' && u.classId === classId).length

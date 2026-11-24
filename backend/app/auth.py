@@ -107,6 +107,11 @@ async def enforce_generation_limit(request: Request, session: AsyncSession, user
             if user.role == Role.teacher
             else settings.generation_daily_student
         )
+        if per_user and user.role == Role.student:
+            from .billing import PLAN_COMIC_FACTOR, child_has_plan  # billing imports this module
+
+            if await child_has_plan(session, user.id):
+                per_user *= PLAN_COMIC_FACTOR
         if per_user:
             windows.append((f"gen\0user\0{user.id}", day, per_user))
     if windows:

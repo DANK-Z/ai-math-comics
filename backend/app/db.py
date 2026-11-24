@@ -388,3 +388,30 @@ def default_database_url(data_dir: Path) -> str:
 def run(coro):
     """Run a coroutine from sync code (CLI helpers and tests)."""
     return asyncio.run(coro)
+
+
+class FamilyPlan(Base):
+    """A parent's paid family plan (bigger weekly gift, more comics for the children)."""
+
+    __tablename__ = "family_plans"
+
+    parent_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    plan: Mapped[str] = mapped_column(String(20))
+    paid_until: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class Payment(Base):
+    """One parent payment: a plan month or a coin pack. ``status`` is ``test`` in test mode."""
+
+    __tablename__ = "payments"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    parent_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    student_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    product: Mapped[str] = mapped_column(String(30))
+    amount_kzt: Mapped[int] = mapped_column(Integer)
+    coins: Mapped[int] = mapped_column(Integer, default=0)
+    status: Mapped[str] = mapped_column(String(12))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

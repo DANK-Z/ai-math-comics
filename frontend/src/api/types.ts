@@ -422,6 +422,19 @@ export interface MyHomework {
 }
 
 export type PraiseKind = 'proud' | 'keep-going' | 'star' | 'gift'
+/** Cards a child can get: praise plus coins bought by a parent. */
+export type CardKind = PraiseKind | 'coins'
+export type CoinPack = 'coins-100' | 'coins-300' | 'coins-700'
+
+/** GET /api/parent/billing (test mode: purchases take effect without money). */
+export interface Billing {
+  mode: 'test' | 'off'
+  plan: 'family' | null
+  paidUntil: string | null
+  plans: { id: 'family'; price: number }[]
+  packs: { id: CoinPack; price: number; coins: number }[]
+  history: { id: number; product: string; amount: number; coins: number; childId: number | null; status: string; at: string }[]
+}
 
 /** What a parent sees about one child (built from the child's real data). */
 export interface ChildSummary {
@@ -445,12 +458,14 @@ export interface ChildSummary {
   recent: { kind: 'boss' | 'finale'; key: string; stars: number; at: string }[]
   /** When the next gift with coins can be sent (null: now). */
   giftReadyAt?: string | null
+  /** Coins in the weekly gift (50 with the family plan). */
+  giftCoins?: number
 }
 
 /** A card from a parent, shown on the child's home page. */
 export interface PraiseCard {
   id: number
-  kind: PraiseKind
+  kind: CardKind
   coins: number
   fromName: string
   at: string
@@ -465,6 +480,9 @@ export interface AccountApi {
   addChild(code: string): Promise<ChildSummary>
   removeChild(studentId: number): Promise<void>
   sendPraise(studentId: number, kind: PraiseKind): Promise<ChildSummary>
+  billing(signal?: AbortSignal): Promise<Billing>
+  buyPlan(plan: 'family'): Promise<Billing>
+  buyCoins(studentId: number, pack: CoinPack): Promise<ChildSummary>
   myPraise(signal?: AbortSignal): Promise<PraiseCard[]>
   praiseSeen(): Promise<void>
   logIn(body: { login: string; password: string }): Promise<AuthResponse>

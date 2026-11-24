@@ -3,7 +3,7 @@ import { ApiError } from './errors'
 import type { BattleAnswerResult, BattleBoard, Leaderboard, PracticeReport, PracticeResult, PracticeTask, StudentBattle, StudentCredentials, WeakSpot } from './types'
 import type { ItemLore, VoiceAnswerKind } from './types'
 import type { HomeworkItem, LessonBoard, MyHomework, StudentLesson } from './types'
-import type { ChildSummary, PraiseCard } from './types'
+import type { Billing, ChildSummary, PraiseCard } from './types'
 import type { AssignmentReport, ClassAssignment, ComicJobRequest, Lang, TeacherDraft, TeacherDraftJob, TeacherPublication, TeacherTask } from './types'
 import type { AccountApi, Api, AuthResponse, BossState, CheckResponse, ClassInfo, Comic, ComicJob, ComicJobCreated, ContinuationJobRequest, Dashboard, HintResponse, Me, Shop } from './types'
 
@@ -133,6 +133,15 @@ export function createHttpApi(baseUrl: string): Api & AccountApi & {
     },
     sendPraise(studentId, kind) {
       return request<ChildSummary>(`/api/parent/children/${studentId}/praise`, { method: 'POST', body: JSON.stringify({ kind }) })
+    },
+    billing(signal) {
+      return request<Billing>('/api/parent/billing', { signal })
+    },
+    buyPlan(plan) {
+      return request<Billing>('/api/parent/billing/plan', { method: 'POST', body: JSON.stringify({ plan }) })
+    },
+    buyCoins(studentId, pack) {
+      return request<ChildSummary>(`/api/parent/children/${studentId}/coins`, { method: 'POST', body: JSON.stringify({ pack }) })
     },
     myPraise(signal) {
       return request<PraiseCard[]>('/api/me/praise', { signal })

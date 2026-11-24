@@ -50,6 +50,8 @@ GIFT_EVERY = timedelta(days=7)
 MAX_CHILDREN = 6
 CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"  # no 0/O, 1/I
 PraiseKind = Literal["proud", "keep-going", "star", "gift"]
+# Cards a child can get: the ones above plus coins bought by a parent (billing.py).
+CardKind = Literal["proud", "keep-going", "star", "gift", "coins"]
 
 
 async def current_parent(user: Annotated[User, Depends(current_user)]) -> User:
@@ -155,6 +157,8 @@ class ChildSummary(BaseModel):
     recent: list[Win]
     giftReadyAt: datetime | None = None
     """When the next gift with coins can be sent (None: now)."""
+    giftCoins: int = GIFT_COINS
+    """Coins in the weekly gift (more with the family plan)."""
 
 
 async def linked_child(session, parent: User, student_id: int) -> User:
@@ -252,7 +256,7 @@ async def summary(session, parent: User, child: User) -> ChildSummary:
     recent.sort(key=lambda w: w.at, reverse=True)
     last_gift = await session.scalar(
         select(func.max(Praise.created_at)).where(
-            Praise.parent_id == parent.id, Praise.student_id == child.id, Praise.coins > 0
+            Praise.parent_id == parent.id, Praise.student_id == child.id, Praise.kind == "gift"
         )
     )
     gift_ready = aware(last_gift) + GIFT_EVERY if last_gift else None
@@ -276,7 +280,14 @@ async def summary(session, parent: User, child: User) -> ChildSummary:
         lastActive=max(moments) if moments else None,
         recent=recent[:5],
         giftReadyAt=gift_ready if gift_ready and gift_ready > current else None,
+        giftCoins=await gift_coins(session, parent.id),
     )
+
+
+async def gift_coins(session, parent_id: int) -> int:
+    from .billing import PLAN_GIFT_COINS, active_plan  # billing builds on this module
+
+    return PLAN_GIFT_COINS if await active_plan(session, parent_id) else GIFT_COINS
 
 
 @router.get("/parent/children", response_model=list[ChildSummary])
@@ -342,12 +353,12 @@ async def send_praise(student_id: int, body: PraiseIn, user: Parent, session: Se
     if body.kind == "gift":
         last = await session.scalar(
             select(func.max(Praise.created_at)).where(
-                Praise.parent_id == user.id, Praise.student_id == child.id, Praise.coins > 0
+                Praise.parent_id == user.id, Praise.student_id == child.id, Praise.kind == "gift"
             )
         )
         if last is not None and now() - aware(last) < GIFT_EVERY:
             raise HTTPException(409, "gift_too_soon")
-        coins = GIFT_COINS
+        coins = await gift_coins(session, user.id)
         await session.execute(
             update(StudentProfile)
             .where(StudentProfile.user_id == child.id)
@@ -364,7 +375,7 @@ async def send_praise(student_id: int, body: PraiseIn, user: Parent, session: Se
 
 class PraiseOut(BaseModel):
     id: int
-    kind: PraiseKind
+    kind: CardKind
     coins: int
     fromName: str
     at: datetime

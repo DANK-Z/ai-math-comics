@@ -25,6 +25,7 @@ from .assignments import (
 )
 from .assignments import router as assignments_router
 from .auth import Session, enforce_generation_limit, lenient_user
+from .billing import router as billing_router
 from .chapters import router as chapters_router
 from .classroom import router as classroom_router
 from .config import Settings
@@ -138,6 +139,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(lessons_router)
     app.include_router(chapters_router)
     app.include_router(family_router)
+    app.include_router(billing_router)
     app.include_router(lore_router)
     app.include_router(voice_router)
 
