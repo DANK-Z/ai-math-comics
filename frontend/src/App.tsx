@@ -92,6 +92,26 @@ function AccountChip({ lang }: { lang: Lang }) {
 }
 
 /** Teachers see only their dashboard; students and guests only the game. */
+const CREATE_GATE = {
+  ru: { title: 'Создать свой комикс', text: 'Чтобы Пифик нарисовал комикс по твоей задаче, войди или зарегистрируйся — это бесплатно. Готовые истории можно читать и без входа.', button: 'Войти и создать' },
+  kk: { title: 'Өз комиксіңді жаса', text: 'Пифик сенің есебің бойынша комикс салуы үшін кір немесе тіркел — бұл тегін. Дайын оқиғаларды кірмей-ақ оқуға болады.', button: 'Кіріп, жасау' },
+}
+
+/** Guests read the stories, but making a comic (paid AI) needs an account. */
+function SignInToCreate({ lang }: { lang: Lang }) {
+  const c = CREATE_GATE[lang]
+  return (
+    <section aria-labelledby="create-gate-title" className="rounded-3xl border-[3px] border-ink bg-white p-5 shadow-[0_4px_0_var(--shadow-ink)] sm:p-7">
+      <h1 id="create-gate-title" className="text-2xl font-black text-ink sm:text-3xl">✨ {c.title}</h1>
+      <p className="mt-2 text-lg font-semibold text-ink/85">{c.text}</p>
+      <a href={SECTION_HREFS.login} onClick={() => rememberAfterLogin('#/create')}
+        className="mt-4 inline-flex min-h-14 items-center justify-center rounded-2xl border-[3px] border-ink bg-sun px-6 text-xl font-black text-ink shadow-[0_4px_0_var(--shadow-ink)] transition active:translate-y-[3px] active:shadow-[0_1px_0_var(--shadow-ink)] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-brand">
+        {c.button} →
+      </a>
+    </section>
+  )
+}
+
 function screenFor(route: Route, role: Role | null): Route | null {
   if (role === 'parent') return route.name === 'parent' ? null : { name: 'parent' }
   if (route.name === 'parent') return role ? { name: role === 'teacher' ? 'teacher' : 'map' } : { name: 'login' }
@@ -334,7 +354,9 @@ function AppShell() {
             />
           )}
           <div hidden={route.name !== 'create'} className="max-w-2xl">
-            <GenerateCard lang={lang} onReady={openGenerated} autoOpen={route.name === 'create'} />
+            {account.user ? (
+              <GenerateCard lang={lang} onReady={openGenerated} autoOpen={route.name === 'create'} />
+            ) : ready && <SignInToCreate lang={lang} />}
           </div>
         </Suspense>
         </main>

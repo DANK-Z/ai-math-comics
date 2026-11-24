@@ -60,3 +60,17 @@ def test_sign_up_is_rate_limited(limited):
     body = {"login": "spam", "password": "student-pass", "displayName": "Спам"}
     codes = [limited.post("/api/auth/students", json=body).status_code for _ in range(9)]
     assert codes[0] == 201 and set(codes[1:8]) == {409} and codes[8] == 429
+
+
+def test_guests_cannot_generate_on_the_public_site(tmp_path):
+    settings = Settings(
+        data_dir=tmp_path,
+        art_mode="prepared",
+        public_base_url="http://testserver",
+        jwt_secret="test-secret-" + "x" * 32,
+        generation_guests=False,
+    )
+    with TestClient(create_app(settings)) as client:
+        refused = generate(client)
+        assert refused.status_code == 401 and refused.json()["detail"] == "sign_in_to_create"
+        assert generate(client, student(client, "aruna", "Аруна")).status_code == 202

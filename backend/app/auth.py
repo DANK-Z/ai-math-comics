@@ -97,6 +97,8 @@ async def enforce_generation_limit(request: Request, session: AsyncSession, user
     if settings.generation_daily_total:
         windows.append(("gen\0all", day, settings.generation_daily_total))
     if user is None:
+        if not settings.generation_guests:
+            raise HTTPException(401, "sign_in_to_create")
         if settings.generation_daily_guest:
             windows.append((f"gen\0ip\0{client_ip(request)}", day, settings.generation_daily_guest))
     else:
