@@ -4,6 +4,9 @@ import { useAccount } from '../account'
 import { PORTRAITS, type Rect } from '../art/sheet'
 import racerHelmet from '../assets/pifik/racer-helmet.webp'
 import smartGlasses from '../assets/pifik/smart-glasses.webp'
+import chefHat from '../assets/pifik/chef-hat.webp'
+import spaceHelmet from '../assets/pifik/space-helmet.webp'
+import kalpak from '../assets/pifik/kalpak.webp'
 import marsBackpack from '../assets/pifik/yellow-backpack.webp'
 import { SheetCrop } from './SheetCrop'
 
@@ -14,6 +17,9 @@ import { SheetCrop } from './SheetCrop'
 const SKIN_ART: Record<SkinKey, string> = {
   'racer-helmet': racerHelmet,
   'smart-glasses': smartGlasses,
+  'chef-hat': chefHat,
+  'space-helmet': spaceHelmet,
+  kalpak,
   'yellow-backpack': marsBackpack,
 }
 

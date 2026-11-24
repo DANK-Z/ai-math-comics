@@ -17,11 +17,16 @@ from sqlalchemy import select, update
 from .auth import Session, current_student
 from .db import BackpackItem, StudentProfile, User
 
-SkinKey = Literal["smart-glasses", "yellow-backpack", "racer-helmet"]
+SkinKey = Literal[
+    "smart-glasses", "yellow-backpack", "racer-helmet", "chef-hat", "space-helmet", "kalpak"
+]
 CATALOG: dict[str, dict] = {
     "smart-glasses": {"type": "skin", "price": 40},
     "yellow-backpack": {"type": "skin", "price": 50},
     "racer-helmet": {"type": "skin", "price": 60},
+    "chef-hat": {"type": "skin", "price": 55},
+    "space-helmet": {"type": "skin", "price": 70},
+    "kalpak": {"type": "skin", "price": 75},
     # Frames around the hero card's picture.
     "frame-sunny": {"type": "frame", "price": 30},
     "frame-steppe": {"type": "frame", "price": 45},

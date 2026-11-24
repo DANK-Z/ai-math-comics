@@ -28,6 +28,21 @@ SEASON_ITEMS = {
     "collectible-festival-garland": "fair-garland",
 }
 LORE = {
+    "chef-hat": (
+        "Pifik's chef hat from the fair kitchen where the pizzas were cut",
+        "В этом колпаке повар ярмарки резал пиццы на равные доли — ни одного лишнего кусочка.",
+        "Жәрмеңке аспазы осы қалпақпен пиццаны тең бөліктерге кесетін — бір артық тілім де жоқ.",
+    ),
+    "space-helmet": (
+        "Pifik's space helmet from the Mars greenhouse mission",
+        "Шлем вернулся с марсианской теплицы: на стекле ещё видны расчёты траектории.",
+        "Дулыға Марс жылыжайынан оралды: әйнегінде әлі де траектория есептері көрінеді.",
+    ),
+    "kalpak": (
+        "Pifik's festive white felt kalpak with golden ornament",
+        "Праздничный ак калпак мастер вышил узором, в котором прячется симметрия.",
+        "Мерекелік ақ қалпақты шебер симметрия жасырынған өрнекпен кестелеген.",
+    ),
     "racer-helmet": (
         "The Road Guardian's old racing helmet from the School Fair",
         "Шлем висел у входа на трассу. Хранитель Дорог надевал его, когда открывал ярмарку.",

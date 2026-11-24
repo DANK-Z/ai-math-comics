@@ -63,6 +63,9 @@ def test_buy_and_equip_skins_with_earned_coins(env):
         ("smart-glasses", 40, False),
         ("yellow-backpack", 50, False),
         ("racer-helmet", 60, False),
+        ("chef-hat", 55, False),
+        ("space-helmet", 70, False),
+        ("kalpak", 75, False),
     ]
     broke = client.post("/api/v1/shop/buy", json={"itemId": "smart-glasses"}, headers=auth(token))
     assert broke.status_code == 409 and broke.json()["detail"] == "not_enough_coins"
@@ -132,7 +135,8 @@ def test_frames_and_titles_are_worn_next_to_the_skin(env):
     shop = client.post("/api/v1/shop/buy", json={"itemId": "smart-glasses"}, headers=auth(token))
     assert shop.status_code == 409  # 10 coins left
     shop = client.get("/api/v1/shop", headers=auth(token)).json()
-    assert [i["id"] for i in shop["items"]] == ["smart-glasses", "yellow-backpack", "racer-helmet"]
+    assert [i["id"] for i in shop["items"]][:3] == ["smart-glasses", "yellow-backpack", "racer-helmet"]
+    assert {"chef-hat", "space-helmet", "kalpak"} <= {i["id"] for i in shop["items"]}
     frame = next(i for i in shop["cosmetics"] if i["id"] == "frame-sunny")
     assert frame["owned"] and frame["type"] == "frame" and shop["coins"] == 10
 

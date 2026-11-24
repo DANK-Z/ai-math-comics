@@ -97,7 +97,7 @@ function countLogin(name: string) {
 }
 
 const DEMO_COINS = 120
-const PRICES: Record<SkinKey, number> = { 'smart-glasses': 40, 'yellow-backpack': 50, 'racer-helmet': 60 }
+const PRICES: Record<SkinKey, number> = { 'smart-glasses': 40, 'yellow-backpack': 50, 'racer-helmet': 60, 'chef-hat': 55, 'space-helmet': 70, kalpak: 75 }
 
 const slotOf = (item: { type?: 'skin' | 'frame' | 'title' }) => item.type ?? 'skin'
 

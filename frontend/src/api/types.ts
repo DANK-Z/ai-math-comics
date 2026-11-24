@@ -246,7 +246,7 @@ export interface Dashboard {
   recommendation: { topic: Topic; round: number; skill: string | null; mistakeRate: number } | null
 }
 
-export type SkinKey = 'smart-glasses' | 'yellow-backpack' | 'racer-helmet'
+export type SkinKey = 'smart-glasses' | 'yellow-backpack' | 'racer-helmet' | 'chef-hat' | 'space-helmet' | 'kalpak'
 
 /** GET /api/v1/shop: the fair shop for a signed-in student. */
 export interface Shop {
