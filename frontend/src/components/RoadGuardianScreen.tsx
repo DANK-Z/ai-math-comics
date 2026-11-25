@@ -8,7 +8,6 @@ import gate1 from '../assets/roads/gate-1.webp'
 import gate2 from '../assets/roads/gate-2.webp'
 import gate3 from '../assets/roads/gate-3.webp'
 import gate4 from '../assets/roads/gate-4.webp'
-import gate5 from '../assets/roads/gate-5.webp'
 import { FINALE_LOCK, findOperation, operationHref } from '../operations'
 import { ROADS_FINALE_ID } from '../rewards'
 import { FinaleRewardNotes } from './FinaleRewardNotes'
@@ -24,10 +23,10 @@ type Challenge = ReturnType<typeof useRoadGuardian>
 
 /**
  * The finish gates: one lamp lights up per opened lock, and the gates open on victory.
- * Frames 1–4 are the same closed gate with 0–3 lamps lit; frame 5 is the open gate, shown
- * after the three-lamp frame.
+ * The artwork has frames for 0, 1 and 3 lamps plus the open gates; the second lamp is
+ * drawn over the one-lamp frame, and the three-lamp frame shows briefly before the gates open.
  */
-const GATES = [gate1, gate2, gate3, gate4, gate5]
+const GATES = [gate1, gate2, gate3, gate4]
 const GATE_COPY = {
   ru: (lit: number) => lit >= 3 ? 'Все три фонаря горят — ворота открыты!' : `Фонари на воротах: ${lit} из 3`,
   kk: (lit: number) => lit >= 3 ? 'Үш шам да жанып тұр — қақпа ашық!' : `Қақпадағы шамдар: ${lit} / 3`,
@@ -45,10 +44,10 @@ function FinishGates({ lit, lang }: { lit: number; lang: Lang }) {
     const timer = window.setTimeout(() => setOpened(true), 1600)
     return () => window.clearTimeout(timer)
   }, [lit])
-  const frame = lit >= 3 && opened ? 4 : Math.max(0, Math.min(lit, 3))
+  const frame = lit <= 0 ? 0 : lit <= 2 ? 1 : opened ? 3 : 2
   return (
     <figure className="mt-3 overflow-hidden rounded-2xl border-[3px] border-ink bg-ink">
-      <div className="relative" style={{ aspectRatio: '16 / 9' }}>
+      <div className="relative" style={{ aspectRatio: '827 / 463' }}>
         {GATES.map((src, i) => (
           <img
             key={src}
@@ -58,6 +57,12 @@ function FinishGates({ lit, lang }: { lit: number; lang: Lang }) {
             className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${i === frame ? 'opacity-100' : 'opacity-0'}`}
           />
         ))}
+        {/* The middle lamp sits higher than the side ones (the arch curves): its centre is at
+            51.9% × 12% of the frame and its glass is ~7% of the width (measured on the art). */}
+        <span
+          aria-hidden
+          className={`absolute top-[12%] left-[51.9%] aspect-square w-[7.2%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,#fffbe6_0%,#fde68a_40%,#f5b729_68%,#e59a1d_100%)] shadow-[0_0_14px_5px_rgb(253_224_71/0.65)] transition-opacity duration-700 ${lit === 2 ? 'opacity-100' : 'opacity-0'}`}
+        />
       </div>
       <figcaption aria-live="polite" className="bg-sun px-3 py-1.5 text-center text-sm font-black text-ink">
         <span aria-hidden>{'💡'.repeat(Math.min(lit, 3))}{'⚪'.repeat(3 - Math.min(lit, 3))} </span>{caption}
@@ -72,7 +77,7 @@ function GuardianIcon({ className = '' }: { className?: string }) {
     // Zoom into the Guardian's face (upper right of the first gate panel).
     <span
       aria-hidden
-      style={{ backgroundImage: `url(${gate1})`, backgroundSize: '600% auto', backgroundPosition: '84% 13%' }}
+      style={{ backgroundImage: `url(${gate1})`, backgroundSize: '600% auto', backgroundPosition: '94% 29%' }}
       className={`block size-12 shrink-0 rounded-full border-[3px] border-ink bg-sky bg-no-repeat sm:size-14 ${className}`}
     />
   )
