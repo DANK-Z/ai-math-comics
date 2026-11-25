@@ -22,7 +22,7 @@ import type { LocalComicDef } from './localComics'
 // Panel 3 holds the exercise; panel 4 is the ending, unlocked by a correct answer.
 
 /** Panel crops are ~827×463. */
-const ASPECT = 16 / 9
+const ASPECT = 827 / 463
 
 export const SCHOOL_MAP: LocalComicDef = {
   id: SCHOOL_MAP_COMIC_ID,

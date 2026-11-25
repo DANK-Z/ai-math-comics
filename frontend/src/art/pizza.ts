@@ -1,10 +1,10 @@
 import type { Comic } from '../api/types'
-import panel1 from '../assets/pizza/panel-1.webp'
-import panel2 from '../assets/pizza/panel-2.webp'
-import panel3 from '../assets/pizza/panel-3.webp'
-import panel4 from '../assets/pizza/panel-4.webp'
-import panel5 from '../assets/pizza/panel-5.webp'
-import panel6 from '../assets/pizza/panel-6.webp'
+import panel1 from '../assets/pizza/panel-1.png'
+import panel2 from '../assets/pizza/panel-2.png'
+import panel3 from '../assets/pizza/panel-3.png'
+import panel4 from '../assets/pizza/panel-4.png'
+import panel5 from '../assets/pizza/panel-5.png'
+import panel6 from '../assets/pizza/panel-6.png'
 
 const images = [panel1, panel2, panel3, panel4, panel5, panel6]
 
@@ -18,7 +18,7 @@ export function withPizzaArtwork(comic: Comic): Comic {
       return {
         ...panel,
         imageUrl: new URL(image, window.location.href).href,
-        imageAspect: 16 / 9,
+        imageAspect: 8 / 3,
       }
     }),
   }

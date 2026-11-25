@@ -1,6 +1,6 @@
 import { LOCAL_COMICS, type Lang } from '../api'
 import { useAccount } from '../account'
-import pizzaCover from '../assets/pizza/cover.webp'
+import pizzaCover from '../assets/pizza/cover.png'
 import { CURRICULUM_COPY, curriculumFor } from '../curriculum'
 import { OPERATIONS, operationHref, type Operation, type OperationChapter } from '../operations'
 import { comicHref } from '../route'

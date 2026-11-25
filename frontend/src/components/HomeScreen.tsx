@@ -7,8 +7,8 @@ import garlandCover from '../assets/garland/cover.webp'
 import lemonadeCover from '../assets/lemonade/cover.webp'
 import libraryCover from '../assets/library-boxes/cover.webp'
 import mapCover from '../assets/school-map/cover.webp'
-import pizzaCover from '../assets/pizza/cover.webp'
-import storeCover from '../assets/school-store/cover.webp'
+import pizzaCover from '../assets/pizza/cover.png'
+import storeCover from '../assets/school-store/cover.png'
 import { STRINGS, type UiStrings } from '../i18n'
 import { comicHref, DEMO_COMIC_ID } from '../route'
 import { schoolFairChapter } from '../schoolFair'
@@ -38,24 +38,31 @@ interface CatalogEntry {
   grade?: number
 }
 
-// Covers are 16:9 frames taken from each chapter's own art (the redrawn fair, 2026), with the
-// cast in the middle, so one centred crop fits phones and wide screens alike.
-const CENTRE: CatalogEntry['framing'] = { phone: { aspect: '16 / 10', focus: '50% 45%' }, wide: { aspect: '16 / 9', focus: '50% 50%' } }
-
+// Each cover is cropped on its own. Both current artworks are 2:1 with the cast on the
+// right and empty wall/window on the left, so the crops trim the left side and keep
+// faces plus the story object (pizzas / backpack). When adding comics, vary the
+// composition (cast left, centre, close-up…) instead of repeating one layout, and
+// give each entry framing that suits its own art.
 const CATALOG: CatalogEntry[] = [
   {
     id: DEMO_COMIC_ID,
     cover: pizzaCover,
-    framing: CENTRE,
+    // Cast spans ~20–100% horizontally, pizzas along the bottom edge.
+    framing: { phone: { aspect: '8 / 5', focus: '100% 55%' }, wide: { aspect: '8 / 5', focus: '100% 55%' } },
     title: (_lang, t) => t.demoTitle,
     hook: (_lang, t) => t.pizzaHook,
     topic: 'fractions',
   },
-  local(SCHOOL_STORE, storeCover, 'percentages', CENTRE),
-  local(SCHOOL_MAP, mapCover, 'scale', CENTRE),
-  local(LIBRARY_BOXES, libraryCover, 'equations', CENTRE),
-  local(LEMONADE, lemonadeCover, 'proportions', CENTRE),
-  local(GARLAND, garlandCover, 'perimeter', CENTRE),
+  // Aldiyar at ~28%, Aruna ~55%, the backpack ~70–88%, Pifik top right.
+  local(SCHOOL_STORE, storeCover, 'percentages', { phone: { aspect: '4 / 3', focus: '82% 45%' }, wide: { aspect: '8 / 5', focus: '92% 45%' } }),
+  // Cast around the map from ~6% to ~65%, backpack at ~80–88%: keep both ends.
+  local(SCHOOL_MAP, mapCover, 'scale', { phone: { aspect: '4 / 3', focus: '45% 50%' }, wide: { aspect: '8 / 5', focus: '60% 50%' } }),
+  // Kids and boxes on the left two thirds, shelves on the right.
+  local(LIBRARY_BOXES, libraryCover, 'equations', { phone: { aspect: '4 / 3', focus: '30% 55%' }, wide: { aspect: '8 / 5', focus: '20% 55%' } }),
+  // Symmetric: Aldiyar left, the jug centred, Aruna right.
+  local(LEMONADE, lemonadeCover, 'proportions', { phone: { aspect: '3 / 2', focus: '50% 50%' }, wide: { aspect: '8 / 5', focus: '50% 50%' } }),
+  // Wide group shot around the board: keep a wider crop so both kids stay in.
+  local(GARLAND, garlandCover, 'perimeter', { phone: { aspect: '3 / 2', focus: '45% 55%' }, wide: { aspect: '16 / 9', focus: '50% 55%' } }),
 ]
 
 function local(def: LocalComicDef, cover: string, topic: CatalogEntry['topic'], framing: CatalogEntry['framing']): CatalogEntry {

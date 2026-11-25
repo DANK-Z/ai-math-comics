@@ -1,7 +1,7 @@
-import panel1 from '../assets/school-store/panel-1.webp'
-import panel2 from '../assets/school-store/panel-2.webp'
-import panel3 from '../assets/school-store/panel-3.webp'
-import panel4 from '../assets/school-store/panel-4.webp'
+import panel1 from '../assets/school-store/panel-1.png'
+import panel2 from '../assets/school-store/panel-2.png'
+import panel3 from '../assets/school-store/panel-3.png'
+import panel4 from '../assets/school-store/panel-4.png'
 import { SCHOOL_STORE_COMIC_ID } from '../route'
 import type { LocalComicDef } from './localComics'
 
