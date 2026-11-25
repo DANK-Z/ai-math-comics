@@ -8,6 +8,7 @@ import { FAIR_FINALE_ID } from '../rewards'
 import { FinaleRewardNotes } from './FinaleRewardNotes'
 import { RichText } from './RichText'
 import { PifikSprite } from './PifikSprite'
+import { Celebration } from './Celebration'
 
 const BUTTON = 'inline-flex min-h-11 items-center justify-center rounded-2xl border-[3px] border-ink px-4 py-2 text-center font-black text-ink shadow-[0_4px_0_var(--shadow-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-50 disabled:shadow-none'
 const CARD = 'rounded-[28px] border-[3px] border-ink bg-white p-4 shadow-[0_6px_0_var(--shadow-ink)] sm:p-6'
@@ -196,6 +197,7 @@ export default function GuardianScreen({ lang, remaining, challenge, assigned = 
         </ol>
       </section>
 
+      <Celebration when={!current} />
       <section className={CARD}>
         <h2 ref={roundHeading} tabIndex={-1} className="text-xl font-black text-ink">
           {current ? c.round(run.cleared + 1, total) : c.victory}

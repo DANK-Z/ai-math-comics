@@ -638,3 +638,56 @@ html {
   font-size: 0.875rem;
   font-weight: 900;
 }
+
+/* Celebration (components/Celebration.tsx): confetti, a star burst and Pifik jumping up. */
+.celebration-piece {
+  position: absolute;
+  top: -24px;
+  width: 12px;
+  height: 18px;
+  border: 2px solid #1d2766;
+  animation-name: celebration-fall;
+  animation-timing-function: cubic-bezier(0.3, 0.6, 0.5, 1);
+  animation-fill-mode: both;
+}
+.celebration-shape-1 { width: 14px; height: 14px; border-radius: 999px; }
+.celebration-shape-2 { width: 8px; height: 22px; border-radius: 4px; }
+@keyframes celebration-fall {
+  0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  85% { opacity: 1; }
+  100% { transform: translate(var(--drift), 105vh) rotate(var(--spin)); opacity: 0; }
+}
+.celebration-burst {
+  position: absolute;
+  top: 42%;
+  left: 50%;
+}
+.celebration-star {
+  position: absolute;
+  font-size: clamp(22px, 4vmin, 40px);
+  transform: translate(-50%, -50%);
+  animation: celebration-star 1.4s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+@keyframes celebration-star {
+  0% { transform: translate(-50%, -50%) rotate(var(--angle)) translateY(0) scale(0.2); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: translate(-50%, -50%) rotate(var(--angle)) translateY(calc(var(--distance) * -1)) scale(1.1); opacity: 0; }
+}
+.celebration-pifik {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  filter: drop-shadow(0 6px 0 rgb(29 39 102 / 0.35));
+  animation: celebration-pifik 3.2s ease-in-out both;
+}
+@keyframes celebration-pifik {
+  0% { transform: translate(-50%, 110%); }
+  18% { transform: translate(-50%, -12%) rotate(-6deg); }
+  28% { transform: translate(-50%, 0) rotate(4deg); }
+  38% { transform: translate(-50%, -8%) rotate(-3deg); }
+  48%, 78% { transform: translate(-50%, 0) rotate(0deg); }
+  100% { transform: translate(-50%, 115%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .celebration { display: none; }
+}

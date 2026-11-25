@@ -10,6 +10,7 @@ import { BossAvatar } from './BossFight'
 import { Lobby } from './Lobby'
 import { QrCode } from './QrCode'
 import { RichText } from './RichText'
+import { Celebration } from './Celebration'
 
 // Class battle. The teacher puts a giant boss on the class board; students fight it from their
 // phones. The server chooses every problem and keeps the answers; the screens poll it.
@@ -78,6 +79,7 @@ export function BattleScreen({ lang }: { lang: Lang }) {
           <span className="rounded-lg border-2 border-ink bg-sky-100 px-2 py-0.5">{copy.classHits(battle.classHits)}</span>
         </div>
         <div className="p-4">
+          <Celebration when={battle.status === 'won'} />
           {battle.status === 'won' ? (
             <p className="rounded-xl bg-emerald-100 p-3 text-lg font-black text-emerald-900"><span aria-hidden>🏆 </span>{copy.won}</p>
           ) : battle.status === 'stopped' ? (
@@ -286,6 +288,7 @@ export function BattleBoardScreen({ battleId, lang }: { battleId: string; lang: 
             </p>
           </div>
         </div>
+        <Celebration when={board.status === 'won'} />
         {board.status === 'won' && (
           <p className="border-t-4 border-ink bg-sun p-4 text-center text-3xl font-black text-ink sm:text-5xl"><span aria-hidden>🏆 </span>{copy.won}</p>
         )}

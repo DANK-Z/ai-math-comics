@@ -25,6 +25,7 @@ import { FINALE_LOCK, findOperation, operationHref } from '../operations'
 import { finaleProgressId } from '../rewards'
 import { FinaleRewardNotes } from './FinaleRewardNotes'
 import { RichText } from './RichText'
+import { Celebration } from './Celebration'
 
 // A season finale: three rounds, each lighting up one part of the scene.
 
@@ -203,6 +204,7 @@ export function FinaleScreen({ lang, def, remaining }: { lang: Lang; def: Finale
         </ol>
       </section>
 
+      <Celebration when={!current} />
       <section className={CARD}>
         <h2 ref={heading} tabIndex={-1} className="text-xl font-black text-ink">
           {current ? `${copy.round(run.cleared + 1, total)} · ${current.title[lang]}` : def.victory[lang]}

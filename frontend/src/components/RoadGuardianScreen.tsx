@@ -14,6 +14,7 @@ import { FinaleRewardNotes } from './FinaleRewardNotes'
 import { SECTION_HREFS } from '../route'
 import { RichText } from './RichText'
 import { SheetCrop } from './SheetCrop'
+import { Celebration } from './Celebration'
 
 const BUTTON = 'inline-flex min-h-11 items-center justify-center rounded-2xl border-[3px] border-ink px-4 py-2 text-center font-black text-ink shadow-[0_4px_0_var(--shadow-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-50 disabled:shadow-none'
 const CARD = 'rounded-[28px] border-[3px] border-ink p-4 shadow-[0_6px_0_var(--shadow-ink)] sm:p-6'
@@ -277,6 +278,7 @@ export function RoadGuardianScreen({ lang, challenge, remaining = 0 }: { lang: L
         </div>
       </section>
 
+      <Celebration when={!current} />
       <section className={`${CARD} bg-white`}>
         <h2 ref={heading} tabIndex={-1} className="text-xl font-black text-ink">
           {current ? `${copy.phase(run.cleared + 1, total)} · ${current.text[lang].tab}` : copy.victory}

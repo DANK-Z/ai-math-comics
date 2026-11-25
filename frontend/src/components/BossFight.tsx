@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react'
+import { Celebration } from './Celebration'
 import type { Boss, BossKind, BossRound, CheckResponse, Lang, Reward } from '../api'
 import { useAccount } from '../account'
 import { BOSS_COPY } from '../boss'
@@ -282,6 +283,7 @@ export function BossFight({ boss, lang, active, cleared, onRoundCleared, misses,
         </ol>
       </div>
 
+      <Celebration when={defeated} />
       <div className="bg-cream p-4 sm:p-5">
         {defeated ? (
           <div className="flex items-center gap-3">
