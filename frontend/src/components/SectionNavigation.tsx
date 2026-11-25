@@ -10,12 +10,16 @@ const NAV = {
     home: 'Главная',
     homeDetail: 'Что делать сейчас',
     stories: 'Истории',
+    myClass: 'Мой класс',
+    myClassDetail: 'Уроки, батлы, лига',
     storiesDetail: (n: number, total: number) => (n ? `Глав пройдено: ${n} из ${total}` : `${SEASONS} сезонов, ${total} глав`),
   },
   kk: {
     home: 'Басты бет',
     homeDetail: 'Қазір не істеу керек',
     stories: 'Оқиғалар',
+    myClass: 'Менің сыныбым',
+    myClassDetail: 'Сабақ, шайқас, лига',
     storiesDetail: (n: number, total: number) => (n ? `Өтілген тараулар: ${total}-ден ${n}` : `${SEASONS} маусым, ${total} тарау`),
   },
 }
@@ -33,6 +37,8 @@ interface Props {
   myComics: number
   /** Chapters solved across the operations after the fair. */
   operationsDone: number
+  /** The student's class, shown under «Мой класс». */
+  className?: string | null
   lang: Lang
 }
 
@@ -40,11 +46,12 @@ interface Props {
  * One entry per season plus the student's own things. Finales live inside their season
  * (the fair route, the operation pages), so they are not separate menu entries.
  */
-function SectionLinks({ t, active, completed, myComics, operationsDone, lang, onSelect }: Props & { onSelect?: () => void }) {
+function SectionLinks({ t, active, completed, myComics, operationsDone, className, lang, onSelect }: Props & { onSelect?: () => void }) {
   const id = useId()
   const links = [
     { section: 'map', icon: '🏠', label: NAV[lang].home, detail: NAV[lang].homeDetail },
     { section: 'operations', icon: '📚', label: NAV[lang].stories, detail: NAV[lang].storiesDetail(operationsDone, STORY_CHAPTERS) },
+    { section: 'myClass', icon: '👥', label: NAV[lang].myClass, detail: className ?? NAV[lang].myClassDetail },
     { section: 'myComics', icon: '🖍️', label: t.myComics.title, detail: myComics > 0 ? t.myComics.count(myComics) : undefined },
     { section: 'backpack', icon: '🎒', label: t.backpack.title, detail: t.backpack.progress(completed, SCHOOL_FAIR_CHAPTER_COUNT) },
     { section: 'create', icon: '✨', label: t.createOwn },

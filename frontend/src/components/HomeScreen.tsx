@@ -12,10 +12,7 @@ import storeCover from '../assets/school-store/cover.png'
 import { STRINGS, type UiStrings } from '../i18n'
 import { comicHref, DEMO_COMIC_ID } from '../route'
 import { schoolFairChapter } from '../schoolFair'
-import { StudentAssignments } from './ClassAssignments'
 import { BattleAlert, LessonAlert } from './BoardAlerts'
-import { MyHomeworkCard } from './HomeworkCards'
-import { ClassLeague } from './ClassLeague'
 import { WeakSpotCard } from './PracticeScreen'
 import { HomeHero } from './HomeHero'
 import { PraiseInbox } from './ParentScreen'
@@ -142,14 +139,7 @@ export function HomeScreen({ lang, progress, finalesWon }: {
       <BattleAlert lang={lang} />
       <PraiseInbox lang={lang} />
       <HomeHero lang={lang} progress={progress} finalesWon={finalesWon} />
-      <div className="grid items-start gap-5 lg:grid-cols-2">
-        <div className="flex flex-col gap-5">
-          <MyHomeworkCard lang={lang} />
-          <StudentAssignments lang={lang} />
-          <WeakSpotCard lang={lang} />
-        </div>
-        <ClassLeague lang={lang} />
-      </div>
+      <WeakSpotCard lang={lang} />
     </div>
   )
 }
