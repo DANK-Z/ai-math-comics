@@ -1,10 +1,16 @@
 {$AMC_SITE:localhost} {
-	encode gzip
+	encode zstd gzip
 	handle /api/* {
 		reverse_proxy api:8000
 	}
 	handle {
 		root * /srv
+		# Built files have a content hash in their name: the browser keeps them for a year and
+		# does not even ask again. The page itself is always checked, so a new build shows at once.
+		@hashed path /assets/*
+		header @hashed Cache-Control "public, max-age=31536000, immutable"
+		@page path / /index.html
+		header @page Cache-Control "no-cache"
 		file_server
 	}
 }
