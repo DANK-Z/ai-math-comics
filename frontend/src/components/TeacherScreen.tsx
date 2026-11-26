@@ -535,13 +535,13 @@ export function ClassDashboard({ lang, classId }: { lang: Lang; classId: number 
           ) : (
             <ol className="mt-3 flex flex-col gap-2">
               {data.students.map((s, i) => (
-                <li key={s.id} className="grid grid-cols-[2.25rem_minmax(0,1fr)] items-center gap-x-3 gap-y-2 rounded-xl border-2 border-ink/70 bg-white p-2 sm:grid-cols-[2.25rem_minmax(0,1fr)_auto]">
+                <li key={s.id} className="grid grid-cols-[2.25rem_minmax(0,1fr)] items-center gap-x-3 gap-y-1.5 rounded-xl border-2 border-ink/70 bg-white p-2">
                   <span className={`grid size-9 place-items-center rounded-lg border-2 border-ink font-black ${i === 0 ? 'bg-sun' : 'bg-sky'}`}>{i + 1}</span>
                   <div className="min-w-0">
                     <p className="truncate font-black text-ink">{s.displayName}</p>
                     <p className="truncate font-mono text-xs text-ink/70">{s.login}</p>
                   </div>
-                  <dl className="col-span-2 flex flex-wrap gap-1.5 text-xs font-bold sm:col-span-1 sm:justify-end">
+                  <dl className="col-start-2 flex flex-wrap gap-1.5 text-xs font-bold">
                     <div className="rounded-lg border-2 border-ink/60 bg-sun/50 px-2 py-0.5"><dt className="sr-only">{d.columns.stars}</dt><dd><span aria-hidden>★ </span>{s.stars}</dd></div>
                     <div className="rounded-lg border-2 border-ink/60 bg-white px-2 py-0.5"><dt className="inline">{d.columns.coins}: </dt><dd className="inline">{s.coins}</dd></div>
                     <div className="rounded-lg border-2 border-ink/60 bg-white px-2 py-0.5"><dt className="inline">{d.columns.bosses}: </dt><dd className="inline">{s.bossesBeaten}</dd></div>

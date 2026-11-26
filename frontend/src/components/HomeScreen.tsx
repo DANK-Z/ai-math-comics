@@ -153,7 +153,7 @@ export function CatalogScreen({ lang, completedChapters }: { lang: Lang; complet
   return (
     <section aria-labelledby="catalog-title">
       <h1 id="catalog-title" className="mb-4 text-2xl font-black text-ink sm:text-3xl">{t.catalogTitle}</h1>
-      <div className="grid gap-4 sm:grid-cols-2 sm:gap-5">
+      <div className="grid gap-4 sm:grid-cols-2 sm:gap-5 xl:grid-cols-3 2xl:grid-cols-4">
         {CATALOG.map((entry) => (
           <CatalogCard key={entry.id} entry={entry} lang={lang} t={t} completed={completedChapters.has(entry.id)} />
         ))}

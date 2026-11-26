@@ -35,6 +35,8 @@ export const HOMEWORK_COPY = {
     error: 'Не получилось сохранить.',
     drill: (topic: string) => `Тренировка: ${topic}`,
     targeted: (n: number) => `для ${n} уч.`,
+    more: (n: number) => `Показать все задания (${n})`,
+    less: 'Свернуть',
     studentTitle: 'Домашнее задание',
     doneMark: 'сделано',
     open: 'Открыть',
@@ -59,6 +61,8 @@ export const HOMEWORK_COPY = {
     error: 'Сақтау мүмкін болмады.',
     drill: (topic: string) => `Жаттығу: ${topic}`,
     targeted: (n: number) => `${n} оқушыға`,
+    more: (n: number) => `Барлық тапсырмаларды көрсету (${n})`,
+    less: 'Жию',
     studentTitle: 'Үй жұмысы',
     doneMark: 'орындалды',
     open: 'Ашу',
@@ -74,6 +78,8 @@ export function homeworkTitle(kind: HomeworkKind, target: string, lang: Lang) {
   return HOMEWORK_COPY[lang].drill(topics[target as keyof typeof topics] ?? target)
 }
 
+const SHOWN = 4
+
 const inWeek = () => new Date(Date.now() + 7 * 86400_000).toISOString().slice(0, 10)
 
 /** Class page («Задания»): set homework and see who has done it. */
@@ -85,6 +91,7 @@ export function HomeworkCard({ classId, lang }: { classId: number; lang: Lang })
   const [target, setTarget] = useState(chapters[0]?.id ?? '')
   const [due, setDue] = useState(inWeek)
   const [items, setItems] = useState<HomeworkItem[] | null>(null)
+  const [all, setAll] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(false)
 
@@ -160,8 +167,9 @@ export function HomeworkCard({ classId, lang }: { classId: number; lang: Lang })
       {error && <p role="alert" className="mt-2 font-bold text-rose-700">{copy.error}</p>}
 
       {items && (items.length === 0 ? <p className="mt-3 font-semibold text-ink/70">{copy.none}</p> : (
+        <>
         <ul className="mt-4 flex flex-col gap-2">
-          {items.map((item) => (
+          {(all ? items : items.slice(0, SHOWN)).map((item) => (
             <li key={item.id} className="rounded-xl border-2 border-ink/25 p-3">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="min-w-0 flex-1 font-black text-ink">{homeworkTitle(item.kind, item.target, lang)}</span>
@@ -187,6 +195,12 @@ export function HomeworkCard({ classId, lang }: { classId: number; lang: Lang })
             </li>
           ))}
         </ul>
+        {items.length > SHOWN && (
+          <button type="button" onClick={() => setAll(!all)} className="mt-2 text-sm font-black text-brand-dark underline">
+            {all ? copy.less : copy.more(items.length)}
+          </button>
+        )}
+        </>
       ))}
     </section>
   )

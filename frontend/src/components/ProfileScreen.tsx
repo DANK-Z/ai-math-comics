@@ -41,7 +41,7 @@ export function ProfileScreen({ lang }: { lang: Lang }) {
   }
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-4">
+    <div className="flex max-w-2xl flex-col gap-4">
       <section className={CARD} aria-labelledby={`${id}-title`}>
         <h1 id={`${id}-title`} className="text-2xl font-black text-ink sm:text-3xl">{c.profile.title}</h1>
         <p className="mt-1 font-bold text-ink/80">{user.displayName} · <span className="font-mono">{user.login}</span></p>
