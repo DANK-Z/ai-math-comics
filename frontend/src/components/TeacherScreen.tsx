@@ -9,6 +9,7 @@ import { comicHref, teacherClassHref, SECTION_HREFS } from '../route'
 import { SCHOOL_FAIR_STOPS } from '../schoolFair'
 import { BattleLauncher, ReviewBattleButton } from './ClassBattle'
 import { LessonLauncher } from './LessonScreens'
+import { LessonReports } from './LessonReports'
 import { HomeworkCard } from './HomeworkCards'
 import { TeacherLeague } from './ClassLeague'
 import { CurriculumCard } from './CurriculumCard'
@@ -468,6 +469,7 @@ export function ClassDashboard({ lang, classId }: { lang: Lang; classId: number 
       <section id={`${id}-games`} aria-labelledby={`${id}-button-games`} hidden={section !== 'games'}>
         <div className="grid gap-4">
           <LessonLauncher classId={classId} lang={lang} />
+          <LessonReports classId={classId} lang={lang} />
           <BattleLauncher classId={classId} lang={lang} />
           <TeacherLeague classId={classId} lang={lang} />
         </div>

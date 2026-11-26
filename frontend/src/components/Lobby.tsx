@@ -11,6 +11,7 @@ const COPY = {
     remove: (name: string) => `Убрать ${name} из класса`,
     confirm: (name: string) => `Убрать «${name}» из класса? Он потеряет доступ к доске, батлам и заданиям класса. Аккаунт останется.`,
     error: 'Не получилось убрать. Попробуйте ещё раз.',
+    answered: 'ответил',
   },
   kk: {
     title: (n: number) => `Қосылғандар: ${n}`,
@@ -18,10 +19,11 @@ const COPY = {
     remove: (name: string) => `${name} оқушысын сыныптан шығару`,
     confirm: (name: string) => `«${name}» сыныптан шығарылсын ба? Ол тақтаға, шайқастарға және сынып тапсырмаларына кіре алмайды. Аккаунт сақталады.`,
     error: 'Шығару мүмкін болмады. Қайта көріңіз.',
+    answered: 'жауап берді',
   },
 }
 
-export function Lobby({ classId, present, lang, dark = false }: { classId: number; present: LobbyStudent[]; lang: Lang; dark?: boolean }) {
+export function Lobby({ classId, present, lang, dark = false, answered }: { classId: number; present: LobbyStudent[]; lang: Lang; dark?: boolean; answered?: number[] }) {
   const copy = COPY[lang]
   const [removed, setRemoved] = useState<number[]>([])
   const [error, setError] = useState(false)
@@ -45,8 +47,10 @@ export function Lobby({ classId, present, lang, dark = false }: { classId: numbe
       {shown.length === 0 ? <p className="mt-1 text-sm font-semibold opacity-75">{copy.empty}</p> : (
         <ul className="mt-2 flex flex-wrap gap-1.5">
           {shown.map((s) => (
-            <li key={s.id} className="boss-enter flex items-center gap-1 rounded-full border-2 border-ink bg-sun py-0.5 pr-1 pl-2.5 text-sm font-black text-ink">
+            <li key={s.id} className={`boss-enter flex items-center gap-1 rounded-full border-2 border-ink py-0.5 pr-1 pl-2.5 text-sm font-black text-ink ${answered?.includes(s.id) ? 'bg-emerald-300' : 'bg-sun'}`}>
+              {answered?.includes(s.id) && <span aria-hidden>✓</span>}
               {s.name}
+              {answered?.includes(s.id) && <span className="sr-only"> — {copy.answered}</span>}
               <button type="button" onClick={() => remove(s)} aria-label={copy.remove(s.name)} title={copy.remove(s.name)}
                 className="grid size-6 place-items-center rounded-full text-base leading-none hover:bg-ink hover:text-white focus-visible:outline-2 focus-visible:outline-brand">
                 <span aria-hidden>×</span>

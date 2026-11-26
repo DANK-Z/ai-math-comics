@@ -7,6 +7,7 @@ import { CURRICULUM } from '../curriculum'
 import { comicHref } from '../route'
 import { CARD, PRIMARY } from './AuthScreen'
 import { chapterTitle } from './CurriculumCard'
+import { HOMEWORK_CHANGED } from './LessonReports'
 import { practiceHref, PRACTICE_TOPICS } from './PracticeScreen'
 
 // Homework with a due date: a bundled chapter or a five-problem drill. The teacher sees who has
@@ -33,6 +34,7 @@ export const HOMEWORK_COPY = {
     confirmRemove: 'Удалить это задание? Отметки о выполнении тоже пропадут.',
     error: 'Не получилось сохранить.',
     drill: (topic: string) => `Тренировка: ${topic}`,
+    targeted: (n: number) => `для ${n} уч.`,
     studentTitle: 'Домашнее задание',
     doneMark: 'сделано',
     open: 'Открыть',
@@ -56,6 +58,7 @@ export const HOMEWORK_COPY = {
     confirmRemove: 'Бұл тапсырманы жою керек пе? Орындалу белгілері де жойылады.',
     error: 'Сақтау мүмкін болмады.',
     drill: (topic: string) => `Жаттығу: ${topic}`,
+    targeted: (n: number) => `${n} оқушыға`,
     studentTitle: 'Үй жұмысы',
     doneMark: 'орындалды',
     open: 'Ашу',
@@ -86,9 +89,19 @@ export function HomeworkCard({ classId, lang }: { classId: number; lang: Lang })
   const [error, setError] = useState(false)
 
   useEffect(() => {
-    const ctrl = new AbortController()
-    accounts.classHomework(classId, ctrl.signal).then(setItems, (err) => { if (!isAbortError(err)) setItems([]) })
-    return () => ctrl.abort()
+    let ctrl = new AbortController()
+    const reload = () => {
+      ctrl.abort()
+      ctrl = new AbortController()
+      accounts.classHomework(classId, ctrl.signal).then(setItems, (err) => { if (!isAbortError(err)) setItems([]) })
+    }
+    reload()
+    // A drill set from the lesson report on another tab of the class page.
+    window.addEventListener(HOMEWORK_CHANGED, reload)
+    return () => {
+      ctrl.abort()
+      window.removeEventListener(HOMEWORK_CHANGED, reload)
+    }
   }, [classId])
 
   function pickKind(next: HomeworkKind) {
@@ -152,6 +165,7 @@ export function HomeworkCard({ classId, lang }: { classId: number; lang: Lang })
             <li key={item.id} className="rounded-xl border-2 border-ink/25 p-3">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="min-w-0 flex-1 font-black text-ink">{homeworkTitle(item.kind, item.target, lang)}</span>
+                {item.targeted && <span className="rounded-lg bg-orange-100 px-2 py-0.5 text-xs font-black text-orange-900">{copy.targeted(item.total)}</span>}
                 <span className={`rounded-lg px-2 py-0.5 text-xs font-black ${item.overdue ? 'bg-rose-100 text-rose-700' : 'bg-sky-100 text-ink'}`}>
                   {item.overdue ? copy.overdue : copy.until(formatDate(item.dueDate, lang))}
                 </span>

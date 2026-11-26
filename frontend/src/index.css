@@ -705,3 +705,7 @@ html {
 
 /* Frames in the class league: the same colours, thinner, to fit a 40px avatar. */
 .league-frame { border-width: 3px; box-shadow: 0 0 0 2px #1d2766; }
+
+/* Lesson board in projector mode: full screen, everything a little larger for the back rows. */
+.lesson-projector { zoom: 1.2; }
+@media (min-width: 1600px) { .lesson-projector { zoom: 1.4; } }

@@ -4,7 +4,7 @@ import { ApiError } from './errors'
 import { COSMETICS, isCosmetic, type CosmeticKey } from '../cosmetics'
 import type { AccountApi, ChildSummary, ClassInfo, Dashboard, Grade, Me, PracticeReport, Shop, SkinKey, Billing, CardKind, CoinPack } from './types'
 import { mockPracticeAnswer, mockPracticeTask, mockPracticeTopic } from './mockClassroom'
-import { currentLesson, homeworkOf, lessonBoardOf, myHomeworkOf, studentLessonOf, wholeAnswer, type MockHomework, type MockLesson, type PracticeDone } from './mockLessons'
+import { currentLesson, homeworkOf, lessonBoardOf, lessonReportsOf, myHomeworkOf, openAnswering, quizRanking, saveAnswer, setPhase, settleLesson, stepAnswer, studentLessonOf, wholeAnswer, type MockHomework, type MockLesson, type PracticeDone } from './mockLessons'
 import { DEMO_LOBBY } from './mockClassroom'
 import { BATTLE_HP, boardOf, checkMockAnswer, demoLeaderboard, latestBattle, MOCK_BATTLE_COPY, settle, shortName, studentView, type MockBattle } from './mockClassroom'
 
@@ -28,6 +28,8 @@ interface MockUser {
   rewards?: string[]
   /** Backpack items: skins, and (with `type`) frames and titles. */
   skins?: { id: number; key: string; equipped: boolean; type?: 'skin' | 'frame' | 'title' | 'helper' }[]
+  /** Stars from the podiums of lesson mini-quizzes (the class league). */
+  lessonStars?: number
 }
 interface MockState {
   users: MockUser[]
@@ -678,10 +680,10 @@ export const mockAccounts: AccountApi = {
       const schoolClass = ownClass(state, classId)
       const lessons = (state.lessons ??= [])
       for (const l of lessons) if (l.classId === classId) l.phase = 'closed'
-      const lesson: MockLesson = { id: `lesson-${Date.now()}`, classId, comicId: body.comicId, answer: body.answer, panel: 0, phase: 'reading', createdAt: Date.now(), answers: {} }
+      const lesson: MockLesson = { id: `lesson-${Date.now()}`, classId, comicId: body.comicId, answer: body.answer, panel: 0, phase: 'reading', createdAt: Date.now(), answers: {}, rounds: {} }
       lessons.push(lesson)
       save(state)
-      return lessonBoardOf(schoolClass, lesson, classSize(state, classId), lobby(state, lesson.id, classId))
+      return lessonBoardOf(schoolClass, lesson, roster(state, classId), lobby(state, lesson.id, classId))
     })
   },
   lessonBoard(lessonId) {
@@ -689,7 +691,9 @@ export const mockAccounts: AccountApi = {
       const state = load()
       const lesson = state.lessons?.find((l) => l.id === lessonId)
       if (!lesson) throw fail(404, 'lesson_not_found')
-      return lessonBoardOf(ownClass(state, lesson.classId), lesson, classSize(state, lesson.classId), lobby(state, lesson.id, lesson.classId))
+      const board = lessonBoardOf(ownClass(state, lesson.classId), lesson, roster(state, lesson.classId), lobby(state, lesson.id, lesson.classId))
+      save(state)
+      return board
     })
   },
   updateLesson(lessonId, body) {
@@ -698,18 +702,69 @@ export const mockAccounts: AccountApi = {
       const lesson = state.lessons?.find((l) => l.id === lessonId)
       if (!lesson) throw fail(404, 'lesson_not_found')
       const schoolClass = ownClass(state, lesson.classId)
-      if (body.panel !== undefined) lesson.panel = body.panel
-      if (body.phase) {
-        if (body.phase === 'answering' && lesson.phase !== 'answering') lesson.answeringAt = Date.now()
-        // Demo classmates stop answering when answering ends.
-        if (body.phase !== 'answering' && lesson.answeringAt && lesson.phase === 'answering') {
-          const elapsed = Date.now() - lesson.answeringAt
-          lesson.answeringAt = Date.now() - Math.min(elapsed, 6 * 1800)
-        }
-        lesson.phase = body.phase
+      if (body.timer !== undefined) {
+        if (![0, 30, 60, 90].includes(body.timer)) throw fail(422, 'invalid_timer')
+        lesson.timer = body.timer
+        if (lesson.phase === 'answering' && !lesson.step) lesson.deadline = body.timer ? Date.now() + body.timer * 1000 : null
       }
+      if (body.panel !== undefined) lesson.panel = body.panel
+      if (body.retry) {
+        if (lesson.step || (lesson.attempt ?? 1) !== 1 || lesson.phase !== 'reveal') throw fail(409, 'no_retry')
+        lesson.attempt = 2
+        openAnswering(lesson)
+      } else if (body.phase) setPhase(lesson, body.phase)
+      const board = lessonBoardOf(schoolClass, lesson, roster(state, lesson.classId), lobby(state, lesson.id, lesson.classId))
       save(state)
-      return lessonBoardOf(schoolClass, lesson, classSize(state, lesson.classId), lobby(state, lesson.id, lesson.classId))
+      return board
+    })
+  },
+  startQuiz(lessonId, tasks) {
+    return later(() => {
+      const state = load()
+      const lesson = state.lessons?.find((l) => l.id === lessonId)
+      if (!lesson) throw fail(404, 'lesson_not_found')
+      const schoolClass = ownClass(state, lesson.classId)
+      if (tasks.length < 3 || tasks.length > 5) throw fail(422, 'invalid_quiz')
+      if (lesson.quiz || lesson.phase === 'closed') throw fail(409, 'quiz_started')
+      setPhase(lesson, 'reveal')
+      lesson.quiz = tasks
+      lesson.step = 1
+      openAnswering(lesson)
+      const board = lessonBoardOf(schoolClass, lesson, roster(state, lesson.classId), lobby(state, lesson.id, lesson.classId))
+      save(state)
+      return board
+    })
+  },
+  nextQuestion(lessonId) {
+    return later(() => {
+      const state = load()
+      const lesson = state.lessons?.find((l) => l.id === lessonId)
+      if (!lesson) throw fail(404, 'lesson_not_found')
+      const schoolClass = ownClass(state, lesson.classId)
+      const pupils = roster(state, lesson.classId)
+      settleLesson(lesson, pupils.length)
+      if (!lesson.quiz || lesson.phase !== 'reveal') throw fail(409, 'not_revealed')
+      if ((lesson.step ?? 0) < lesson.quiz.length) {
+        lesson.step = (lesson.step ?? 0) + 1
+        openAnswering(lesson)
+      } else {
+        lesson.podium = quizRanking(lesson, new Map(pupils.map((p) => [p.id, p.name])))
+        for (const place of lesson.podium) {
+          const winner = state.users.find((u) => u.id === place.id)
+          if (winner) winner.lessonStars = (winner.lessonStars ?? 0) + place.stars
+        }
+        lesson.phase = 'podium'
+      }
+      const board = lessonBoardOf(schoolClass, lesson, pupils, lobby(state, lesson.id, lesson.classId))
+      save(state)
+      return board
+    })
+  },
+  lessonReports(classId) {
+    return later(() => {
+      const state = load()
+      ownClass(state, classId)
+      return lessonReportsOf(state.lessons ?? [], classId, roster(state, classId))
     })
   },
   myLesson() {
@@ -720,6 +775,7 @@ export const mockAccounts: AccountApi = {
       const lesson = currentLesson(state.lessons ?? [], user.classId!)
       if (!lesson) return null
       touch(state, lesson.id, user.id)
+      settleLesson(lesson, roster(state, user.classId!).length)
       save(state)
       return studentLessonOf(lesson, user.id)
     })
@@ -730,10 +786,13 @@ export const mockAccounts: AccountApi = {
       const user = student(state)
       const lesson = state.lessons?.find((l) => l.id === lessonId && l.classId === user.classId)
       if (!lesson) throw fail(404, 'lesson_not_found')
+      const pupils = roster(state, lesson.classId).length
+      settleLesson(lesson, pupils)
       if (lesson.phase !== 'answering') throw fail(409, 'not_answering')
       const value = wholeAnswer(answer)
       if (value === null) throw fail(422, 'invalid_answer')
-      lesson.answers[user.id] = { text: answer.trim(), correct: value === lesson.answer }
+      saveAnswer(lesson, user.id, answer, value === stepAnswer(lesson))
+      settleLesson(lesson, pupils)
       save(state)
       return studentLessonOf(lesson, user.id)
     })
@@ -742,7 +801,7 @@ export const mockAccounts: AccountApi = {
     return later(() => {
       const state = load()
       ownClass(state, classId)
-      const item: MockHomework = { id: `hw-${Date.now()}`, classId, kind: body.kind, target: body.target, dueDate: body.dueDate, createdAt: Date.now() }
+      const item: MockHomework = { id: `hw-${Date.now()}`, classId, kind: body.kind, target: body.target, dueDate: body.dueDate, createdAt: Date.now(), studentIds: body.studentIds ?? null }
       ;(state.homework ??= []).push(item)
       save(state)
       return homeworkOf(item, state.users.filter((u) => u.role === 'student'), state.practiceDone ?? [])
@@ -771,7 +830,7 @@ export const mockAccounts: AccountApi = {
       const state = load()
       const user = student(state)
       return (state.homework ?? [])
-        .filter((h) => h.classId === user.classId)
+        .filter((h) => h.classId === user.classId && (!h.studentIds || h.studentIds.includes(user.id)))
         .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
         .map((h) => myHomeworkOf(h, user, state.practiceDone ?? []))
     })
@@ -783,6 +842,14 @@ function touch(state: MockState, boardId: string, userId: number) {
 }
 
 /** Students seen on a board in the last five minutes, plus the demo classmates. */
+/** Real students of a class, as the board names them. */
+function roster(state: MockState, classId: number) {
+  return state.users
+    .filter((u) => u.role === 'student' && u.classId === classId)
+    .sort((a, b) => a.displayName.localeCompare(b.displayName))
+    .map((u) => ({ id: u.id, name: shortName(u.displayName) }))
+}
+
 function lobby(state: MockState, boardId: string, classId: number) {
   const seen = state.presence?.[boardId] ?? {}
   const real = state.users
@@ -853,8 +920,6 @@ function pay(state: MockState, parentId: number, payment: { childId: number | nu
   if (payments.filter((p) => p.parentId === parentId && Date.now() - p.at < 86400_000).length >= 5) throw fail(429, 'payments_limit')
   payments.push({ id: payments.length + 1, parentId, at: Date.now(), ...payment })
 }
-
-const classSize = (state: MockState, classId: number) => state.users.filter((u) => u.role === 'student' && u.classId === classId).length
 
 const TRANSLIT: Record<string, string> = {
   а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ё: 'e', ж: 'zh', з: 'z', и: 'i', й: 'i', к: 'k', л: 'l', м: 'm', н: 'n', о: 'o',

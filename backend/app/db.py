@@ -223,12 +223,23 @@ class ClassLesson(Base):
     answer: Mapped[int] = mapped_column(Integer)  # the chapter's whole-number answer
     panel: Mapped[int] = mapped_column(Integer, default=0)
     # reading | answering | reveal | closed
+    # reading | answering | reveal | podium | closed
     phase: Mapped[str] = mapped_column(String(12), default="reading")
+    # 1: the first try; 2: the class tries again after the walkthrough.
+    attempt: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
+    # 0: the chapter's exercise; 1..n: the questions of the mini-quiz.
+    step: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    # Seconds for answering (0: no timer); the deadline of the open answering.
+    timer: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    deadline: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    answering_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # The mini-quiz: [{"comicId": ..., "answer": ...}], answers sent by the teacher's client.
+    quiz: Mapped[list | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
 class LessonAnswer(Base):
-    """A student's answer in a class lesson (one per student; it can change until the reveal)."""
+    """A student's answer in a class lesson: one per step and try, changeable until the reveal."""
 
     __tablename__ = "lesson_answers"
 
@@ -238,6 +249,10 @@ class LessonAnswer(Base):
     student_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
     )
+    step: Mapped[int] = mapped_column(Integer, primary_key=True, default=0, server_default="0")
+    attempt: Mapped[int] = mapped_column(Integer, primary_key=True, default=1, server_default="1")
+    # Mini-quiz points: right answers score 100 plus up to 50 for speed.
+    points: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     text_entered: Mapped[str] = mapped_column(String(32))
     correct: Mapped[bool] = mapped_column(Boolean)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
@@ -253,6 +268,25 @@ class Homework(Base):
     kind: Mapped[str] = mapped_column(String(10))  # chapter | practice
     target: Mapped[str] = mapped_column(String(64))  # comic id or practice topic
     due_date: Mapped[date] = mapped_column(Date)
+    # Only these students (a drill for those who slipped in a lesson); None: the whole class.
+    student_ids: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class LessonAward(Base):
+    """A podium place of a lesson's mini-quiz; its stars count in the class league."""
+
+    __tablename__ = "lesson_awards"
+
+    lesson_id: Mapped[str] = mapped_column(
+        ForeignKey("class_lessons.id", ondelete="CASCADE"), primary_key=True
+    )
+    student_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    place: Mapped[int] = mapped_column(Integer)
+    points: Mapped[int] = mapped_column(Integer)
+    stars: Mapped[int] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 

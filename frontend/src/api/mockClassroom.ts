@@ -12,6 +12,8 @@ export interface MockStudent {
   classId?: number
   rewards?: string[]
   skins?: { key: string; equipped: boolean; type?: 'skin' | 'frame' | 'title' | 'helper' }[]
+  /** Stars from the podiums of lesson mini-quizzes. */
+  lessonStars?: number
 }
 
 export interface MockBattle {
@@ -59,7 +61,7 @@ export function demoLeaderboard(students: MockStudent[], schoolClass: ClassInfo,
     .filter((u) => u.classId === schoolClass.id)
     .map((u) => ({
       name: shortName(u.displayName),
-      stars: 0,
+      stars: u.lessonStars ?? 0,
       coins: (u.rewards ?? []).reduce((sum, key) => sum + (PROGRESS_REWARDS[key] ?? 0), 0),
       cleanWins: 0,
       me: u.id === meId,

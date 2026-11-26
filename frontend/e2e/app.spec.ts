@@ -177,8 +177,21 @@ test('a lesson on the board: the class answers from phones, the board reveals th
   await page.getByRole('button', { name: 'Показать результат' }).click()
   await expect(page.getByText(/Верно ответили \d+ из \d+/)).toBeVisible()
   await expect(page.getByText('✓ Правильный ответ: 4')).toBeVisible()
+  await expect(page.getByText('Ответы класса')).toBeVisible()
+
+  // The walkthrough, then a second try: the board shows the growth.
+  await page.getByRole('button', { name: /ещё попытка/ }).click()
+  await expect(page.getByText('Вторая попытка')).toBeVisible()
+  await page.getByRole('button', { name: 'Показать результат' }).click()
+  await expect(page.getByText('Было → стало')).toBeVisible()
   await page.getByRole('button', { name: /к финалу/ }).click()
   await expect(page.getByText('Кадр 4 из 4')).toBeVisible()
+
+  // The mini-quiz: questions one by one, then the podium.
+  await page.getByRole('button', { name: /Начать викторину/ }).click()
+  await expect(page.getByText(/Вопрос 1 из \d/)).toBeVisible()
+  await page.getByRole('button', { name: 'Показать результат' }).click()
+  await expect(page.getByRole('button', { name: /Следующий вопрос/ })).toBeVisible()
 })
 
 test('homework: the teacher sets a chapter, it is marked done once the student solves it', async ({ page }) => {

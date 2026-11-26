@@ -371,7 +371,23 @@ export interface PracticeReport {
   students: { id: number; displayName: string; drills: number; finished: number; solved: number; topics: Record<string, number>; lastAt?: string | null }[]
 }
 
-export type LessonPhase = 'reading' | 'answering' | 'reveal' | 'closed'
+export type LessonPhase = 'reading' | 'answering' | 'reveal' | 'podium' | 'closed'
+
+/** One bar of the answers chart: a value, how many gave it, whether it is the right one. */
+export interface ChartBar {
+  text: string
+  count: number
+  correct: boolean
+}
+
+/** A podium place of the mini-quiz (its stars count in the class league). */
+export interface PodiumRow {
+  id: number
+  name: string
+  points: number
+  place: number
+  stars: number
+}
 
 /** The board of a lesson: a bundled chapter shown on the projector, answers from phones. */
 export interface LessonBoard {
@@ -390,6 +406,33 @@ export interface LessonBoard {
   answer: number
   /** The lobby: students on the board right now. */
   present: LobbyStudent[]
+  /** After the reveal: answers by value. */
+  chart?: ChartBar[]
+  /** Who answered the open question (never their answers) and who is still thinking. */
+  answeredIds?: number[]
+  waiting?: string[]
+  /** 2: the class tries again after the walkthrough; the first try is kept for comparison. */
+  attempt?: number
+  firstAnswered?: number | null
+  firstCorrect?: number | null
+  /** 0: the chapter's exercise; k: question k of the mini-quiz (quiz[k - 1]). */
+  step?: number
+  quiz?: string[]
+  timer?: number
+  secondsLeft?: number | null
+  podium?: PodiumRow[]
+}
+
+export interface LessonReport {
+  id: string
+  comicId: string
+  createdAt: string
+  first: { answered: number; correct: number }
+  second?: { answered: number; correct: number } | null
+  /** first / second: right, wrong, or null (no answer). */
+  students: { id: number; name: string; first?: boolean | null; second?: boolean | null }[]
+  quiz: string[]
+  podium: PodiumRow[]
 }
 
 export interface StudentLesson {
@@ -400,6 +443,15 @@ export interface StudentLesson {
   myAnswer?: string | null
   /** After the reveal. */
   correct?: boolean | null
+  attempt?: number
+  step?: number
+  /** The chapter whose exercise is asked now (a quiz question). */
+  stepComicId?: string | null
+  quizSize?: number
+  secondsLeft?: number | null
+  points?: number
+  place?: number | null
+  stars?: number
 }
 
 export type HomeworkKind = 'chapter' | 'practice'
@@ -414,6 +466,8 @@ export interface HomeworkItem {
   done: number
   total: number
   students: { id: number; name: string; done: boolean }[]
+  /** Set for some students only (a drill for those who slipped in a lesson). */
+  targeted?: boolean
 }
 
 export interface MyHomework {
@@ -523,10 +577,13 @@ export interface AccountApi {
   practiceReport(classId: number, signal?: AbortSignal): Promise<PracticeReport>
   startLesson(classId: number, body: { comicId: string; answer: number }): Promise<LessonBoard>
   lessonBoard(lessonId: string, signal?: AbortSignal): Promise<LessonBoard>
-  updateLesson(lessonId: string, body: { panel?: number; phase?: LessonPhase }): Promise<LessonBoard>
+  updateLesson(lessonId: string, body: { panel?: number; phase?: Exclude<LessonPhase, 'podium'>; timer?: number; retry?: boolean }): Promise<LessonBoard>
+  startQuiz(lessonId: string, tasks: { comicId: string; answer: number }[]): Promise<LessonBoard>
+  nextQuestion(lessonId: string): Promise<LessonBoard>
+  lessonReports(classId: number, signal?: AbortSignal): Promise<LessonReport[]>
   myLesson(signal?: AbortSignal): Promise<StudentLesson | null>
   answerLesson(lessonId: string, answer: string): Promise<StudentLesson>
-  setHomework(classId: number, body: { kind: HomeworkKind; target: string; dueDate: string }): Promise<HomeworkItem>
+  setHomework(classId: number, body: { kind: HomeworkKind; target: string; dueDate: string; studentIds?: number[] }): Promise<HomeworkItem>
   classHomework(classId: number, signal?: AbortSignal): Promise<HomeworkItem[]>
   deleteHomework(homeworkId: string): Promise<void>
   myHomework(signal?: AbortSignal): Promise<MyHomework[]>

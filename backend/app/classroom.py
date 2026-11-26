@@ -28,6 +28,7 @@ from .db import (
     BattleTask,
     BossResult,
     ClassBattle,
+    LessonAward,
     ProgressReward,
     Role,
     SchoolClass,
@@ -120,6 +121,13 @@ async def build_leaderboard(session: AsyncSession, school_class: SchoolClass, me
         )
         for student_id, total in rewards:
             coins[student_id] += int(total or 0)
+        podium = await session.execute(
+            select(LessonAward.student_id, LessonAward.stars).where(
+                LessonAward.student_id.in_(ids), LessonAward.created_at >= since
+            )
+        )
+        for student_id, s in podium:  # the mini-quiz podium of lessons on the board
+            stars[student_id] += s
     worn: dict[int, dict[str, str]] = {}
     if ids:
         items = await session.execute(

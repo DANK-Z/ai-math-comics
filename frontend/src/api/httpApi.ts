@@ -2,7 +2,7 @@ import { authToken } from './authToken'
 import { ApiError } from './errors'
 import type { BattleAnswerResult, BattleBoard, Leaderboard, PracticeReport, PracticeResult, PracticeTask, StudentBattle, StudentCredentials, WeakSpot } from './types'
 import type { ItemLore, VoiceAnswerKind } from './types'
-import type { HomeworkItem, LessonBoard, MyHomework, StudentLesson } from './types'
+import type { HomeworkItem, LessonBoard, LessonReport, MyHomework, StudentLesson } from './types'
 import type { Billing, ChildSummary, PraiseCard } from './types'
 import type { AssignmentReport, ClassAssignment, ComicJobRequest, Lang, TeacherDraft, TeacherDraftJob, TeacherPublication, TeacherTask } from './types'
 import type { AccountApi, Api, AuthResponse, BossState, CheckResponse, ClassInfo, Comic, ComicJob, ComicJobCreated, ContinuationJobRequest, Dashboard, HintResponse, Me, Shop } from './types'
@@ -255,6 +255,15 @@ export function createHttpApi(baseUrl: string): Api & AccountApi & {
     },
     updateLesson(lessonId, body) {
       return request<LessonBoard>(`/api/teacher/lessons/${encodeURIComponent(lessonId)}`, { method: 'POST', body: JSON.stringify(body) })
+    },
+    startQuiz(lessonId, tasks) {
+      return request<LessonBoard>(`/api/teacher/lessons/${encodeURIComponent(lessonId)}/quiz`, { method: 'POST', body: JSON.stringify({ tasks }) })
+    },
+    nextQuestion(lessonId) {
+      return request<LessonBoard>(`/api/teacher/lessons/${encodeURIComponent(lessonId)}/quiz/next`, { method: 'POST' })
+    },
+    lessonReports(classId, signal) {
+      return request<LessonReport[]>(`/api/teacher/classes/${classId}/lesson-reports`, { signal })
     },
     myLesson(signal) {
       return request<StudentLesson | null>('/api/me/lesson', { signal })
