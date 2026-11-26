@@ -359,6 +359,101 @@ class ParentChallenge(Base):
     rewarded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
+class ObjectiveCodes(Base):
+    """The teacher's own codes of the curriculum's learning objectives for a chapter."""
+
+    __tablename__ = "objective_codes"
+
+    teacher_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    comic_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    codes: Mapped[str] = mapped_column(String(80))
+
+
+class Message(Base):
+    """A message between a teacher and a parent about one student."""
+
+    __tablename__ = "messages"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    teacher_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    parent_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    student_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    sender: Mapped[str] = mapped_column(String(10))  # teacher | parent
+    text: Mapped[str] = mapped_column(String(500))
+    link: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class Duel(Base):
+    """Two students, the same five problems: the first to solve them all wins."""
+
+    __tablename__ = "duels"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    code: Mapped[str] = mapped_column(String(8), index=True)
+    class_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    topic: Mapped[str] = mapped_column(String(20))
+    problems: Mapped[list] = mapped_column(JSON)
+    player_a: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    player_b: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=True
+    )
+    progress_a: Mapped[int] = mapped_column(Integer, default=0)
+    progress_b: Mapped[int] = mapped_column(Integer, default=0)
+    status: Mapped[str] = mapped_column(String(10))  # waiting | active | done
+    winner_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class MockTest(Base):
+    """A timed NIS/BIL-style mock test: problems from the olympiad bank, score, answers."""
+
+    __tablename__ = "mock_tests"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    student_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    problem_ids: Mapped[list] = mapped_column(JSON)
+    answers: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    score: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class TeacherTask(Base):
+    """The teacher's own problem, shown to the class as a comic panel with a hero."""
+
+    __tablename__ = "teacher_tasks"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    class_id: Mapped[int] = mapped_column(ForeignKey("classes.id", ondelete="CASCADE"), index=True)
+    hero: Mapped[str] = mapped_column(String(20))
+    scene: Mapped[str] = mapped_column(String(64))  # a bundled chapter whose art is the backdrop
+    text_ru: Mapped[str] = mapped_column(String(300))
+    text_kk: Mapped[str] = mapped_column(String(300))
+    answer: Mapped[str] = mapped_column(String(20))
+    hint_ru: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    hint_kk: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class TeacherTaskAnswer(Base):
+    __tablename__ = "teacher_task_answers"
+
+    task_id: Mapped[str] = mapped_column(
+        ForeignKey("teacher_tasks.id", ondelete="CASCADE"), primary_key=True
+    )
+    student_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    tries: Mapped[int] = mapped_column(Integer, default=0)
+    solved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 class SignInWindow(Base):
     """Shared sign-in counters. Keys contain a digest, with no stored login or IP."""
 

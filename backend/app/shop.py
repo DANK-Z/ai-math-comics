@@ -34,6 +34,10 @@ CATALOG: dict[str, dict] = {
     "frame-gold": {"type": "frame", "price": 80},
     # Not for sale: a parent's gift for a five-day practice streak (motivation.py).
     "frame-fire": {"type": "frame", "price": 0, "gift": True},
+    # Not for sale: seasonal events (events.py).
+    "frame-knowledge": {"type": "frame", "price": 0, "gift": True},
+    "frame-winter": {"type": "frame", "price": 0, "gift": True},
+    "frame-nauryz": {"type": "frame", "price": 0, "gift": True},
     # Titles under the student's name.
     "title-explorer": {"type": "title", "price": 20},
     "title-fractions": {"type": "title", "price": 25},

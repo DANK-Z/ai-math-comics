@@ -32,12 +32,16 @@ from .config import Settings
 from .content import FEEDBACK, HINTS, get_comic
 from .daily import router as daily_router
 from .db import Database, Role, User, default_database_url
+from .duels import router as duels_router
+from .events import router as events_router
 from .family import router as family_router
 from .item_lore import router as lore_router
 from .lessons import router as lessons_router
 from .library_episode import EXERCISE_PREFIX, check_library_answer
+from .messages import router as messages_router
 from .motivation import router as motivation_router
 from .practice import router as practice_router
+from .prep import router as prep_router
 from .prepared_art import ART_DIR, PREPARED_FILES
 from .roster import router as roster_router
 from .schemas import (
@@ -57,6 +61,7 @@ from .side_episode import EXERCISE_PREFIX as SIDE_EXERCISE_PREFIX
 from .side_episode import check_side_answer
 from .storage import Store
 from .summary import router as summary_router
+from .teacher_tools import router as teacher_tools_router
 from .voice import router as voice_router
 
 # Restrict input to an integer numerator and denominator, allowing spaces and signs.
@@ -142,6 +147,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(lessons_router)
     app.include_router(daily_router)
     app.include_router(motivation_router)
+    for extra in (duels_router, events_router, messages_router, prep_router, teacher_tools_router):
+        app.include_router(extra)
     app.include_router(summary_router)
     app.include_router(chapters_router)
     app.include_router(family_router)
