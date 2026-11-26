@@ -256,10 +256,11 @@ export function TeacherHome({ lang }: { lang: Lang }) {
       <section className={CARD} aria-labelledby={`${id}-title`}>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <h1 id={`${id}-title`} className="text-2xl font-black text-ink sm:text-3xl">{c.teacherArea.title}</h1>
-            <p className="mt-1 font-semibold text-ink/80">{user?.displayName} · {user?.email}</p>
+            <p className="text-sm font-black tracking-wide text-brand-dark uppercase">{c.teacherArea.title}</p>
+            <h1 id={`${id}-title`} className="text-2xl font-black text-ink sm:text-3xl">{UI[lang].hello(user?.displayName.split(' ')[0] ?? '')}</h1>
+            <p className="mt-0.5 text-sm font-semibold text-ink/70">{user?.email}</p>
           </div>
-          <button type="button" onClick={logOut} className={SECONDARY}>{c.signOut}</button>
+          <button type="button" onClick={logOut} className="min-h-11 rounded-lg px-2 text-sm font-bold text-ink/70 underline decoration-2 underline-offset-4 hover:text-ink focus-visible:outline-3 focus-visible:outline-brand">{c.signOut}</button>
         </div>
         <p className="mt-3 font-semibold text-ink/85">{c.teacherArea.lead}</p>
         {API_MODE === 'mock' && <p className="mt-2 rounded-lg bg-sun/40 px-2 py-1 text-sm font-bold text-ink">{c.teacherArea.demo}</p>}
@@ -273,9 +274,11 @@ export function TeacherHome({ lang }: { lang: Lang }) {
           {classes?.length === 0 && <p className="mt-2 font-semibold text-ink/80">{c.teacherArea.noClasses}</p>}
           <ul className="mt-3 grid gap-3 sm:grid-cols-2">
             {classes?.map((cl) => (
-              <li key={cl.id} className="flex flex-col gap-2 rounded-2xl border-[3px] border-ink bg-sky/60 p-3">
-                <p className="text-2xl font-black text-ink">{cl.name}</p>
-                <p className="text-sm font-bold text-ink/80">{c.teacherArea.students(cl.students ?? 0)}</p>
+              <li key={cl.id} className="flex flex-col gap-2 rounded-2xl border-[3px] border-ink bg-sky/60 p-3 shadow-[0_3px_0_var(--shadow-ink)]">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-3xl leading-none font-black text-ink">{cl.name}</p>
+                  <span className="shrink-0 rounded-full border-2 border-ink bg-white px-2.5 py-0.5 text-sm font-black text-ink">👥 {UI[lang].studentsIn(cl.students ?? 0)}</span>
+                </div>
                 {cl.students ? (
                   <>
                     <CopyCode code={cl.code} lang={lang} />
@@ -289,7 +292,13 @@ export function TeacherHome({ lang }: { lang: Lang }) {
                     <p className="text-xs font-semibold text-ink/70">{GUIDE_COPY[lang].teacher.shareCode}</p>
                   </div>
                 )}
-                <a href={teacherClassHref(cl.id)} className={`${PRIMARY} mt-1`}>{c.teacherArea.open} <span aria-hidden>→</span></a>
+                <a href={teacherClassHref(cl.id)} className={`${PRIMARY} mt-1`}>📊 {UI[lang].analytics} <span aria-hidden>→</span></a>
+                {!!cl.students && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <a href={teacherClassHref(cl.id)} onClick={() => openClassOn('games')} className={`${SECONDARY} justify-center text-sm`}>📽️ {UI[lang].lesson}</a>
+                    <a href={teacherClassHref(cl.id)} onClick={() => openClassOn('games')} className={`${SECONDARY} justify-center text-sm`}>⚔️ {UI[lang].battle}</a>
+                  </div>
+                )}
               </li>
             ))}
           </ul>
@@ -303,17 +312,56 @@ export function TeacherHome({ lang }: { lang: Lang }) {
   )
 }
 
+const UI = {
+  ru: {
+    hello: (name: string) => `Здравствуйте, ${name}!`,
+    lesson: 'Урок на доске',
+    battle: 'Батл',
+    analytics: 'Аналитика',
+    studentsIn: (n: number) => `${n} ${n % 10 === 1 && n % 100 !== 11 ? 'ученик' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 'ученика' : 'учеников'}`,
+    avgStars: 'Звёзд в среднем',
+    needHelp: 'Ошибаются чаще других',
+    needHelpHint: 'больше 3 ошибок',
+  },
+  kk: {
+    hello: (name: string) => `Сәлеметсіз бе, ${name}!`,
+    lesson: 'Тақтадағы сабақ',
+    battle: 'Шайқас',
+    analytics: 'Талдау',
+    studentsIn: (n: number) => `${n} оқушы`,
+    avgStars: 'Орташа жұлдыз',
+    needHelp: 'Жиі қателесетіндер',
+    needHelpHint: '3-тен көп қате',
+  },
+}
+const TAB_KEY = 'amc.classTab'
+
+/** Opens a class page on a given tab (the class cards' quick buttons). */
+function openClassOn(tab: (typeof CLASS_SECTIONS)[number]) {
+  try { sessionStorage.setItem(TAB_KEY, tab) } catch { /* the page opens on the overview */ }
+}
+
+function takeClassTab(): (typeof CLASS_SECTIONS)[number] {
+  try {
+    const tab = sessionStorage.getItem(TAB_KEY)
+    sessionStorage.removeItem(TAB_KEY)
+    if (tab && (CLASS_SECTIONS as readonly string[]).includes(tab)) return tab as (typeof CLASS_SECTIONS)[number]
+  } catch { /* no storage */ }
+  return 'overview'
+}
+
 const HEAT = (rate: number) => (rate >= 0.6 ? 'bg-rose-200 border-rose-700' : rate >= 0.3 ? 'bg-amber-100 border-amber-600' : 'bg-emerald-100 border-emerald-700')
 const CLASS_SECTIONS = ['overview', 'roster', 'assignments', 'games'] as const
+const SECTION_ICONS = { overview: '📊', roster: '👥', assignments: '📝', games: '⚔️' } as const
 const CLASS_DASHBOARD = {
   ru: {
-    overview: 'Аналитика', roster: 'Ученики', assignments: 'Задания', games: 'Бои и лига',
+    overview: 'Аналитика', roster: 'Ученики', assignments: 'Задания', games: 'Урок и батл',
     section: 'Разделы класса', students: 'Учеников в классе', finished: 'Победили хотя бы одного босса',
     empty: 'Статистика появится после первых проверенных ответов учеников.',
     first: 'С чего начать повторение',
   },
   kk: {
-    overview: 'Талдау', roster: 'Оқушылар', assignments: 'Тапсырмалар', games: 'Шайқас пен лига',
+    overview: 'Талдау', roster: 'Оқушылар', assignments: 'Тапсырмалар', games: 'Сабақ пен шайқас',
     section: 'Сынып бөлімдері', students: 'Сыныптағы оқушылар', finished: 'Кемінде бір боссты жеңді',
     empty: 'Оқушылардың алғашқы жауаптары тексерілген соң статистика шығады.',
     first: 'Қайталауды неден бастау керек',
@@ -350,7 +398,7 @@ export function ClassDashboard({ lang, classId }: { lang: Lang; classId: number 
   const id = useId()
   const [data, setData] = useState<Dashboard | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [section, setSection] = useState<(typeof CLASS_SECTIONS)[number]>('overview')
+  const [section, setSection] = useState<(typeof CLASS_SECTIONS)[number]>(takeClassTab)
 
   useEffect(() => {
     const ctrl = new AbortController()
@@ -379,21 +427,25 @@ export function ClassDashboard({ lang, classId }: { lang: Lang; classId: number 
       <section className={CARD} aria-labelledby={`${id}-title`}>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 id={`${id}-title`} className="text-3xl font-black text-ink">{data.schoolClass.name}</h1>
+            <h1 id={`${id}-title`} className="text-3xl font-black text-ink">{data.schoolClass.name} <span className="align-middle text-base font-bold text-ink/70">· 👥 {UI[lang].studentsIn(data.students.length)}</span></h1>
             <p className="mt-1 text-sm font-bold text-ink/80">{c.teacherArea.code}</p>
             <CopyCode code={data.schoolClass.code} lang={lang} />
           </div>
-          {back}
+          <div className="flex flex-wrap items-start gap-2">
+            <button type="button" onClick={() => setSection('games')} className={`${PRIMARY} text-sm`}>📽️ {UI[lang].lesson}</button>
+            <button type="button" onClick={() => setSection('games')} className={`${PRIMARY} text-sm`}>⚔️ {UI[lang].battle}</button>
+            {back}
+          </div>
         </div>
         {API_MODE === 'mock' && <p className="mt-3 rounded-lg bg-sun/40 px-2 py-1 text-sm font-bold text-ink">{c.teacherArea.demo}</p>}
       </section>
 
-      <nav aria-label={copy.section} className="flex flex-wrap gap-2">
+      <nav aria-label={copy.section} className="flex flex-wrap gap-1.5 rounded-2xl border-[3px] border-ink bg-white p-1.5 shadow-[0_3px_0_var(--shadow-ink)]">
         {CLASS_SECTIONS.map((item) => (
           <button key={item} type="button" id={`${id}-button-${item}`} aria-pressed={section === item}
             aria-controls={`${id}-${item}`} onClick={() => setSection(item)}
-            className={`min-h-11 rounded-xl border-2 border-ink px-3 py-1.5 text-sm font-black text-ink focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand ${section === item ? 'bg-sun' : 'bg-white hover:bg-sky'}`}>
-            {section === item && <span aria-hidden="true">✓ </span>}{copy[item]}
+            className={`min-h-11 flex-1 rounded-xl border-2 px-3 py-1.5 text-sm font-black whitespace-nowrap text-ink focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand sm:text-base ${section === item ? 'border-ink bg-sun' : 'border-transparent hover:bg-sky'}`}>
+            <span aria-hidden className="mr-1">{SECTION_ICONS[item]}</span>{copy[item]}
           </button>
         ))}
       </nav>
@@ -423,11 +475,16 @@ export function ClassDashboard({ lang, classId }: { lang: Lang; classId: number 
 
       <section id={`${id}-overview`} aria-labelledby={`${id}-button-overview`} hidden={section !== 'overview'}>
       <div className="grid gap-4">
-        <dl className="grid grid-cols-2 gap-3">
-          {[[copy.students, data.students.length], [copy.finished, finished]].map(([label, count]) => (
-            <div key={label} className="min-w-0 rounded-2xl border-2 border-ink bg-white p-3">
-              <dt className="break-words text-sm font-bold text-ink/80">{label}</dt>
-              <dd className="text-2xl font-black text-ink">{count}</dd>
+        <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {([
+            ['👥', copy.students, String(data.students.length), null, 'bg-white'],
+            ['⚔️', copy.finished, String(finished), data.students.length ? `${Math.round((finished / data.students.length) * 100)}%` : null, 'bg-emerald-50'],
+            ['⭐', UI[lang].avgStars, data.students.length ? (data.students.reduce((sum, st) => sum + st.stars, 0) / data.students.length).toFixed(1) : '0', null, 'bg-sun/30'],
+            ['🆘', UI[lang].needHelp, String(data.students.filter((st) => st.misses > 3).length), UI[lang].needHelpHint, 'bg-rose-50'],
+          ] as const).map(([icon, label, value, hint, tone]) => (
+            <div key={label} className={`flex min-w-0 flex-col gap-1 rounded-2xl border-[3px] border-ink p-3 shadow-[0_3px_0_var(--shadow-ink)] ${tone}`}>
+              <dt className="flex items-start gap-1.5 text-sm leading-tight font-bold break-words text-ink/80"><span aria-hidden>{icon}</span>{label}</dt>
+              <dd className="text-3xl leading-none font-black text-ink">{value}{hint && <span className="ml-1.5 align-middle text-xs font-bold text-ink/60">{hint}</span>}</dd>
             </div>
           ))}
         </dl>

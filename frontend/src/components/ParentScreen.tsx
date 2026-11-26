@@ -2,6 +2,7 @@ import { useEffect, useId, useState, type FormEvent } from 'react'
 import { dayMonth } from '../dates'
 import { accounts, isAbortError, type Billing, type CardKind, type ChildSummary, type Lang, type PraiseCard, type PraiseKind } from '../api'
 import { CoinPacks, FamilyPlanCard } from './ParentBilling'
+import { ParentSummary } from './ParentSummary'
 import { useAccount } from '../account'
 import { ACCOUNT_COPY, skillCopy } from '../accountCopy'
 import { PORTRAITS } from '../art/sheet'
@@ -139,7 +140,8 @@ function ChildCard({ child, lang, billing, onChange, onPaid, onRemove }: {
   }
 
   return (
-    <article aria-labelledby={`${id}-name`} className="flex flex-col gap-4">
+    <article aria-labelledby={`${id}-name`} className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
+      <div className="flex min-w-0 flex-col gap-4">
       <section className="flex flex-wrap items-center gap-4 rounded-2xl border-[3px] border-ink bg-[linear-gradient(135deg,#24399f,#3366e0)] p-4 text-white shadow-[0_4px_0_var(--shadow-ink)] sm:p-5">
         <PifikSprite rect={PORTRAITS.pifik} skin={child.skin ?? null} className="w-24 shrink-0 rounded-2xl border-[3px] border-white/70 bg-white/15" />
         <div className="min-w-0 flex-1">
@@ -154,13 +156,9 @@ function ChildCard({ child, lang, billing, onChange, onPaid, onRemove }: {
         </div>
       </section>
 
-      <section className={`${CARD} border-emerald-700`}>
-        <h3 className="flex items-center gap-2 text-xl font-black text-ink"><span aria-hidden>🤖</span>{c.summary}</h3>
-        <p className="text-sm font-semibold text-ink/65">{c.summaryLead}</p>
-        <ul className="mt-2 flex flex-col gap-1.5">
-          {childSummaryText(child, lang).map((line) => <li key={line} className="leading-snug font-semibold text-ink">{line}</li>)}
-        </ul>
-      </section>
+      <ParentSummary child={child} lang={lang} />
+      </div>
+      <div className="flex min-w-0 flex-col gap-4">
 
       <section className={CARD}>
         <h3 className="text-xl font-black text-ink">{c.praise}</h3>
@@ -194,6 +192,7 @@ function ChildCard({ child, lang, billing, onChange, onPaid, onRemove }: {
         </section>
       )}
       <button type="button" onClick={onRemove} className="self-start text-sm font-bold text-ink/60 underline hover:text-rose-700">{c.remove}</button>
+      </div>
     </article>
   )
 }
@@ -208,6 +207,7 @@ export function ParentScreen({ lang }: { lang: Lang }) {
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [shown, setShown] = useState<number | null>(null)
 
   useEffect(() => {
     const ctrl = new AbortController()
@@ -239,14 +239,29 @@ export function ParentScreen({ lang }: { lang: Lang }) {
   }
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-5">
-      <div>
-        <h1 className="text-3xl font-black text-ink">{c.title}</h1>
-        <p className="mt-1 font-semibold text-ink/80">{user?.displayName} · {c.lead}</p>
-        <button type="button" onClick={logOut} className={`${SECONDARY} mt-3`}>{ACCOUNT_COPY[lang].signOut}</button>
+    <div className="mx-auto flex max-w-6xl flex-col gap-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-3xl font-black text-ink">{c.title}</h1>
+          <p className="mt-1 font-semibold text-ink/80">{user?.displayName} · {c.lead}</p>
+        </div>
+        <button type="button" onClick={logOut} className="min-h-11 rounded-lg px-2 text-sm font-bold text-ink/70 underline decoration-2 underline-offset-4 hover:text-ink focus-visible:outline-3 focus-visible:outline-brand">{ACCOUNT_COPY[lang].signOut}</button>
       </div>
       {children?.length === 0 && <p className={`${CARD} font-bold`}>{c.empty}</p>}
-      {children?.map((child) => (
+      {children && children.length > 1 && (
+        <div role="tablist" aria-label={c.title} className="flex flex-wrap gap-1.5 self-start rounded-2xl border-[3px] border-ink bg-white p-1.5 shadow-[0_3px_0_var(--shadow-ink)]">
+          {children.map((child) => {
+            const active = (shown ?? children[0].id) === child.id
+            return (
+              <button key={child.id} type="button" role="tab" aria-selected={active} onClick={() => setShown(child.id)}
+                className={`min-h-11 rounded-xl border-2 px-3 font-black text-ink focus-visible:outline-3 focus-visible:outline-brand ${active ? 'border-ink bg-sun' : 'border-transparent hover:bg-sky'}`}>
+                {child.name.split(' ')[0]}
+              </button>
+            )
+          })}
+        </div>
+      )}
+      {children?.filter((child) => children.length < 2 || (shown ?? children[0].id) === child.id).map((child) => (
         <ChildCard key={child.id} child={child} lang={lang} billing={billing}
           onChange={(next) => setChildren((prev) => (prev ?? []).map((x) => (x.id === next.id ? next : x)))}
           onPaid={() => { accounts.billing().then(setBilling, () => {}) }}

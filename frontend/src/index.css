@@ -52,6 +52,9 @@ html {
   --color-amber-100: #3f3210;
   --color-lime-100: #2a3a12;
   --color-violet-200: #3a2f6b;
+  --color-violet-50: #251d4a;
+  --color-amber-600: #fbbf24;
+  --color-amber-900: #fde68a;
   --color-stone-100: #262c4d;
 }
 :root[data-theme='dark'] .site-bg {

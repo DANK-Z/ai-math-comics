@@ -89,7 +89,7 @@ test('a student repeats a weak spot in a five-problem drill', async ({ page }) =
 test('a class battle: the teacher starts it, a student hits the boss @phone', async ({ page }) => {
   await seed(page, 'teacher')
   await page.goto('/#/teacher/class/1')
-  await page.getByRole('button', { name: 'Бои и лига' }).click()
+  await page.getByRole('button', { name: 'Урок и батл', exact: true }).click()
   await page.getByRole('button', { name: /300 HP/ }).click()
   await page.getByRole('button', { name: 'Запустить на доске' }).click()
   await expect(page.getByText(/Код класса: E2E-5A-2026/)).toBeVisible()
@@ -152,7 +152,7 @@ test('a teacher makes a student account; the student signs in from the battle QR
 test('a lesson on the board: the class answers from phones, the board reveals the results', async ({ page }) => {
   await seed(page, 'teacher')
   await page.goto('/#/teacher/class/1')
-  await page.getByRole('button', { name: 'Бои и лига' }).click()
+  await page.getByRole('button', { name: 'Урок и батл', exact: true }).click()
   await page.getByLabel('Глава', { exact: true }).selectOption('roads-flag')
   await page.getByRole('button', { name: /Открыть на доске/ }).click()
   await expect(page.getByText('Кадр 1 из 4')).toBeVisible()
@@ -228,7 +228,7 @@ test('the board QR: a guest types only a name, and the same phone gets back in b
 test('the board lobby shows who joined, and the teacher can remove a joke name', async ({ page }) => {
   await seed(page, 'teacher')
   await page.goto('/#/teacher/class/1')
-  await page.getByRole('button', { name: 'Бои и лига' }).click()
+  await page.getByRole('button', { name: 'Урок и батл', exact: true }).click()
   await page.getByRole('button', { name: 'Запустить на доске' }).click()
   await expect(page.getByText(/Подключились: \d+/)).toBeVisible()
   const boardUrl = page.url()

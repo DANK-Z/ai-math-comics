@@ -283,7 +283,10 @@ function AppShell() {
         </div>
       </header>
 
-      {role === 'parent' ? (
+      {!ready ? (
+        // The account is still loading: don't flash the student menu at a teacher or a parent.
+        <main className="mx-auto max-w-[90rem] min-w-0 px-3 py-4 sm:px-6 sm:py-6"><ScreenLoading /></main>
+      ) : role === 'parent' ? (
         <main className="mx-auto max-w-[90rem] min-w-0 px-3 py-4 sm:px-6 sm:py-6">
           <Suspense fallback={<ScreenLoading />}>
             {route.name === 'parent' && <ParentScreen lang={lang} />}
