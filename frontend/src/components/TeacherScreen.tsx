@@ -10,7 +10,7 @@ import { SCHOOL_FAIR_STOPS } from '../schoolFair'
 import { BattleLauncher, ReviewBattleButton } from './ClassBattle'
 import { LessonLauncher } from './LessonScreens'
 import { LessonReports } from './LessonReports'
-import { ClassSummaryCard } from './ClassSummaryCard'
+import { ClassAnalytics } from './ClassAnalytics'
 import { HomeworkCard } from './HomeworkCards'
 import { TeacherLeague } from './ClassLeague'
 import { CurriculumCard } from './CurriculumCard'
@@ -420,7 +420,6 @@ export function ClassDashboard({ lang, classId }: { lang: Lang; classId: number 
   const topics = [...new Set(data.heatmap.map((h) => h.topic))].sort() as Topic[]
   const rec = data.recommendation
   const recSkill = rec && skillCopy(lang, rec.skill)
-  const finished = data.students.filter((student) => student.bossesBeaten > 0).length
   // Mistakes exist but too few students answered for a class-wide recommendation.
   const fewAnswers = !rec && data.heatmap.some((h) => h.mistakeRate >= 0.5 && h.students < 2)
 
@@ -480,21 +479,7 @@ export function ClassDashboard({ lang, classId }: { lang: Lang; classId: number 
       </section>
 
       <section id={`${id}-overview`} aria-labelledby={`${id}-button-overview`} hidden={section !== 'overview'}>
-      <div className="grid gap-4">
-        <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {([
-            ['👥', copy.students, String(data.students.length), null, 'bg-white'],
-            ['⚔️', copy.finished, String(finished), data.students.length ? `${Math.round((finished / data.students.length) * 100)}%` : null, 'bg-emerald-50'],
-            ['⭐', UI[lang].avgStars, data.students.length ? (data.students.reduce((sum, st) => sum + st.stars, 0) / data.students.length).toFixed(1) : '0', null, 'bg-sun/30'],
-            ['🆘', UI[lang].needHelp, String(data.students.filter((st) => st.misses > 3).length), UI[lang].needHelpHint, 'bg-rose-50'],
-          ] as const).map(([icon, label, value, hint, tone]) => (
-            <div key={label} className={`flex min-w-0 flex-col gap-1 rounded-2xl border-[3px] border-ink px-3 py-2 shadow-[0_3px_0_var(--shadow-ink)] ${tone}`}>
-              <dt className="flex items-start gap-1.5 text-sm leading-tight font-bold break-words text-ink/80"><span aria-hidden>{icon}</span>{label}</dt>
-              <dd className="text-2xl leading-none font-black text-ink">{value}{hint && <span className="ml-1.5 align-middle text-xs font-bold text-ink/60">{hint}</span>}</dd>
-            </div>
-          ))}
-        </dl>
-        <ClassSummaryCard classId={classId} lang={lang} />
+      <ClassAnalytics classId={classId} lang={lang} details={<>
         {data.heatmap.length > 0 && (rec || fewAnswers) && (
           <section className={`${CARD} ${rec ? 'border-rose-700 bg-rose-50' : 'bg-cream'}`} aria-labelledby={`${id}-review`}>
             <h2 id={`${id}-review`} className="text-lg font-black text-ink">{copy.first}</h2>
@@ -560,7 +545,7 @@ export function ClassDashboard({ lang, classId }: { lang: Lang; classId: number 
           )}
         </section>
         </div>
-      </div>
+      </>} />
       </section>
     </div>
   )

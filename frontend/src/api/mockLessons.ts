@@ -1,4 +1,4 @@
-import type { ChartBar, ClassInfo, ClassSummary, HomeworkItem, LessonReport, ReviewItem, LobbyStudent, HomeworkKind, LessonBoard, LessonPhase, MyHomework, PodiumRow, StudentLesson } from './types'
+import type { ChartBar, ClassInfo, ClassSummary, PupilStat, StudentCard, HomeworkItem, LessonReport, ReviewItem, LobbyStudent, HomeworkKind, LessonBoard, LessonPhase, MyHomework, PodiumRow, StudentLesson } from './types'
 import { DEMO_LOBBY } from './mockClassroom'
 
 // Demo lessons and homework (no backend). Demo classmates answer a lesson a few seconds after
@@ -355,18 +355,38 @@ export function demoSummary(lessons: MockLesson[], classId: number, roster: { id
       activeDays: Math.min(days, p.activeDays * scale),
       lastActive: p.activeDays ? new Date(Date.now() - (i + 1) * 3600_000 * 7).toISOString() : null,
       lagging: !p.activeDays || p.correct / p.answers < 0.6,
+      // Equations are where this class slips: a bit more than half the answers, fewer right.
+      topics: p.answers ? [
+        { topic: 'equations', answers: Math.ceil(p.answers * 0.55) * scale, correct: Math.round(p.correct * 0.45) * scale },
+        { topic: 'fractions', answers: (p.answers - Math.ceil(p.answers * 0.55)) * scale, correct: (p.correct - Math.round(p.correct * 0.45)) * scale },
+      ] : [],
+      lessons: [],
     })),
     ...roster.map((p) => {
       // Real students: their first-try answers in this browser's lessons of the period.
       const mine = lessons
         .filter((l) => l.classId === classId && Date.now() - l.createdAt < days * 86400_000)
-        .flatMap((l) => Object.entries(l.rounds ?? { '0-1': l.answers }).filter(([key]) => key.endsWith('-1')).map(([, answers]) => ({ at: l.createdAt, answer: answers[p.id] })))
+        .flatMap((l) => Object.entries(l.rounds ?? { '0-1': l.answers }).filter(([key]) => key.endsWith('-1')).map(([key, answers]) => ({
+          at: l.createdAt,
+          answer: answers[p.id],
+          comicId: key.startsWith('0-') ? l.comicId : l.quiz?.[Number(key.split('-')[0]) - 1]?.comicId,
+        })))
         .filter((a) => a.answer)
       const answers = mine.length
       const correct = mine.filter((a) => a.answer.correct).length
       const daysActive = new Set(mine.map((a) => new Date(a.at).toDateString())).size
       const last = mine.length ? Math.max(...mine.map((a) => a.at)) : null
-      return { id: p.id, name: p.name, answers, correct, solved: 0, chapters: 0, activeDays: daysActive, lastActive: last ? new Date(last).toISOString() : null, lagging: !daysActive || (answers >= 5 && correct / answers < 0.6) }
+      const byChapter = new Map<string, { answered: number; correct: number }>()
+      for (const a of mine) {
+        if (!a.comicId) continue
+        const row = byChapter.get(a.comicId) ?? { answered: 0, correct: 0 }
+        byChapter.set(a.comicId, { answered: row.answered + 1, correct: row.correct + Number(a.answer.correct) })
+      }
+      return {
+        id: p.id, name: p.name, answers, correct, solved: 0, chapters: 0, activeDays: daysActive,
+        lastActive: last ? new Date(last).toISOString() : null, lagging: !daysActive || (answers >= 5 && correct / answers < 0.6),
+        topics: [], lessons: [...byChapter].map(([comicId, c]) => ({ comicId, ...c })),
+      }
     }),
   ].sort((a, b) => a.name.localeCompare(b.name))
   return {
@@ -380,4 +400,30 @@ export function demoSummary(lessons: MockLesson[], classId: number, roster: { id
     lessons: [...counts].map(([comicId, c]) => ({ comicId, ...c })),
     pupils,
   }
+}
+
+/** Demo student card: typical slips and activity made up from the student's numbers. */
+export function demoCard(pupil: PupilStat, fullName: string, login: string | null, days: number, homework: StudentCard['homework']): StudentCard {
+  const ago = (d: number) => new Date(Date.now() - d * 86400_000).toISOString()
+  const weak = pupil.answers && pupil.correct / pupil.answers < 0.8
+  const mistakes: StudentCard['mistakes'] = weak
+    ? [
+        { source: 'boss', topic: 'equations', skill: 'div', answer: '12', count: 3, last: ago(1) },
+        { source: 'lesson', comicId: 'roads-flag', answer: '7', count: 2, last: ago(2) },
+        { source: 'boss', topic: 'fractions', skill: 'part', answer: '1/4', count: 1, last: ago(5) },
+      ]
+    : pupil.answers ? [{ source: 'boss', topic: 'fractions', skill: 'sum', answer: '0.5', count: 1, last: ago(3) }] : []
+  for (const l of pupil.lessons ?? []) {
+    if (l.correct < l.answered && !mistakes.some((m) => m.comicId === l.comicId)) {
+      mistakes.unshift({ source: 'lesson', comicId: l.comicId, answer: '?', count: l.answered - l.correct, last: ago(0) })
+    }
+  }
+  // Activity: the student's active days spread over the last two weeks.
+  const active = Math.min(14, Math.round((pupil.activeDays * 14) / Math.max(days, 7)))
+  const activity = Array.from({ length: 14 }, (_, i) => {
+    const day = new Date(Date.now() + 5 * 3600_000 - (13 - i) * 86400_000).toISOString().slice(0, 10)
+    const on = active && (i * 7 + Math.abs(pupil.id) * 3) % 14 < active
+    return { day, count: on ? 2 + ((i + Math.abs(pupil.id)) % 5) : 0 }
+  })
+  return { id: pupil.id, name: pupil.name, fullName, login, days, pupil, mistakes, homework, activity }
 }

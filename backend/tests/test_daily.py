@@ -175,3 +175,49 @@ def test_quiz_can_have_the_teachers_own_problem(env):
         f"/api/me/lesson/{lesson['id']}/answer", json={"answer": "42"}, headers=auth(kid)
     )
     assert result.status_code == 200
+
+
+def test_student_card_shows_topics_slips_homework_and_activity(env):
+    _, client = env
+    teacher_token = teacher(client)
+    school_class = make_class(client, teacher_token)
+    kid = student(client, "aruna", "Аруна Омарова", school_class["code"])
+    me = client.get("/api/me", headers=auth(kid)).json()
+    lesson = client.post(
+        f"/api/teacher/classes/{school_class['id']}/lessons",
+        json={"comicId": "roads-flag", "answer": 4},
+        headers=auth(teacher_token),
+    ).json()
+    client.post(
+        f"/api/teacher/lessons/{lesson['id']}",
+        json={"phase": "answering"},
+        headers=auth(teacher_token),
+    )
+    client.post(f"/api/me/lesson/{lesson['id']}/answer", json={"answer": "7"}, headers=auth(kid))
+    due = (date.today() + timedelta(days=2)).isoformat()
+    client.post(
+        f"/api/teacher/classes/{school_class['id']}/homework",
+        json={"kind": "practice", "target": "equations", "dueDate": due, "studentIds": [me["id"]]},
+        headers=auth(teacher_token),
+    )
+    base = f"/api/teacher/classes/{school_class['id']}"
+    summary = client.get(f"{base}/summary", headers=auth(teacher_token)).json()
+    assert summary["pupils"][0]["lessons"] == [
+        {"comicId": "roads-flag", "answered": 1, "correct": 0}
+    ]
+    card = client.get(f"{base}/students/{me['id']}/card", headers=auth(teacher_token)).json()
+    assert (card["fullName"], card["login"], card["days"]) == ("Аруна Омарова", "aruna", 30)
+    assert card["mistakes"][0] | {"last": None} == {
+        "source": "lesson",
+        "topic": None,
+        "skill": None,
+        "comicId": "roads-flag",
+        "answer": "7",
+        "count": 1,
+        "last": None,
+    }
+    assert [(h["target"], h["done"]) for h in card["homework"]] == [("equations", False)]
+    assert len(card["activity"]) == 14 and card["activity"][-1]["count"] == 1
+    assert client.get(f"{base}/students/999/card", headers=auth(teacher_token)).status_code == 404
+    other = teacher(client, email="other@school.kz")
+    assert client.get(f"{base}/students/{me['id']}/card", headers=auth(other)).status_code == 404

@@ -4,7 +4,7 @@ import { ApiError } from './errors'
 import { COSMETICS, isCosmetic, type CosmeticKey } from '../cosmetics'
 import type { AccountApi, BattleTopic, ChildSummary, ClassInfo, DailyTask, Dashboard, Grade, Lang, Me, PracticeReport, Shop, SkinKey, Billing, CardKind, CoinPack } from './types'
 import { mockPracticeAnswer, mockPracticeTask, mockPracticeTopic, mockProblem } from './mockClassroom'
-import { currentLesson, demoReview, demoSummary, homeworkOf, lessonBoardOf, lessonReportsOf, myHomeworkOf, openAnswering, quizRanking, saveAnswer, setPhase, settleLesson, stepAnswer, studentLessonOf, wholeAnswer, type MockHomework, type MockLesson, type PracticeDone } from './mockLessons'
+import { currentLesson, demoCard, demoReview, demoSummary, homeworkOf, lessonBoardOf, lessonReportsOf, myHomeworkOf, openAnswering, quizRanking, saveAnswer, setPhase, settleLesson, stepAnswer, studentLessonOf, wholeAnswer, type MockHomework, type MockLesson, type PracticeDone } from './mockLessons'
 import { DEMO_LOBBY } from './mockClassroom'
 import { BATTLE_HP, boardOf, checkMockAnswer, demoLeaderboard, latestBattle, MOCK_BATTLE_COPY, settle, shortName, studentView, type MockBattle } from './mockClassroom'
 
@@ -704,6 +704,23 @@ export const mockAccounts: AccountApi = {
       const state = load()
       const user = student(state)
       return demoReview(state.lessons ?? [], user.id, user.completedChapters)
+    })
+  },
+  studentCard(classId, studentId, days) {
+    return later(() => {
+      const state = load()
+      ownClass(state, classId)
+      const summary = demoSummary(state.lessons ?? [], classId, roster(state, classId), days)
+      const pupil = summary.pupils.find((p) => p.id === studentId)
+      if (!pupil) throw fail(404, 'student_not_found')
+      const user = state.users.find((u) => u.id === studentId)
+      const homework = (state.homework ?? [])
+        .filter((h) => h.classId === classId && (!h.studentIds || h.studentIds.includes(studentId)))
+        .map((h) => {
+          const done = user ? homeworkOf(h, [user], state.practiceDone ?? []).done > 0 : studentId % 2 === 0
+          return { id: h.id, kind: h.kind, target: h.target, dueDate: h.dueDate, done, overdue: !done && h.dueDate < new Date(Date.now() + 5 * 3600_000).toISOString().slice(0, 10) }
+        })
+      return demoCard(pupil, user?.displayName ?? pupil.name, user?.login ?? null, days, homework)
     })
   },
   classSummary(classId, days) {

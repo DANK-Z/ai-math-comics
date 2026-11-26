@@ -390,17 +390,35 @@ export interface ClassSummary {
   students: number
   topics: { topic: string; answers: number; correct: number }[]
   lessons: { comicId: string; answered: number; correct: number }[]
-  pupils: {
-    id: number
-    name: string
-    answers: number
-    correct: number
-    solved: number
-    chapters: number
-    activeDays: number
-    lastActive?: string | null
-    lagging: boolean
-  }[]
+  pupils: PupilStat[]
+}
+
+export interface PupilStat {
+  id: number
+  name: string
+  answers: number
+  correct: number
+  solved: number
+  chapters: number
+  activeDays: number
+  lastActive?: string | null
+  lagging: boolean
+  /** Boss answers by topic and first-try lesson answers by chapter. */
+  topics?: { topic: string; answers: number; correct: number }[]
+  lessons?: { comicId: string; answered: number; correct: number }[]
+}
+
+/** One student for the teacher: topics, typical slips, homework and activity by day. */
+export interface StudentCard {
+  id: number
+  name: string
+  fullName: string
+  login?: string | null
+  days: number
+  pupil: PupilStat
+  mistakes: { source: 'boss' | 'lesson'; topic?: string | null; skill?: string | null; comicId?: string | null; answer: string; count: number; last: string }[]
+  homework: { id: string; kind: HomeworkKind; target: string; dueDate: string; done: boolean; overdue: boolean }[]
+  activity: { day: string; count: number }[]
 }
 
 export interface WeakSpot {
@@ -631,6 +649,7 @@ export interface AccountApi {
   answerDaily(body: { taskId: string; answer: string; lang: Lang }): Promise<DailyResult>
   review(signal?: AbortSignal): Promise<ReviewItem[]>
   classSummary(classId: number, days: 7 | 30 | 90, signal?: AbortSignal): Promise<ClassSummary>
+  studentCard(classId: number, studentId: number, days: 7 | 30 | 90, signal?: AbortSignal): Promise<StudentCard>
   createStudents(classId: number, names: string[]): Promise<StudentCredentials[]>
   resetStudentPassword(classId: number, studentId: number): Promise<StudentCredentials>
   /** Takes a student out of the class (the lobby's «убрать»). */
