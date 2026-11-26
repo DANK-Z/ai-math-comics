@@ -237,6 +237,7 @@ export const STUDENT_LESSON_COPY = {
 }
 
 const TIMERS = [0, 30, 60, 90] as const
+const SMALL = 'inline-flex min-h-10 items-center rounded-xl border-[3px] border-ink px-3 text-sm font-black text-ink focus-visible:outline-3 focus-visible:outline-brand disabled:opacity-40'
 
 export const chapterDef = (comicId: string): LocalComicDef | undefined => LOCAL_COMICS.find((d) => d.id === comicId)
 
@@ -652,24 +653,24 @@ export function LessonBoardScreen({ lessonId, lang }: { lessonId: string; lang: 
   )
 
   const timerPicker = (
-    <fieldset className="mt-3">
+    <fieldset className="mt-2" title={copy.timerHint}>
       <legend className="text-sm font-black text-ink/80">⏱ {copy.timer}</legend>
-      <div className="mt-1 grid grid-cols-4 gap-1.5">
+      <div className="mt-1 grid grid-cols-4 gap-1">
         {TIMERS.map((t) => (
-          <label key={t} className="cursor-pointer rounded-lg border-2 border-ink bg-white px-1 py-1.5 text-center text-sm font-black text-ink has-checked:bg-sun has-focus-visible:outline-3 has-focus-visible:outline-brand">
+          <label key={t} className="cursor-pointer rounded-lg border-2 border-ink bg-white px-1 py-1 text-center text-xs font-black text-ink has-checked:bg-sun has-focus-visible:outline-3 has-focus-visible:outline-brand">
             <input type="radio" name={`${lessonId}-timer`} className="sr-only" checked={timer === t} onChange={() => setTimer(t)} />
             {t ? copy.seconds(t) : copy.noTimer}
           </label>
         ))}
       </div>
-      <p className="mt-1 text-xs font-semibold text-ink/70">{copy.timerHint}</p>
+      <p className="sr-only">{copy.timerHint}</p>
     </fieldset>
   )
 
   return (
-    <div ref={frame} className={`flex flex-col gap-4 ${projector ? 'lesson-projector overflow-auto bg-paper p-6' : ''}`}>
+    <div ref={frame} className={`flex flex-col gap-3 ${projector ? 'lesson-projector overflow-auto bg-paper p-4' : ''}`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-black text-ink sm:text-3xl">{comic.title}</h1>
+        <h1 className="text-xl font-black text-ink sm:text-2xl">{comic.title}</h1>
         <div className="flex flex-wrap items-center gap-2">
           <p className="font-black text-ink/70">
             {board.className} · {board.phase === 'podium' ? copy.podium : inQuiz ? copy.question(step, quiz.length) : copy.panel(board.panel + 1, total)}
@@ -679,6 +680,14 @@ export function LessonBoardScreen({ lessonId, lang }: { lessonId: string; lang: 
             className="min-h-10 rounded-xl border-[3px] border-ink bg-white px-3 text-sm font-black text-ink hover:bg-sky focus-visible:outline-3 focus-visible:outline-brand">
             <span aria-hidden>⛶ </span>{projector ? copy.projectorOff : copy.projector}
           </button>
+          {!inQuiz && board.phase !== 'podium' && !plan && (
+            <>
+              <button type="button" disabled={busy || board.panel === 0} onClick={() => update({ panel: board.panel - 1 })} className={`${SMALL} bg-white hover:bg-sky`}>← {copy.prev}</button>
+              <button type="button" disabled={busy || board.panel >= maxPanel} onClick={() => update({ panel: board.panel + 1 })} className={`${SMALL} bg-sun`}>{copy.next} →</button>
+            </>
+          )}
+          <button type="button" disabled={busy} onClick={async () => { await update({ phase: 'closed' }); window.location.hash = teacherClassHref(board.classId) }} className={`${SMALL} bg-white hover:bg-rose-50`}>{copy.finish}</button>
+          <a href={teacherClassHref(board.classId)} className={`${SMALL} bg-white hover:bg-sky`}>{copy.back}</a>
         </div>
       </div>
 
@@ -704,7 +713,7 @@ export function LessonBoardScreen({ lessonId, lang }: { lessonId: string; lang: 
               <p className="text-3xl leading-snug font-black text-ink sm:text-4xl">{ownText}</p>
             </section>
           ) : (
-            <figure className="overflow-hidden rounded-2xl border-[5px] border-ink bg-sky-100" aria-label={`${shown.speaker}: ${shown.text}`}>
+            <figure className="mx-auto w-full overflow-hidden rounded-2xl border-[5px] border-ink bg-sky-100" style={{ maxWidth: `calc((100vh - ${plan ? 13 : 9.5}rem) * 16 / 9)` }} aria-label={`${shown.speaker}: ${shown.text}`}>
               <PanelArt imageKey={shown.imageKey} imageUrl={shown.imageUrl} lang={lang} speaker={shown.speaker} text={shown.text}
                 imageAspect={shown.imageAspect} placeholder={shown.placeholder} priority />
             </figure>
@@ -730,18 +739,7 @@ export function LessonBoardScreen({ lessonId, lang }: { lessonId: string; lang: 
           </aside>
         </div>
       )}
-      <nav className="flex flex-wrap items-center gap-2">
-        {!inQuiz && board.phase !== 'podium' && (
-          <>
-            <button type="button" disabled={busy || board.panel === 0} onClick={() => update({ panel: board.panel - 1 })} className={SECONDARY}>← {copy.prev}</button>
-            <button type="button" disabled={busy || board.panel >= maxPanel} onClick={() => update({ panel: board.panel + 1 })} className={PRIMARY}>{copy.next} →</button>
-          </>
-        )}
-        <span className="flex-1" />
-        <button type="button" disabled={busy} onClick={async () => { await update({ phase: 'closed' }); window.location.hash = teacherClassHref(board.classId) }} className={SECONDARY}>{copy.finish}</button>
-        <a href={teacherClassHref(board.classId)} className={SECONDARY}>{copy.back}</a>
-      </nav>
-      <p className="text-xs font-semibold text-ink/60">⌨️ {copy.keys}</p>
+      {!projector && <p className="text-xs font-semibold text-ink/60">⌨️ {copy.keys}</p>}
     </div>
   )
 }

@@ -328,6 +328,7 @@ test('the daily task keeps a streak; the teacher sees the class summary for a qu
   await page.goto('/#/teacher/class/1')
   await expect(page.getByRole('heading', { name: /Сводка по классу/ })).toBeVisible()
   await page.getByText('Четверть', { exact: true }).click()
+  await page.getByText('Все ученики', { exact: true }).click()
   await expect(page.getByRole('columnheader', { name: 'Последний раз' })).toBeVisible()
   await expect(page.getByText(/Кому нужна помощь/)).toBeVisible()
 })

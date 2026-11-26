@@ -166,7 +166,9 @@ export function ClassSummaryCard({ classId, lang }: { classId: number; lang: Lan
             ))}
           </dl>
 
-          <h3 className="mt-4 font-black text-ink">{copy.topics}</h3>
+          <div className="mt-4 grid gap-x-6 gap-y-4 lg:grid-cols-2">
+          <div className="min-w-0">
+          <h3 className="font-black text-ink">{copy.topics}</h3>
           {topics.length === 0 ? <p className="mt-1 text-sm font-semibold text-ink/70">{copy.topicsNone}</p> : (
             <ul className="mt-1.5 flex flex-col gap-1.5">
               {topics.map((t) => {
@@ -186,7 +188,9 @@ export function ClassSummaryCard({ classId, lang }: { classId: number; lang: Lan
             </ul>
           )}
 
-          <h3 className="mt-4 font-black text-ink">{copy.lag}</h3>
+          </div>
+          <div className="min-w-0">
+          <h3 className="font-black text-ink">{copy.lag}</h3>
           {lagging.length === 0 ? <p className="mt-1 text-sm font-bold text-emerald-700">{copy.lagNone}</p> : (
             <ul className="mt-1 flex flex-wrap gap-1.5">
               {lagging.map((p) => (
@@ -196,8 +200,10 @@ export function ClassSummaryCard({ classId, lang }: { classId: number; lang: Lan
               ))}
             </ul>
           )}
+          </div>
+          </div>
 
-          <details className="mt-4 print:block" open>
+          <details className="mt-4 print:block">
             <summary className="cursor-pointer font-black text-ink print:list-none">{copy.table}</summary>
             <div className="mt-2 overflow-x-auto">
               <table className="w-full min-w-[34rem] border-collapse text-left text-sm">

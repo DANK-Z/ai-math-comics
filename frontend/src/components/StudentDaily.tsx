@@ -60,7 +60,7 @@ const COPY = {
   },
 }
 
-const CARD = 'rounded-2xl border-[3px] border-ink bg-white p-4 shadow-[0_4px_0_var(--shadow-ink)] sm:p-5'
+const CARD = 'rounded-2xl border-[3px] border-ink bg-white p-3 shadow-[0_4px_0_var(--shadow-ink)] sm:p-4'
 
 /** One problem a day; the streak and the next bonus on top. */
 export function DailyCard({ lang }: { lang: Lang }) {
@@ -128,9 +128,8 @@ export function DailyCard({ lang }: { lang: Lang }) {
           {message?.ok && <span className="mt-0.5 block text-sm font-bold">{message.text}</span>}
         </p>
       ) : (
-        <form onSubmit={submit} className="mt-3 flex flex-col gap-2">
-          <p className="text-lg leading-snug font-extrabold text-ink">{task.prompt}</p>
-          <p className="text-xs font-bold text-ink/65">{copy.reward(task.coins)}</p>
+        <form onSubmit={submit} className="mt-2 flex flex-col gap-2">
+          <p className="text-lg leading-snug font-extrabold text-ink">{task.prompt} <span className="align-middle text-xs font-bold whitespace-nowrap text-ink/65">{copy.reward(task.coins)}</span></p>
           <div className="flex gap-2">
             <label htmlFor={`${id}-answer`} className="sr-only">{copy.answer}</label>
             <input ref={input} id={`${id}-answer`} value={answer} onChange={(e) => setAnswer(e.target.value)} placeholder={copy.answer}

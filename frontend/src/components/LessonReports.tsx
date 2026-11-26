@@ -28,6 +28,8 @@ const COPY = {
     given: (n: number) => `✓ Задано ${n} ${n % 10 === 1 && n % 100 !== 11 ? 'ученику' : 'ученикам'} на 2 дня — видно во вкладке «Задания».`,
     allRight: 'Все, кто ответил, решили верно 🎉',
     error: 'Не получилось задать. Попробуйте ещё раз.',
+    more: (n: number) => `Показать все уроки (${n})`,
+    less: 'Свернуть',
   },
   kk: {
     title: 'Сабақ қорытындылары',
@@ -45,8 +47,12 @@ const COPY = {
     given: (n: number) => `✓ ${n} оқушыға 2 күнге берілді — «Тапсырмалар» қойындысында көрінеді.`,
     allRight: 'Жауап бергендердің бәрі дұрыс шешті 🎉',
     error: 'Беру мүмкін болмады. Қайта көріңіз.',
+    more: (n: number) => `Барлық сабақтарды көрсету (${n})`,
+    less: 'Жию',
   },
 }
+
+const SHOWN = 2
 
 const pct = (t: { answered: number; correct: number }) => (t.answered ? Math.round((t.correct / t.answered) * 100) : 0)
 
@@ -143,6 +149,7 @@ export function LessonReports({ classId, lang }: { classId: number; lang: Lang }
   const copy = COPY[lang]
   const id = useId()
   const [reports, setReports] = useState<LessonReport[] | null>(null)
+  const [all, setAll] = useState(false)
 
   useEffect(() => {
     const ctrl = new AbortController()
@@ -158,8 +165,13 @@ export function LessonReports({ classId, lang }: { classId: number; lang: Lang }
         <>
           <p className="mt-2 text-xs font-semibold text-ink/65">{copy.legend}</p>
           <ul className="mt-2 flex flex-col gap-2">
-            {reports.map((r) => <ReportItem key={r.id} report={r} classId={classId} lang={lang} />)}
+            {(all ? reports : reports.slice(0, SHOWN)).map((r) => <ReportItem key={r.id} report={r} classId={classId} lang={lang} />)}
           </ul>
+          {reports.length > SHOWN && (
+            <button type="button" onClick={() => setAll(!all)} className="mt-2 text-sm font-black text-brand-dark underline">
+              {all ? copy.less : copy.more(reports.length)}
+            </button>
+          )}
         </>
       ))}
     </section>

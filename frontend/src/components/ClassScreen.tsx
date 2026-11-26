@@ -47,12 +47,9 @@ function BattleSlot({ lang }: { lang: Lang }) {
   const { value: battle } = usePolled(load, 15000, true)
   if (battle?.status === 'active') return <BattleAlert lang={lang} />
   return (
-    <section aria-label={c.battleTitle} className={`${CARD} flex items-start gap-3`}>
-      <span aria-hidden className="text-3xl">⚔️</span>
-      <div className="min-w-0">
-        <h2 className="text-lg font-black text-ink">{c.battleTitle}</h2>
-        <p className="mt-1 text-sm font-semibold text-ink/80">{c.battleIdle}</p>
-      </div>
+    <section aria-label={c.battleTitle} className="flex items-start gap-2.5 rounded-2xl border-2 border-ink/40 bg-white px-3 py-2.5">
+      <span aria-hidden className="text-2xl leading-none">⚔️</span>
+      <p className="min-w-0 text-sm font-semibold text-ink/80"><span className="font-black text-ink">{c.battleTitle}.</span> {c.battleIdle}</p>
     </section>
   )
 }
@@ -81,18 +78,24 @@ export function ClassScreen({ lang }: { lang: Lang }) {
     body = (
       <>
         <LessonAlert lang={lang} />
-        <DailyCard lang={lang} />
-        <ReviewCard lang={lang} />
-        <BattleSlot lang={lang} />
-        <MyHomeworkCard lang={lang} />
-        <StudentAssignments lang={lang} />
-        <div className="max-w-3xl"><ClassLeague lang={lang} /></div>
+        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+          <div className="flex min-w-0 flex-col gap-4">
+            <DailyCard lang={lang} />
+            <MyHomeworkCard lang={lang} />
+            <ReviewCard lang={lang} />
+            <StudentAssignments lang={lang} />
+          </div>
+          <div className="flex min-w-0 flex-col gap-4">
+            <BattleSlot lang={lang} />
+            <ClassLeague lang={lang} />
+          </div>
+        </div>
       </>
     )
   }
 
   return (
-    <section aria-labelledby="class-title" className="flex flex-col gap-5">
+    <section aria-labelledby="class-title" className="flex flex-col gap-4">
       <div>
         <h1 id="class-title" className="text-2xl font-black text-ink sm:text-3xl">👥 {c.title}</h1>
         {schoolClass && <p className="mt-1 font-semibold text-ink/80">{c.lead(schoolClass.name)}</p>}

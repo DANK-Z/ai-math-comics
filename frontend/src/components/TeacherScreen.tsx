@@ -426,27 +426,22 @@ export function ClassDashboard({ lang, classId }: { lang: Lang; classId: number 
 
   return (
     <div className="flex flex-col gap-4">
-      <section className={CARD} aria-labelledby={`${id}-title`}>
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 id={`${id}-title`} className="text-3xl font-black text-ink">{data.schoolClass.name} <span className="align-middle text-base font-bold text-ink/70">· 👥 {UI[lang].studentsIn(data.students.length)}</span></h1>
-            <p className="mt-1 text-sm font-bold text-ink/80">{c.teacherArea.code}</p>
-            <CopyCode code={data.schoolClass.code} lang={lang} />
-          </div>
-          <div className="flex flex-wrap items-start gap-2">
-            <button type="button" onClick={() => setSection('games')} className={`${PRIMARY} text-sm`}>📽️ {UI[lang].lesson}</button>
-            <button type="button" onClick={() => setSection('games')} className={`${PRIMARY} text-sm`}>⚔️ {UI[lang].battle}</button>
-            {back}
-          </div>
+      <section className="flex flex-wrap items-center gap-x-4 gap-y-2" aria-labelledby={`${id}-title`}>
+        <h1 id={`${id}-title`} className="text-2xl font-black text-ink sm:text-3xl">{data.schoolClass.name} <span className="align-middle text-base font-bold text-ink/70">· 👥 {UI[lang].studentsIn(data.students.length)}</span></h1>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm font-bold text-ink/80">{c.teacherArea.code}</span>
+          <CopyCode code={data.schoolClass.code} lang={lang} />
         </div>
-        {API_MODE === 'mock' && <p className="mt-3 rounded-lg bg-sun/40 px-2 py-1 text-sm font-bold text-ink">{c.teacherArea.demo}</p>}
+        {API_MODE === 'mock' && <p className="rounded-lg bg-sun/40 px-2 py-0.5 text-xs font-bold text-ink">{c.teacherArea.demo}</p>}
+        <span className="flex-1" />
+        {back}
       </section>
 
-      <nav aria-label={copy.section} className="flex flex-wrap gap-1.5 rounded-2xl border-[3px] border-ink bg-white p-1.5 shadow-[0_3px_0_var(--shadow-ink)]">
+      <nav aria-label={copy.section} className="z-20 flex flex-wrap gap-1.5 lg:sticky lg:top-1 rounded-2xl border-[3px] border-ink bg-white p-1 shadow-[0_3px_0_var(--shadow-ink)]">
         {CLASS_SECTIONS.map((item) => (
           <button key={item} type="button" id={`${id}-button-${item}`} aria-pressed={section === item}
             aria-controls={`${id}-${item}`} onClick={() => setSection(item)}
-            className={`min-h-11 flex-1 rounded-xl border-2 px-3 py-1.5 text-sm font-black whitespace-nowrap text-ink focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand sm:text-base ${section === item ? 'border-ink bg-sun' : 'border-transparent hover:bg-sky'}`}>
+            className={`min-h-10 flex-1 rounded-xl border-2 px-3 py-1 text-sm font-black whitespace-nowrap text-ink focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand sm:text-base ${section === item ? 'border-ink bg-sun' : 'border-transparent hover:bg-sky'}`}>
             <span aria-hidden className="mr-1">{SECTION_ICONS[item]}</span>{copy[item]}
           </button>
         ))}
@@ -459,20 +454,28 @@ export function ClassDashboard({ lang, classId }: { lang: Lang; classId: number 
         </div>
       </section>
       <section id={`${id}-assignments`} aria-labelledby={`${id}-button-assignments`} hidden={section !== 'assignments'}>
-        <div className="grid gap-4">
-          <HomeworkCard classId={classId} lang={lang} />
-          <ClassAssignmentReports classId={classId} lang={lang} />
-          <ChapterAssignment lang={lang} />
-          <GuardianAssignmentForm lang={lang} />
-          <CurriculumCard lang={lang} />
+        <div className="grid items-start gap-4 lg:grid-cols-2">
+          <div className="flex min-w-0 flex-col gap-4">
+            <HomeworkCard classId={classId} lang={lang} />
+            <ClassAssignmentReports classId={classId} lang={lang} />
+          </div>
+          <div className="flex min-w-0 flex-col gap-4">
+            <ChapterAssignment lang={lang} />
+            <GuardianAssignmentForm lang={lang} />
+            <CurriculumCard lang={lang} />
+          </div>
         </div>
       </section>
       <section id={`${id}-games`} aria-labelledby={`${id}-button-games`} hidden={section !== 'games'}>
-        <div className="grid gap-4">
-          <LessonLauncher classId={classId} lang={lang} />
-          <LessonReports classId={classId} lang={lang} />
-          <BattleLauncher classId={classId} lang={lang} />
-          <TeacherLeague classId={classId} lang={lang} />
+        <div className="grid items-start gap-4 lg:grid-cols-2">
+          <div className="flex min-w-0 flex-col gap-4">
+            <LessonLauncher classId={classId} lang={lang} />
+            <BattleLauncher classId={classId} lang={lang} />
+          </div>
+          <div className="flex min-w-0 flex-col gap-4">
+            <LessonReports classId={classId} lang={lang} />
+            <TeacherLeague classId={classId} lang={lang} />
+          </div>
         </div>
       </section>
 
@@ -485,9 +488,9 @@ export function ClassDashboard({ lang, classId }: { lang: Lang; classId: number 
             ['⭐', UI[lang].avgStars, data.students.length ? (data.students.reduce((sum, st) => sum + st.stars, 0) / data.students.length).toFixed(1) : '0', null, 'bg-sun/30'],
             ['🆘', UI[lang].needHelp, String(data.students.filter((st) => st.misses > 3).length), UI[lang].needHelpHint, 'bg-rose-50'],
           ] as const).map(([icon, label, value, hint, tone]) => (
-            <div key={label} className={`flex min-w-0 flex-col gap-1 rounded-2xl border-[3px] border-ink p-3 shadow-[0_3px_0_var(--shadow-ink)] ${tone}`}>
+            <div key={label} className={`flex min-w-0 flex-col gap-1 rounded-2xl border-[3px] border-ink px-3 py-2 shadow-[0_3px_0_var(--shadow-ink)] ${tone}`}>
               <dt className="flex items-start gap-1.5 text-sm leading-tight font-bold break-words text-ink/80"><span aria-hidden>{icon}</span>{label}</dt>
-              <dd className="text-3xl leading-none font-black text-ink">{value}{hint && <span className="ml-1.5 align-middle text-xs font-bold text-ink/60">{hint}</span>}</dd>
+              <dd className="text-2xl leading-none font-black text-ink">{value}{hint && <span className="ml-1.5 align-middle text-xs font-bold text-ink/60">{hint}</span>}</dd>
             </div>
           ))}
         </dl>
@@ -502,6 +505,7 @@ export function ClassDashboard({ lang, classId }: { lang: Lang; classId: number 
           </section>
         )}
 
+        <div className="grid items-start gap-4 lg:grid-cols-2">
         <section className={CARD} aria-labelledby={`${id}-heat`}>
           <h2 id={`${id}-heat`} className="text-xl font-black text-ink">{d.heatmap}</h2>
           <p className="mt-1 text-sm font-semibold text-ink/75">{d.heatmapLead}</p>
@@ -514,7 +518,7 @@ export function ClassDashboard({ lang, classId }: { lang: Lang; classId: number 
             {topics.map((topic) => (
               <div key={topic}>
                 <h3 className="mb-2 font-black text-ink">{c.topics[topic]}</h3>
-                <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                <div className="grid gap-2 sm:grid-cols-2">
                   {data.heatmap.filter((cell) => cell.topic === topic).map((cell) => (
                     <HeatmapCell key={`${cell.round}-${cell.skill ?? 'general'}`} lang={lang} cell={cell} />
                   ))}
@@ -555,6 +559,7 @@ export function ClassDashboard({ lang, classId }: { lang: Lang; classId: number 
             </ol>
           )}
         </section>
+        </div>
       </div>
       </section>
     </div>

@@ -140,8 +140,10 @@ export function HomeScreen({ lang, progress, finalesWon }: {
       <BattleAlert lang={lang} />
       <PraiseInbox lang={lang} />
       <HomeHero lang={lang} progress={progress} finalesWon={finalesWon} />
-      <DailyCard lang={lang} />
-      <WeakSpotCard lang={lang} />
+      <div className="grid items-start gap-4 empty:hidden lg:grid-cols-2">
+        <DailyCard lang={lang} />
+        <WeakSpotCard lang={lang} />
+      </div>
     </div>
   )
 }

@@ -22,16 +22,18 @@ export function CurriculumCard({ lang }: { lang: Lang }) {
   }
   const sorted = [...groups.values()].sort((a, b) => a.grade - b.grade || a.section.localeCompare(b.section, lang))
   return (
-    <section aria-labelledby={`${id}-title`} className="rounded-2xl border-[3px] border-ink bg-white p-4 shadow-[0_4px_0_var(--shadow-ink)] sm:p-6">
+    <section aria-labelledby={`${id}-title`} className="rounded-2xl border-[3px] border-ink bg-white p-4 shadow-[0_4px_0_var(--shadow-ink)] sm:p-5">
       <h2 id={`${id}-title`} className="flex items-center gap-2 text-xl font-black text-ink"><span aria-hidden>📘</span>{copy.title}</h2>
       <p className="mt-1 text-sm font-semibold text-ink/80">{copy.lead}</p>
-      <div className="mt-3 grid gap-3 md:grid-cols-2">
+      <div className="mt-3 grid items-start gap-2 md:grid-cols-2">
         {sorted.map((group) => (
-          <div key={`${group.grade}-${group.section}`} className="rounded-xl border-2 border-ink/20 bg-sky-50 p-3">
-            <h3 className="text-sm font-black text-ink">
-              <span className="mr-1.5 rounded-md bg-ink px-1.5 py-0.5 text-xs text-white">{copy.grade(group.grade)}</span>
-              {group.section}
-            </h3>
+          <details key={`${group.grade}-${group.section}`} className="group rounded-xl border-2 border-ink/20 bg-sky-50 px-3 py-2">
+            <summary className="flex cursor-pointer list-none items-center gap-1.5 text-sm font-black text-ink [&::-webkit-details-marker]:hidden">
+              <span className="rounded-md bg-ink px-1.5 py-0.5 text-xs text-white">{copy.grade(group.grade)}</span>
+              <span className="min-w-0 flex-1">{group.section}</span>
+              <span className="text-xs font-bold text-ink/60">{group.items.length}</span>
+              <span aria-hidden className="transition group-open:rotate-90">›</span>
+            </summary>
             <ul className="mt-2 flex flex-col gap-1.5">
               {group.items.map((item) => (
                 <li key={item.comicId} className="text-sm leading-snug">
@@ -42,7 +44,7 @@ export function CurriculumCard({ lang }: { lang: Lang }) {
                 </li>
               ))}
             </ul>
-          </div>
+          </details>
         ))}
       </div>
       <p className="mt-3 text-xs font-semibold text-ink/65">{copy.note}</p>
