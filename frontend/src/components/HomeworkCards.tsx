@@ -135,7 +135,7 @@ export function HomeworkCard({ classId, lang }: { classId: number; lang: Lang })
     <section className={CARD} aria-labelledby={`${id}-title`}>
       <h2 id={`${id}-title`} className="flex items-center gap-2 text-xl font-black text-ink"><span aria-hidden>📒</span>{copy.title}</h2>
       <p className="mt-1 text-sm font-semibold text-ink/80">{copy.lead}</p>
-      <form onSubmit={give} className="mt-3 grid gap-3 sm:grid-cols-[auto_minmax(0,1fr)_auto_auto] sm:items-end">
+      <form onSubmit={give} className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] sm:items-end">
         <div>
           <label htmlFor={`${id}-kind`} className="text-sm font-black text-ink/80">{copy.kind}</label>
           <select id={`${id}-kind`} value={kind} onChange={(e) => pickKind(e.target.value as HomeworkKind)} className={field}>
@@ -155,7 +155,7 @@ export function HomeworkCard({ classId, lang }: { classId: number; lang: Lang })
           <label htmlFor={`${id}-due`} className="text-sm font-black text-ink/80">{copy.due}</label>
           <input id={`${id}-due`} type="date" value={due} onChange={(e) => setDue(e.target.value)} required className={field} />
         </div>
-        <button type="submit" disabled={busy} className={PRIMARY}>{busy ? copy.giving : copy.give}</button>
+        <button type="submit" disabled={busy} className={`${PRIMARY} sm:justify-self-start`}>{busy ? copy.giving : copy.give}</button>
       </form>
       {error && <p role="alert" className="mt-2 font-bold text-rose-700">{copy.error}</p>}
 
