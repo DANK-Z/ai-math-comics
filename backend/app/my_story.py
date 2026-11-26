@@ -37,8 +37,18 @@ CAST_DESCRIPTIONS = {
     "and a lavender hoodie.",
     "pifik": "Pifik: a small hovering white and lavender robot with a dark screen face, cyan "
     "eyes and smile, and a navy graduation cap with a gold tassel.",
+    "timur": "Timur: a schoolboy detective with short neat dark brown hair, brown eyes, a beige "
+    "trench coat over a green hoodie, a small checked flat cap and a magnifying glass.",
+    "dana": "Dana: a cheerful schoolgirl space biologist with two long dark braids tied with cyan "
+    "hair ties, brown eyes and a light white space suit with cyan stripes.",
 }
-CAST_NAMES = {"aldiyar": "Алдияр", "aruna": "Аруна", "pifik": "Пифик"}
+CAST_NAMES = {
+    "aldiyar": "Алдияр",
+    "aruna": "Аруна",
+    "pifik": "Пифик",
+    "timur": "Тимур",
+    "dana": "Дана",
+}
 CUSTOM_IDS = ("custom1", "custom2")
 
 STYLE_DIRECTIONS = {
@@ -87,7 +97,7 @@ EQUATION_SCENE_ACTIONS = {
 }
 TOPIC_ACTIONS = {"fractions": SCENE_ACTIONS, "equations": EQUATION_SCENE_ACTIONS}
 
-SpeakerId = Literal["pifik", "aruna", "aldiyar", "custom1", "custom2"]
+SpeakerId = Literal["pifik", "aruna", "aldiyar", "timur", "dana", "custom1", "custom2"]
 
 
 class MyStoryPanel(StrictModel):
@@ -312,11 +322,23 @@ def my_story_image_prompt(
     )
 
 
-CAST_NAMES_EN = {"aldiyar": "Aldiyar", "aruna": "Aruna", "pifik": "Pifik"}
+CAST_NAMES_EN = {
+    "aldiyar": "Aldiyar",
+    "aruna": "Aruna",
+    "pifik": "Pifik",
+    "timur": "Timur",
+    "dana": "Dana",
+}
 
 # Prepared-art mode: the cast portraits served by /api/prepared-art/{n}.jpg
 # (1 Pifik, 2 Aruna, 3 Aldiyar, 4-6 the same three in close-up).
-PREPARED_PORTRAITS = {"pifik": (1, 4), "aruna": (2, 5), "aldiyar": (3, 6)}
+PREPARED_PORTRAITS = {
+    "pifik": (1, 4),
+    "aruna": (2, 5),
+    "aldiyar": (3, 6),
+    "timur": (7, 8),
+    "dana": (9, 10),
+}
 
 
 def prepared_portrait(speaker: str, seen: dict[str, int]) -> int | None:

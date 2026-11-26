@@ -1,14 +1,17 @@
 import type { Lang } from './api'
+import gearArt from './assets/helpers/gear.webp'
+import sphinxArt from './assets/helpers/sphinx.webp'
 
 // Frames (around the hero card's picture) and titles (under the student's name) from the fair
 // shop. Prices here only feed demo mode: on the server the catalog in backend/app/shop.py rules.
 
 export type FrameKey = 'frame-sunny' | 'frame-steppe' | 'frame-space' | 'frame-gold'
 export type TitleKey = 'title-explorer' | 'title-fractions' | 'title-equations' | 'title-fair-hero'
-export type CosmeticKey = FrameKey | TitleKey
+export type HelperKey = 'helper-gear' | 'helper-sphinx'
+export type CosmeticKey = FrameKey | TitleKey | HelperKey
 
 interface Cosmetic {
-  slot: 'frame' | 'title'
+  slot: 'frame' | 'title' | 'helper'
   price: number
   icon: string
   name: Record<Lang, string>
@@ -53,6 +56,16 @@ export const COSMETICS: Record<CosmeticKey, Cosmetic> = {
     name: t('Укротитель уравнений', 'Теңдеу жеңімпазы'),
     about: t('x больше не спрячется.', 'x енді жасырына алмайды.'),
   },
+  'helper-gear': {
+    slot: 'helper', price: 80, icon: '⚙️',
+    name: t('Гайка — робот-инженер', 'Гайка — инженер робот'),
+    about: t('Медный робот на одном колесе. Подсказывает вместо Пифика и чинит любую задачу гаечным ключом.', 'Бір дөңгелекті мыс робот. Пификтің орнына кеңес береді, кез келген есепті кілтпен жөндейді.'),
+  },
+  'helper-sphinx': {
+    slot: 'helper', price: 90, icon: '🐱',
+    name: t('Кибер-Сфинкс — аналитик', 'Кибер-Сфинкс — талдаушы'),
+    about: t('Неоновый робот-кот. Подсказывает вместо Пифика и видит ошибку раньше всех.', 'Неон робот-мысық. Пификтің орнына кеңес береді, қатені бәрінен бұрын көреді.'),
+  },
   'title-fair-hero': {
     slot: 'title', price: 35, icon: '🎪',
     name: t('Герой ярмарки', 'Жәрмеңке батыры'),
@@ -63,4 +76,18 @@ export const COSMETICS: Record<CosmeticKey, Cosmetic> = {
 export const isCosmetic = (key: string): key is CosmeticKey => key in COSMETICS
 
 /** CSS class that draws a frame around a picture (see index.css). */
-export const frameClass = (key: string | null | undefined) => (key && isCosmetic(key) ? `hero-${key}` : '')
+export const frameClass = (key: string | null | undefined) => (key && isCosmetic(key) && COSMETICS[key].slot === 'frame' ? `hero-${key}` : '')
+
+/** Pictures of the helpers that can stand in for Pifik (cut out, transparent). */
+export const HELPER_ART: Record<HelperKey, string> = {
+  'helper-gear': gearArt,
+  'helper-sphinx': sphinxArt,
+}
+
+export const isHelper = (key: string | null | undefined): key is HelperKey => !!key && key in HELPER_ART
+
+/** The helper's short name for hint labels («Гайка: вспомни правило»). */
+export const HELPER_NAME: Record<HelperKey, Record<Lang, string>> = {
+  'helper-gear': { ru: 'Гайка', kk: 'Гайка' },
+  'helper-sphinx': { ru: 'Кибер-Сфинкс', kk: 'Кибер-Сфинкс' },
+}

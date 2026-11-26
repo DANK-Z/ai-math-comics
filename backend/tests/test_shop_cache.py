@@ -125,7 +125,6 @@ def test_shop_is_for_students_and_items_are_private(env):
     assert client.get("/api/v1/shop").status_code == 401
 
 
-
 def test_frames_and_titles_are_worn_next_to_the_skin(env):
     settings, client = env
     token = student(client, "aruna", "Аруна")
@@ -135,7 +134,11 @@ def test_frames_and_titles_are_worn_next_to_the_skin(env):
     shop = client.post("/api/v1/shop/buy", json={"itemId": "smart-glasses"}, headers=auth(token))
     assert shop.status_code == 409  # 10 coins left
     shop = client.get("/api/v1/shop", headers=auth(token)).json()
-    assert [i["id"] for i in shop["items"]][:3] == ["smart-glasses", "yellow-backpack", "racer-helmet"]
+    assert [i["id"] for i in shop["items"]][:3] == [
+        "smart-glasses",
+        "yellow-backpack",
+        "racer-helmet",
+    ]
     assert {"chef-hat", "space-helmet", "kalpak"} <= {i["id"] for i in shop["items"]}
     frame = next(i for i in shop["cosmetics"] if i["id"] == "frame-sunny")
     assert frame["owned"] and frame["type"] == "frame" and shop["coins"] == 10
@@ -153,6 +156,25 @@ def test_frames_and_titles_are_worn_next_to_the_skin(env):
         "/api/v1/backpack/equip", json={"itemId": None, "slot": "frame"}, headers=auth(token)
     ).json()
     assert not any(i["equipped"] for i in off["cosmetics"])
+
+
+def test_a_helper_is_worn_in_its_own_slot(env):
+    settings, client = env
+    token = student(client, "aruna", "Аруна")
+    earn_coins(settings, client, token)
+    earn_coins(settings, client, token)  # 80 coins
+    shop = client.post("/api/v1/shop/buy", json={"itemId": "helper-gear"}, headers=auth(token))
+    assert shop.status_code == 201, shop.text
+    gear = next(i for i in shop.json()["cosmetics"] if i["id"] == "helper-gear")
+    assert gear["type"] == "helper" and gear["owned"]
+    worn = client.post(
+        "/api/v1/backpack/equip", json={"itemId": gear["backpackItemId"]}, headers=auth(token)
+    ).json()
+    assert next(i for i in worn["cosmetics"] if i["id"] == "helper-gear")["equipped"]
+    off = client.post(
+        "/api/v1/backpack/equip", json={"itemId": None, "slot": "helper"}, headers=auth(token)
+    ).json()
+    assert not next(i for i in off["cosmetics"] if i["id"] == "helper-gear")["equipped"]
 
 
 # ---- story cache ----------------------------------------------------------------------------

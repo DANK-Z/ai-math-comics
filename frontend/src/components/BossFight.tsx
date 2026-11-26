@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react'
+import { HelperFace } from './HelperFace'
 import { Celebration } from './Celebration'
 import type { Boss, BossKind, BossRound, CheckResponse, Lang, Reward } from '../api'
 import { useAccount } from '../account'
@@ -287,7 +288,7 @@ export function BossFight({ boss, lang, active, cleared, onRoundCleared, misses,
       <div className="bg-cream p-4 sm:p-5">
         {defeated ? (
           <div className="flex items-center gap-3">
-            <EmotionAvatar speaker="Пифик" emotion="happy" className="w-11 bg-white" />
+            <HelperFace className="w-11"><EmotionAvatar speaker="Пифик" emotion="happy" className="w-11 bg-white" /></HelperFace>
             <div className="min-w-0 flex-1">
               <p className="text-xl font-black text-ink">{copy.defeated}</p>
               <p className="font-semibold text-ink/80">{copy.readOn} <span aria-hidden>→</span></p>
@@ -307,7 +308,7 @@ export function BossFight({ boss, lang, active, cleared, onRoundCleared, misses,
         ) : (
           <>
             <div className="mb-2 flex items-center gap-2">
-              <EmotionAvatar speaker="Пифик" emotion={missedRound === round.exerciseId ? 'confused' : 'neutral'} className="w-10 bg-white" />
+              <HelperFace className="w-10"><EmotionAvatar speaker="Пифик" emotion={missedRound === round.exerciseId ? 'confused' : 'neutral'} className="w-10 bg-white" /></HelperFace>
               <p className="text-sm font-black text-brand-dark">{copy.round(cleared + 1, total)}</p>
             </div>
             <RoundForm key={round.exerciseId} round={round} lang={lang} active={active} onHit={onHit} onMiss={miss} />

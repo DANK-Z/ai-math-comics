@@ -36,7 +36,7 @@ from .item_lore import router as lore_router
 from .lessons import router as lessons_router
 from .library_episode import EXERCISE_PREFIX, check_library_answer
 from .practice import router as practice_router
-from .prepared_art import ART_DIR, PREPARED_PANELS
+from .prepared_art import ART_DIR, PREPARED_FILES
 from .roster import router as roster_router
 from .schemas import (
     CheckRequest,
@@ -236,9 +236,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.get("/api/prepared-art/{panel_id}.jpg")
     def prepared_image(panel_id: int) -> FileResponse:
-        if not 1 <= panel_id <= len(PREPARED_PANELS):
+        if not 1 <= panel_id <= len(PREPARED_FILES):
             raise HTTPException(404, "image_not_found")
-        path = ART_DIR / PREPARED_PANELS[panel_id - 1][1]
+        path = ART_DIR / PREPARED_FILES[panel_id - 1]
         if not path.is_file():
             raise HTTPException(404, "image_not_found")
         return FileResponse(path, media_type="image/jpeg")

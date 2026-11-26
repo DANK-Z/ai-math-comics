@@ -98,7 +98,7 @@ export const TOPICS: readonly Topic[] = ['fractions', 'equations']
 export type Difficulty = 'basic' | 'intermediate' | 'advanced'
 export const DIFFICULTIES: readonly Difficulty[] = ['basic', 'intermediate', 'advanced']
 
-export type CastHeroId = 'aldiyar' | 'aruna' | 'pifik'
+export type CastHeroId = 'aldiyar' | 'aruna' | 'pifik' | 'timur' | 'dana'
 export type StoryStyle = 'comic' | 'cartoon' | 'pixel'
 export type StorySetting = 'school' | 'space' | 'forest' | 'custom'
 
@@ -254,10 +254,10 @@ export interface Shop {
   equippedSkin: SkinKey | null
   items: { id: SkinKey; type: 'skin'; price: number; owned: boolean; equipped: boolean; backpackItemId: number | null }[]
   /** Frames and titles (worn next to the skin, one of each). */
-  cosmetics: { id: string; type: 'frame' | 'title'; price: number; owned: boolean; equipped: boolean; backpackItemId: number | null }[]
+  cosmetics: { id: string; type: 'frame' | 'title' | 'helper'; price: number; owned: boolean; equipped: boolean; backpackItemId: number | null }[]
 }
 
-export type WearSlot = 'skin' | 'frame' | 'title'
+export type WearSlot = 'skin' | 'frame' | 'title' | 'helper'
 
 /** GET /api/me/leaderboard: this week's class table (stars, then coins earned). */
 export interface LeaderRow {

@@ -7,6 +7,9 @@ import { CHARACTERS } from '../characters'
 import { STRINGS } from '../i18n'
 import {
   CAST_ORDER,
+  EXTRA_HEROES,
+  isExtraHero,
+  MAX_FRIENDS,
   SETTING_ICON,
   STORY_COPY,
   STORY_LIMITS,
@@ -22,7 +25,7 @@ const STYLE_PREVIEW: Record<StoryStyle, string> = { comic: comicPreview, cartoon
 
 // Choice cards follow the 16px card / yellow + ✓ selection pattern.
 const CHOICE =
-  'group relative flex cursor-pointer flex-col items-center gap-2 rounded-2xl border-[3px] border-ink bg-white p-2 text-center font-black text-ink shadow-[0_3px_0_var(--shadow-ink)] transition select-none hover:bg-sky has-checked:translate-y-[2px] has-checked:bg-sun has-checked:shadow-[0_1px_0_var(--shadow-ink)] has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-brand has-disabled:cursor-default'
+  'group relative flex cursor-pointer flex-col items-center gap-2 rounded-2xl border-[3px] border-ink bg-white p-2 text-center font-black text-ink shadow-[0_3px_0_var(--shadow-ink)] transition select-none hover:bg-sky has-checked:translate-y-[2px] has-checked:bg-sun has-checked:shadow-[0_1px_0_var(--shadow-ink)] has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-brand has-disabled:cursor-default has-[input:disabled:not(:checked)]:opacity-50'
 const CHECK = 'absolute top-1.5 right-1.5 hidden size-6 place-items-center rounded-full border-2 border-ink bg-white text-sm group-has-checked:grid'
 const INPUT =
   'min-h-11 w-full min-w-0 rounded-xl border-[3px] border-ink bg-white px-3 py-2 font-semibold text-ink placeholder:font-normal placeholder:text-ink/50 focus-visible:outline-3 focus-visible:outline-offset-1 focus-visible:outline-brand aria-invalid:border-rose-600'
@@ -54,9 +57,12 @@ export function MyStoryFields({ lang, draft, onChange, errors }: {
   const set = (patch: Partial<StoryDraft>) => onChange({ ...draft, ...patch })
   const errorText = (key: string) => (errors[key] ? c.errors[errors[key]!] : undefined)
 
+  const friends = draft.heroes.filter((h) => h !== 'pifik').length
+
   function toggleHero(hero: CastHeroId) {
     if (hero === 'pifik') return
-    set({ heroes: draft.heroes.includes(hero) ? draft.heroes.filter((h) => h !== hero) : [...draft.heroes, hero] })
+    if (draft.heroes.includes(hero)) set({ heroes: draft.heroes.filter((h) => h !== hero) })
+    else if (friends < MAX_FRIENDS) set({ heroes: [...draft.heroes, hero] })
   }
 
   function updateCustom(index: number, patch: Partial<StoryDraft['customHeroes'][number]>) {
@@ -68,23 +74,26 @@ export function MyStoryFields({ lang, draft, onChange, errors }: {
       <p className="font-semibold text-ink/85">{c.lead}</p>
 
       <Section title={c.heroesTitle}>
-        <div className="grid grid-cols-3 gap-2 sm:gap-3">
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 sm:gap-3">
           {CAST_ORDER.map((hero) => (
             <label key={hero} className={CHOICE}>
               <input
                 type="checkbox"
                 className="sr-only"
                 checked={draft.heroes.includes(hero)}
-                disabled={hero === 'pifik'}
+                disabled={hero === 'pifik' || (!draft.heroes.includes(hero) && friends >= MAX_FRIENDS)}
                 onChange={() => toggleHero(hero)}
               />
               <span aria-hidden className={CHECK}>✓</span>
               {hero === 'pifik' ? (
                 <PifikSprite rect={CHARACTERS.pifik.portrait} className="w-full max-w-24 rounded-xl border-2 border-ink/40 bg-white" />
+              ) : isExtraHero(hero) ? (
+                <img src={EXTRA_HEROES[hero].portrait} alt="" className="aspect-square w-full max-w-24 rounded-xl border-2 border-ink/40 bg-white object-cover" />
               ) : (
                 <SheetCrop rect={CHARACTERS[hero].portrait} className="w-full max-w-24 rounded-xl border-2 border-ink/40 bg-white" />
               )}
-              <span className="text-sm sm:text-base">{t.cast[hero].name}</span>
+              <span className="text-sm sm:text-base">{isExtraHero(hero) ? EXTRA_HEROES[hero].name[lang] : t.cast[hero].name}</span>
+              {isExtraHero(hero) && <span className="text-xs font-bold text-ink/65">{EXTRA_HEROES[hero].role[lang]}</span>}
             </label>
           ))}
         </div>

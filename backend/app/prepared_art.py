@@ -21,6 +21,9 @@ PREPARED_PANELS = (
     ("aldiyar", "aldiyar-close.jpg", "Close-up of Aldiyar smiling. Encourage the reader."),
 )
 PREPARED_SPEAKERS = {"pifik": "Пифик", "aruna": "Аруна", "aldiyar": "Алдияр"}
+# Portraits of the extra «Моя история» heroes, served after the six panels (ids 7-10).
+HERO_PORTRAITS = ("timur.jpg", "timur-close.jpg", "dana.jpg", "dana-close.jpg")
+PREPARED_FILES = tuple(file for _, file, _ in PREPARED_PANELS) + HERO_PORTRAITS
 
 
 @lru_cache(maxsize=1)

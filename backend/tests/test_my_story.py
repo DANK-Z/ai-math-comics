@@ -331,3 +331,18 @@ def test_rejected_hero_is_never_drawn(tmp_path):
     status = api.get(f"/api/comic-jobs/{job['jobId']}").json()
     assert status["errorCode"] == "student_text_rejected"
     assert not images.calls
+
+
+def test_timur_and_dana_have_names_and_prepared_portraits(tmp_path):
+    from app.my_story import prepared_portrait, speaker_name
+    from app.schemas import StoryOptions
+
+    options = StoryOptions.model_validate(STORY | {"heroes": ["pifik", "timur", "dana"]})
+    assert speaker_name("timur", options) == "Тимур" and speaker_name("dana", options) == "Дана"
+    seen: dict[str, int] = {}
+    assert [prepared_portrait("timur", seen) for _ in range(2)] == [7, 8]
+    assert [prepared_portrait("dana", seen) for _ in range(2)] == [9, 10]
+    api = TestClient(create_app(Settings(data_dir=tmp_path)))
+    for panel_id in (7, 8, 9, 10):
+        assert api.get(f"/api/prepared-art/{panel_id}.jpg").status_code == 200
+    assert api.get("/api/prepared-art/11.jpg").status_code == 404

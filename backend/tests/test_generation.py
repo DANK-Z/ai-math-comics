@@ -372,7 +372,7 @@ def test_prepared_comic_reuses_art_and_never_calls_an_image_provider(setup):
         assert response.status_code == 200
         assert response.headers["content-type"] == "image/jpeg"
         Image.open(io.BytesIO(response.content)).verify()
-    assert client.get("/api/prepared-art/7.jpg").status_code == 404
+    assert client.get("/api/prepared-art/11.jpg").status_code == 404
 
 
 def test_prepared_story_rejects_a_speaker_that_does_not_match_the_art():

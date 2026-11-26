@@ -25,6 +25,8 @@ interface AccountContextValue {
   /** The hero-card frame and the title under the name (fair shop), if worn. */
   frame: string | null
   title: string | null
+  /** A robot helper bought in the shop that stands in for Pifik in hints and boss fights. */
+  helper: string | null
 }
 
 const AccountContext = createContext<AccountContextValue | null>(null)
@@ -83,6 +85,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       skin: (user?.profile?.items.find((i) => i.type === 'skin' && i.equipped)?.key as SkinKey | undefined) ?? null,
       frame: user?.profile?.items.find((i) => i.type === 'frame' && i.equipped)?.key ?? null,
       title: user?.profile?.items.find((i) => i.type === 'title' && i.equipped)?.key ?? null,
+      helper: user?.profile?.items.find((i) => i.type === 'helper' && i.equipped)?.key ?? null,
     }),
     [user, ready, finish],
   )

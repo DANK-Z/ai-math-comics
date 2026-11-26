@@ -342,10 +342,14 @@ export function buildGeneratedComic(comicId: string, lang: Lang): Comic | null {
   }
 }
 
+const EXTRA_NAMES = { timur: 'Тимур', dana: 'Дана' } as const
+
 /** My Story in the mocks: student heroes speak panels 3 and 6 with placeholder art. */
 export function applyMockStory(comic: Comic, story: StoryOptions): Comic {
   const names = story.customHeroes.map((h) => h.name)
   const cast: Record<string, CastHeroId> = { Аруна: 'aruna', Алдияр: 'aldiyar' }
+  const extras = story.heroes.filter((h): h is 'timur' | 'dana' => h === 'timur' || h === 'dana')
+  const standIn: Partial<Record<CastHeroId, 'timur' | 'dana' | null>> = {}
   return {
     ...comic,
     panels: comic.panels.map((panel) => {
@@ -354,7 +358,12 @@ export function applyMockStory(comic: Comic, story: StoryOptions): Comic {
         return { ...panel, speaker: student, imageUrl: null, placeholder: { setting: story.setting } }
       }
       const hero = cast[panel.speaker]
-      return hero && !story.heroes.includes(hero) ? { ...panel, speaker: 'Пифик', imageUrl: `${IMG}pifik.jpg` } : panel
+      if (!hero || story.heroes.includes(hero)) return panel
+      // A dropped cast hero's lines go to one chosen new hero (Тимур, Дана), else to Pifik.
+      const stand = (standIn[hero] ??= extras.shift() ?? null)
+      return stand
+        ? { ...panel, speaker: EXTRA_NAMES[stand], imageUrl: `${IMG}${stand}.jpg` }
+        : { ...panel, speaker: 'Пифик', imageUrl: `${IMG}pifik.jpg` }
     }),
   }
 }

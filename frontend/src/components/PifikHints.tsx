@@ -1,4 +1,5 @@
 import { useEffect, useId, useState } from 'react'
+import { HelperFace, useHelperName } from './HelperFace'
 import type { Lang } from '../api'
 import { useHints } from '../hooks'
 import { STRINGS } from '../i18n'
@@ -8,7 +9,7 @@ import { RichText } from './RichText'
 import { PifikSprite } from './PifikSprite'
 
 function PifikAvatar() {
-  return <PifikSprite className="w-12 shrink-0 rounded-full border-[3px] border-ink bg-white" />
+  return <HelperFace className="w-12 border-[3px]"><PifikSprite className="w-12 shrink-0 rounded-full border-[3px] border-ink bg-white" /></HelperFace>
 }
 
 export function PifikHints({ exerciseId, lang, mapHints, savedComicId, structured }: {
@@ -59,6 +60,7 @@ function MapHints({ lang }: { lang: Lang }) {
 
 function SequentialHints({ exerciseId, lang, savedComicId, structured }: { exerciseId: string; lang: Lang; savedComicId?: string; structured: boolean }) {
   const t = STRINGS[lang]
+  const helperName = useHelperName(lang)
   const [initial] = useState(() => savedComicId ? readHintCount(savedComicId, exerciseId) : 0)
   const { hints, revealed, loading, error, hasMore, requestNext } = useHints(exerciseId, lang, initial)
   const loadedCount = hints.length
@@ -77,7 +79,7 @@ function SequentialHints({ exerciseId, lang, savedComicId, structured }: { exerc
             <PifikAvatar />
             <div className="relative rounded-2xl border-[3px] border-ink bg-white px-3 py-2 before:absolute before:top-4 before:-left-[10px] before:h-4 before:w-4 before:rotate-45 before:border-b-[3px] before:border-l-[3px] before:border-ink before:bg-white">
               <p className="text-xs font-black tracking-wide text-sky-700 uppercase">
-                {t.pifikName} · {structured ? (h.step === 1 ? t.hintRule : t.hintSteps) : t.hintN(h.step)}
+                {helperName ?? t.pifikName} · {structured ? (h.step === 1 ? t.hintRule : t.hintSteps) : t.hintN(h.step)}
               </p>
               <p className="font-semibold text-ink">
                 <RichText text={h.text} />
@@ -96,7 +98,7 @@ function SequentialHints({ exerciseId, lang, savedComicId, structured }: { exerc
           onClick={requestNext}
           className="inline-flex min-h-11 items-center gap-2 rounded-full border-[3px] border-ink bg-sky-300 py-1 pr-4 pl-1 font-black text-ink shadow-[0_4px_0_var(--shadow-ink)] transition active:translate-y-[3px] active:shadow-[0_1px_0_var(--shadow-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun"
         >
-          <PifikSprite className="w-8 rounded-full border-2 border-ink bg-white" />
+          <HelperFace className="w-8"><PifikSprite className="w-8 rounded-full border-2 border-ink bg-white" /></HelperFace>
           {buttonLabel}
         </button>
       ) : (

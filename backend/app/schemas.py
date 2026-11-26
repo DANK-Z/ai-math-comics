@@ -161,7 +161,7 @@ class CustomHero(BaseModel):
         return value
 
 
-CastHero = Literal["aldiyar", "aruna", "pifik"]
+CastHero = Literal["aldiyar", "aruna", "pifik", "timur", "dana"]
 
 
 class StoryOptions(BaseModel):
@@ -191,7 +191,18 @@ class StoryOptions(BaseModel):
             # Pifik presents the exercise and gives the hints.
             raise ValueError("pifik is always part of the story")
         names = [hero.name.casefold() for hero in self.customHeroes]
-        reserved = {"пифик", "аруна", "алдияр", "pifik", "aruna", "aldiyar"}
+        reserved = {
+            "пифик",
+            "аруна",
+            "алдияр",
+            "тимур",
+            "дана",
+            "pifik",
+            "aruna",
+            "aldiyar",
+            "timur",
+            "dana",
+        }
         if len(set(names)) != len(names) or reserved & set(names):
             raise ValueError("custom hero names must be unique and differ from the cast")
         if (self.setting == "custom") != bool(self.customSetting):

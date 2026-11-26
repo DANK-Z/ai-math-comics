@@ -37,8 +37,11 @@ CATALOG: dict[str, dict] = {
     "title-fractions": {"type": "title", "price": 25},
     "title-equations": {"type": "title", "price": 25},
     "title-fair-hero": {"type": "title", "price": 35},
+    # Helpers: replace Pifik in hints and boss fights.
+    "helper-gear": {"type": "helper", "price": 80},
+    "helper-sphinx": {"type": "helper", "price": 90},
 }
-WEARABLE = ("skin", "frame", "title")
+WEARABLE = ("skin", "frame", "title", "helper")
 
 
 class ShopItem(BaseModel):
@@ -69,7 +72,7 @@ class EquipRequest(BaseModel):
 
     # A backpack item id, or null to take off what is worn in ``slot``.
     itemId: int | None
-    slot: Literal["skin", "frame", "title"] = "skin"
+    slot: Literal["skin", "frame", "title", "helper"] = "skin"
 
 
 router = APIRouter(prefix="/api/v1")

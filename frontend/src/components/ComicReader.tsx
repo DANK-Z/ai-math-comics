@@ -20,6 +20,7 @@ import { Continuation } from './Continuation'
 import { ExerciseCard } from './ExerciseCard'
 import { PanelArt } from './PanelArt'
 import { PifikHints } from './PifikHints'
+import { useHelperName } from './HelperFace'
 import { BonusPuzzle } from './BonusPuzzle'
 import { YellowFlag } from './BackpackCollection'
 import { PanelEffects, panelEffectFor } from './PanelEffects'
@@ -219,6 +220,8 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
   const isExercisePanel = panel.id === comic.exercise.panelId
   const showCast = comic.id === DEMO_COMIC_ID || !comic.panels.some((p) => p.imageUrl)
   const showHints = isExercisePanel && !exerciseSolved
+  const helperName = useHelperName(lang)
+  const hintsTitle = helperName ? (lang === 'kk' ? `Кеңестер: ${helperName}` : `Подсказки: ${helperName}`) : t.navigation.hints
   const arena = !!boss && isExercisePanel && !bossDefeated
   const showSidebar = showCast || showHints
   const locked = current === maxIndex && maxIndex < total - 1
@@ -428,8 +431,8 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
           <ProgressCard lang={lang} total={total} current={current} maxIndex={maxIndex} exerciseIndex={exerciseIndex}
             solved={solved} boss={boss ? { cleared: bossCleared, rounds: boss.rounds.length } : null} onGoTo={onIndexChange} />
         </div>
-        <aside hidden={!showHints} aria-label={t.navigation.hints} className="rounded-2xl border-2 border-ink bg-cream p-3 shadow-[0_3px_0_var(--shadow-ink)] sm:p-4">
-          <h2 className="mb-3 text-base font-black">{t.navigation.hints}</h2>
+        <aside hidden={!showHints} aria-label={hintsTitle} className="rounded-2xl border-2 border-ink bg-cream p-3 shadow-[0_3px_0_var(--shadow-ink)] sm:p-4">
+          <h2 className="mb-3 text-base font-black">{hintsTitle}</h2>
           <PifikHints key={hintExerciseId} exerciseId={hintExerciseId} lang={lang} mapHints={comicId === SCHOOL_MAP_COMIC_ID}
             structured={!!schoolFairChapter(comicId) || !!operationChapter(comicId)} savedComicId={rememberReading ? comicId : undefined} />
         </aside>

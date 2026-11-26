@@ -5,7 +5,7 @@ import { PORTRAITS } from '../art/sheet'
 import { SECTION_HREFS } from '../route'
 import { errorKey } from './AuthScreen'
 import { PifikSprite } from './PifikSprite'
-import { COSMETICS, frameClass, isCosmetic, type CosmeticKey } from '../cosmetics'
+import { COSMETICS, HELPER_ART, frameClass, isCosmetic, isHelper, type CosmeticKey } from '../cosmetics'
 
 // «Магазин ярмарки»: spend coins on Pifik skins (cosmetics only; Pifik's hints stay free).
 // Prices, balance, ownership and the worn skin are the server's; guests are asked to sign in.
@@ -61,7 +61,7 @@ const COPY: Record<Lang, {
     signIn: 'Магазин и монеты — для учеников с аккаунтом. Монеты копятся за первые прохождения глав, финалов и битв с боссами.',
     signInButton: 'Войти',
     loading: 'Загружаем витрину…',
-    free: 'Подсказки Пифика бесплатны: в магазине только наряды.',
+    free: 'Подсказки всегда бесплатны: в магазине только внешний вид.',
     noSkins: 'Нарядов пока нет. Загляни в магазин ярмарки!',
     toShop: 'В магазин',
     wardrobeLead: 'Надетый наряд Пифик носит везде: в главах, подсказках и битвах.',
@@ -97,7 +97,7 @@ const COPY: Record<Lang, {
     signIn: 'Дүкен мен тиындар — аккаунты бар оқушыларға. Тиындар тараулардан, финалдардан және босстармен шайқастан алғаш өткенде жиналады.',
     signInButton: 'Кіру',
     loading: 'Сөре жүктелуде…',
-    free: 'Пификтің кеңестері тегін: дүкенде тек киімдер.',
+    free: 'Кеңестер әрқашан тегін: дүкенде тек сыртқы көрініс.',
     noSkins: 'Әзірге киім жоқ. Жәрмеңке дүкеніне кіріп шық!',
     toShop: 'Дүкенге',
     wardrobeLead: 'Киген киімін Пифик барлық жерде киеді: тарауларда, кеңестерде және шайқастарда.',
@@ -287,8 +287,8 @@ export function FairShop({ lang }: { lang: Lang }) {
 }
 
 const SHELF = {
-  ru: { title: 'Рамки и звания', lead: 'Рамка украшает карточку героя на главной и в профиле, звание видно под именем. Носить можно одну рамку и одно звание вместе со скином.', frames: 'Рамки', titles: 'Звания', preview: 'Аруна', bought: (n: string) => `Готово! «${n}» куплено — можно надеть.`, worn: (n: string) => `Надето: «${n}».`, off: 'Снято.' },
-  kk: { title: 'Жиектер мен атақтар', lead: 'Жиек басты бет пен профильдегі кейіпкер карточкасын безендіреді, атақ есім астында көрінеді. Скинмен бірге бір жиек пен бір атақ тағуға болады.', frames: 'Жиектер', titles: 'Атақтар', preview: 'Аруна', bought: (n: string) => `Дайын! «${n}» сатып алынды — тағуға болады.`, worn: (n: string) => `Тағылды: «${n}».`, off: 'Шешілді.' },
+  ru: { title: 'Рамки, звания и помощники', lead: 'Рамка украшает карточку героя, звание видно под именем, а помощник подсказывает в главах и сражается с боссами вместо Пифика. Носить можно по одному каждого вида.', frames: 'Рамки', titles: 'Звания', helpers: 'Помощники вместо Пифика', preview: 'Аруна', bought: (n: string) => `Готово! «${n}» куплено — можно надеть.`, worn: (n: string) => `Надето: «${n}».`, off: 'Снято.' },
+  kk: { title: 'Жиектер, атақтар және көмекшілер', lead: 'Жиек кейіпкер карточкасын безендіреді, атақ есім астында көрінеді, ал көмекші тарауларда кеңес беріп, босстармен Пификтің орнына шайқасады. Әр түрден біреуін тағуға болады.', frames: 'Жиектер', titles: 'Атақтар', helpers: 'Пификтің орнына көмекшілер', preview: 'Аруна', bought: (n: string) => `Дайын! «${n}» сатып алынды — тағуға болады.`, worn: (n: string) => `Тағылды: «${n}».`, off: 'Шешілді.' },
 }
 
 /** Frames and titles: cheap cosmetics that need no new Pifik art. */
@@ -304,7 +304,8 @@ function CosmeticsShelf({ lang, shop, busy, act }: {
   const groups = [
     { slot: 'frame' as const, label: s.frames, items: shop.cosmetics.filter((i) => i.type === 'frame' && isCosmetic(i.id)) },
     { slot: 'title' as const, label: s.titles, items: shop.cosmetics.filter((i) => i.type === 'title' && isCosmetic(i.id)) },
-  ]
+    { slot: 'helper' as const, label: s.helpers, items: shop.cosmetics.filter((i) => i.type === 'helper' && isCosmetic(i.id)) },
+  ].filter((group) => group.items.length > 0)
   return (
     <section aria-labelledby={`${id}-title`} className="mt-2 flex flex-col gap-3">
       <h3 id={`${id}-title`} className="text-xl font-black text-ink">✨ {s.title}</h3>
@@ -319,7 +320,11 @@ function CosmeticsShelf({ lang, shop, busy, act }: {
               const missing = item.price - shop.coins
               return (
                 <li key={item.id} className={`flex flex-col gap-2 rounded-2xl border-[3px] border-ink p-3 shadow-[0_4px_0_var(--shadow-ink)] ${item.equipped ? 'bg-sun/40' : 'bg-white'}`}>
-                  {group.slot === 'frame' ? (
+                  {group.slot === 'helper' && isHelper(item.id) ? (
+                    <div className="grid aspect-[4/3] place-items-center rounded-xl bg-sky p-2">
+                      <img src={HELPER_ART[item.id]} alt="" className="h-full max-h-36 object-contain" />
+                    </div>
+                  ) : group.slot === 'frame' ? (
                     <div className={`grid aspect-[4/3] place-items-center rounded-xl bg-sky p-3 ${frameClass(item.id)}`}>
                       <PifikSprite rect={PORTRAITS.pifik} className="aspect-square w-20" />
                     </div>

@@ -1,9 +1,20 @@
 import type { CastHeroId, Lang, StoryOptions, StorySetting, StoryStyle } from './api/types'
+import danaPortrait from './assets/portraits/dana.webp'
+import timurPortrait from './assets/portraits/timur.webp'
 
 // «Моя история»: form state, client-side validation (mirrors backend StoryOptions) and copy.
 
 export const STORY_LIMITS = { heroName: 24, heroDescription: 80, customSetting: 60, premise: 280, customHeroes: 2 } as const
-export const CAST_ORDER: readonly CastHeroId[] = ['pifik', 'aldiyar', 'aruna']
+export const CAST_ORDER: readonly CastHeroId[] = ['pifik', 'aldiyar', 'aruna', 'timur', 'dana']
+/** Pifik and at most two friends (the server takes three cast heroes). */
+export const MAX_FRIENDS = 2
+
+/** Heroes that exist only in «Моя история» (not in the bundled stories). */
+export const EXTRA_HEROES: Record<'timur' | 'dana', { portrait: string; name: Record<Lang, string>; role: Record<Lang, string> }> = {
+  timur: { portrait: timurPortrait, name: { ru: 'Тимур', kk: 'Тимур' }, role: { ru: 'детектив', kk: 'детектив' } },
+  dana: { portrait: danaPortrait, name: { ru: 'Дана', kk: 'Дана' }, role: { ru: 'космобиолог', kk: 'ғарыш биологы' } },
+}
+export const isExtraHero = (hero: CastHeroId): hero is 'timur' | 'dana' => hero in EXTRA_HEROES
 export const STORY_STYLES: readonly StoryStyle[] = ['comic', 'cartoon', 'pixel']
 export const STORY_SETTINGS: readonly StorySetting[] = ['school', 'space', 'forest', 'custom']
 export const SETTING_ICON: Record<StorySetting, string> = { school: '🏫', space: '🚀', forest: '🌲', custom: '✏️' }
@@ -43,7 +54,7 @@ export type StoryErrors = Partial<Record<string, StoryError>>
 
 const ALLOWED = /^[\p{L}\p{M}\s.,!?'"«»()\-—–:;]*$/u
 const LINK = /https?|www\.|\.(?:com|ru|kz|org|net)\b/i
-const RESERVED = new Set(['пифик', 'аруна', 'алдияр', 'pifik', 'aruna', 'aldiyar'])
+const RESERVED = new Set(['пифик', 'аруна', 'алдияр', 'тимур', 'дана', 'pifik', 'aruna', 'aldiyar', 'timur', 'dana'])
 
 /** Same normalization as the server: NFKC and collapsed spaces. */
 export function cleanText(value: string) {
@@ -128,7 +139,7 @@ export const STORY_COPY: Record<
     modes: { express: 'Математический экспресс', story: 'Моя история' },
     lead: 'Придумай героев, стиль, место и начало истории — Пифик встроит в неё задачу.',
     heroesTitle: 'Герои',
-    pifikAlways: 'Пифик всегда рядом: он задаёт задачу и подсказывает.',
+    pifikAlways: 'Пифик всегда рядом: он задаёт задачу и подсказывает. С ним можно взять двух друзей.',
     addHero: 'Добавить своего героя',
     heroN: (n) => `Свой герой ${n}`,
     heroName: 'Имя',
@@ -162,7 +173,7 @@ export const STORY_COPY: Record<
     modes: { express: 'Математикалық экспресс', story: 'Менің оқиғам' },
     lead: 'Кейіпкерлерді, стильді, орынды және оқиғаның басын ойлап тап — Пифик оған есеп қосады.',
     heroesTitle: 'Кейіпкерлер',
-    pifikAlways: 'Пифик әрқашан бірге: ол есеп береді және кеңес айтады.',
+    pifikAlways: 'Пифик әрқашан бірге: ол есеп береді және кеңес айтады. Онымен бірге екі досты алуға болады.',
     addHero: 'Өз кейіпкеріңді қосу',
     heroN: (n) => `Өз кейіпкерім ${n}`,
     heroName: 'Аты',
