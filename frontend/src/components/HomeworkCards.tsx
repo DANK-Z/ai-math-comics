@@ -65,10 +65,10 @@ export const HOMEWORK_COPY = {
   },
 }
 
-const formatDate = (iso: string, lang: Lang) =>
+export const formatDate = (iso: string, lang: Lang) =>
   dayMonth(new Date(`${iso}T00:00:00`), lang)
 
-function homeworkTitle(kind: HomeworkKind, target: string, lang: Lang) {
+export function homeworkTitle(kind: HomeworkKind, target: string, lang: Lang) {
   if (kind === 'chapter') return chapterTitle(target, lang)
   const topics = CLASSROOM_COPY[lang].board.topics
   return HOMEWORK_COPY[lang].drill(topics[target as keyof typeof topics] ?? target)

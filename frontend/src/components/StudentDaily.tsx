@@ -35,6 +35,7 @@ const COPY = {
     when: (d: string) => `с ${d}`,
     solveAgain: 'Решить снова',
     train: 'Потренироваться',
+    optional: 'по желанию',
   },
   kk: {
     title: 'Күн есебі',
@@ -57,13 +58,14 @@ const COPY = {
     when: (d: string) => `${d} бастап`,
     solveAgain: 'Қайта шешу',
     train: 'Жаттығу',
+    optional: 'қалауың бойынша',
   },
 }
 
 const CARD = 'rounded-2xl border-[3px] border-ink bg-white p-3 shadow-[0_4px_0_var(--shadow-ink)] sm:p-4'
 
 /** One problem a day; the streak and the next bonus on top. */
-export function DailyCard({ lang }: { lang: Lang }) {
+export function DailyCard({ lang, embedded = false, onSolved }: { lang: Lang; embedded?: boolean; onSolved?: (solved: boolean) => void }) {
   const copy = COPY[lang]
   const account = useAccount()
   const student = account.user?.role === 'student'
@@ -80,6 +82,10 @@ export function DailyCard({ lang }: { lang: Lang }) {
     accounts.daily(lang, ctrl.signal).then(setTask, (err) => { if (!isAbortError(err)) setTask(null) })
     return () => ctrl.abort()
   }, [student, lang])
+
+  useEffect(() => {
+    if (task) onSolved?.(task.solved)
+  }, [task, onSolved])
 
   if (!student || !task) return null
 
@@ -106,9 +112,11 @@ export function DailyCard({ lang }: { lang: Lang }) {
 
   const left = task.nextBonus ? task.nextBonus.days - task.streak : 0
   return (
-    <section className={`${CARD} bg-[linear-gradient(135deg,#fff8e1,#e8f4ff)]`} aria-labelledby={`${id}-title`}>
+    <section className={embedded ? 'rounded-xl border-2 border-ink/25 bg-[linear-gradient(135deg,#fff8e1,#e8f4ff)] p-3' : `${CARD} bg-[linear-gradient(135deg,#fff8e1,#e8f4ff)]`} aria-labelledby={`${id}-title`}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 id={`${id}-title`} className="flex items-center gap-2 text-lg font-black text-ink"><span aria-hidden>📅</span>{copy.title}</h2>
+        {embedded
+          ? <h3 id={`${id}-title`} className="flex items-center gap-2 font-black text-ink"><span aria-hidden>{task.solved ? '✅' : '📅'}</span>{copy.title}</h3>
+          : <h2 id={`${id}-title`} className="flex items-center gap-2 text-lg font-black text-ink"><span aria-hidden>📅</span>{copy.title}</h2>}
         <p className="font-black text-orange-700">{copy.streak(task.streak)}</p>
       </div>
       {task.nextBonus && (
@@ -145,7 +153,7 @@ export function DailyCard({ lang }: { lang: Lang }) {
 }
 
 /** Past mistakes that came back: a chapter to solve again or a skill to drill. */
-export function ReviewCard({ lang }: { lang: Lang }) {
+export function ReviewCard({ lang, embedded = false }: { lang: Lang; embedded?: boolean }) {
   const copy = COPY[lang]
   const student = useAccount().user?.role === 'student'
   const [items, setItems] = useState<ReviewItem[]>([])
@@ -160,10 +168,12 @@ export function ReviewCard({ lang }: { lang: Lang }) {
   if (!student || !items.length) return null
   const topics = CLASSROOM_COPY[lang].board.topics as Record<string, string>
   return (
-    <section className={CARD} aria-labelledby="review-title">
-      <h2 id="review-title" className="flex items-center gap-2 text-lg font-black text-ink"><span aria-hidden>🔁</span>{copy.reviewTitle}</h2>
-      <p className="mt-1 text-sm font-semibold text-ink/80">{copy.reviewLead}</p>
-      <ul className="mt-3 flex flex-col gap-2">
+    <section className={embedded ? '' : CARD} aria-labelledby="review-title">
+      {embedded
+        ? <h3 id="review-title" className="flex items-center gap-2 font-black text-ink"><span aria-hidden>🔁</span>{copy.reviewTitle} <span className="text-xs font-bold text-ink/60">· {copy.optional}</span></h3>
+        : <h2 id="review-title" className="flex items-center gap-2 text-lg font-black text-ink"><span aria-hidden>🔁</span>{copy.reviewTitle}</h2>}
+      {!embedded && <p className="mt-1 text-sm font-semibold text-ink/80">{copy.reviewLead}</p>}
+      <ul className={`${embedded ? 'mt-1.5' : 'mt-3'} flex flex-col gap-2`}>
         {items.map((item) => {
           const chapter = item.kind === 'chapter' && item.comicId
           const skill = item.skill ? skillCopy(lang, item.skill)?.review : null

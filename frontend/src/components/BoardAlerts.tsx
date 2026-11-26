@@ -16,13 +16,21 @@ const LESSON_ALERT = {
 const HOME_POLL_MS = 20000
 
 /** Home page: a bright card while the class has a battle going. */
-export function BattleAlert({ lang }: { lang: Lang }) {
+export function BattleAlert({ lang, compact = false }: { lang: Lang; compact?: boolean }) {
   const copy = CLASSROOM_COPY[lang].battle
   const user = useAccount().user
   const inClass = user?.role === 'student' && !!user.schoolClass
   const load = useCallback((signal: AbortSignal) => accounts.myBattle(lang, signal), [lang])
   const { value: battle } = usePolled(load, HOME_POLL_MS, inClass)
   if (!inClass || !battle || battle.status !== 'active') return null
+  if (compact) {
+    // A lesson is on the board: the battle waits as a small link under it.
+    return (
+      <a href={SECTION_HREFS.battle} className="inline-flex w-fit items-center gap-2 self-start rounded-full border-2 border-ink bg-white px-3 py-1 text-sm font-black text-ink hover:bg-rose-50 focus-visible:outline-3 focus-visible:outline-brand">
+        <span aria-hidden>⚔️</span>{copy.alertTitle} <span className="font-bold text-ink/70">{battle.hp} / {battle.maxHp} HP</span> →
+      </a>
+    )
+  }
   return (
     <a href={SECTION_HREFS.battle} className="boss-arena flex items-center gap-3 rounded-2xl border-[3px] border-ink bg-[linear-gradient(135deg,#2a1f6b,#e11d48)] p-3 text-white shadow-[0_4px_0_var(--shadow-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sun">
       <span aria-hidden className="text-3xl">⚔️</span>

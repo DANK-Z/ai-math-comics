@@ -7,8 +7,7 @@ import { usePolled } from '../usePolled'
 import { BattleAlert, LessonAlert } from './BoardAlerts'
 import { StudentAssignments } from './ClassAssignments'
 import { ClassLeague } from './ClassLeague'
-import { MyHomeworkCard } from './HomeworkCards'
-import { DailyCard, ReviewCard } from './StudentDaily'
+import { TodayCard } from './TodayCard'
 
 // «Мой класс»: everything the student does together with the class in one place. A lesson or a
 // battle in progress, homework and the teacher's assignments, and the weekly class league.
@@ -88,25 +87,26 @@ export function ClassScreen({ lang }: { lang: Lang }) {
 
 /** The class page of a student in a class: live alerts on top, then two balanced columns. */
 function StudentClass({ lang }: { lang: Lang }) {
-  const load = useCallback((signal: AbortSignal) => accounts.myBattle(lang, signal), [lang])
-  const { value: battle } = usePolled(load, 15000, true)
-  const live = battle?.status === 'active'
+  const loadBattle = useCallback((signal: AbortSignal) => accounts.myBattle(lang, signal), [lang])
+  const { value: battle } = usePolled(loadBattle, 15000, true)
+  const loadLesson = useCallback((signal: AbortSignal) => accounts.myLesson(signal), [])
+  const { value: lesson } = usePolled(loadLesson, 20000, true)
+  const battleLive = battle?.status === 'active'
   return (
-      <>
-        <LessonAlert lang={lang} />
-        {live && <BattleAlert lang={lang} />}
-        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-          <div className="flex min-w-0 flex-col gap-4">
-            <DailyCard lang={lang} />
-            <MyHomeworkCard lang={lang} />
-            <ReviewCard lang={lang} />
-            <StudentAssignments lang={lang} />
-            {!live && <BattleIdle lang={lang} />}
-          </div>
-          <div className="flex min-w-0 flex-col gap-4">
-            <ClassLeague lang={lang} limit={6} />
-          </div>
+    <>
+      {/* What is happening right now: one bright banner (the lesson first), the battle as a chip under it. */}
+      {lesson && <LessonAlert lang={lang} />}
+      {battleLive && <BattleAlert lang={lang} compact={!!lesson} />}
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+        <div className="flex min-w-0 flex-col gap-4">
+          <TodayCard lang={lang} />
+          <StudentAssignments lang={lang} />
+          {!battleLive && <BattleIdle lang={lang} />}
         </div>
-      </>
+        <div className="flex min-w-0 flex-col gap-4">
+          <ClassLeague lang={lang} limit={3} />
+        </div>
+      </div>
+    </>
   )
 }

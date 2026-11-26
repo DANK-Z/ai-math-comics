@@ -212,7 +212,7 @@ test('homework: the teacher sets a chapter, it is marked done once the student s
   await page.getByLabel('Твой ответ').fill('4')
   await page.getByRole('button', { name: 'Проверить' }).click()
   await page.goto('/#/class')
-  await expect(page.getByRole('link', { name: /Флажок на колёсах.*сделано/ })).toBeVisible()
+  await expect(page.getByText('✅ Домашнее задание: Сделано: 1')).toBeVisible()
 
   await page.evaluate(() => localStorage.setItem('amc.auth.token', 'mock-2'))
   await page.reload()
