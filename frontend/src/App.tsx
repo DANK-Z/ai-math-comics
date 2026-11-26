@@ -6,7 +6,6 @@ import logoDarkUrl from './assets/logo-dark.webp'
 import { AccountProvider, useAccount } from './account'
 import { ACCOUNT_COPY } from './accountCopy'
 import { AuthScreen } from './components/AuthScreen'
-import { BackpackCollection } from './components/BackpackCollection'
 import { CatalogScreen, HomeScreen } from './components/HomeScreen'
 import { LanguageSwitcher } from './components/LanguageSwitcher'
 import { FINALE_WON_EVENT, FINALES, finaleWon } from './finales'
@@ -48,6 +47,7 @@ const JoinScreen = lazy(() => import('./components/JoinScreen').then((m) => ({ d
 const MotionLeague = lazy(() => import('./components/MotionLeague'))
 const GuardianScreen = lazy(() => import('./components/GuardianScreen'))
 const MyComicsScreen = lazy(() => import('./components/MyComicsScreen'))
+const BackpackCollection = lazy(() => import('./components/BackpackCollection').then((m) => ({ default: m.BackpackCollection })))
 
 function AssignedGuardian({ assignment, remaining, lang }: { assignment: GuardianAssignment; remaining: number; lang: Lang }) {
   const challenge = useGuardianChallenge(assignment)

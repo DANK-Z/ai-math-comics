@@ -1,5 +1,5 @@
 import { useId, useState, type FormEvent } from 'react'
-import { FamilyCodeCard } from './ParentScreen'
+import { FamilyCodeCard } from './ParentCards'
 import type { Lang } from '../api'
 import { useAccount } from '../account'
 import { ACCOUNT_COPY } from '../accountCopy'

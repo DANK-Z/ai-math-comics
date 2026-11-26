@@ -6,6 +6,7 @@ import { OPERATIONS, operationHref, type Operation, type OperationChapter } from
 import { comicHref } from '../route'
 import { PifikSprite } from './PifikSprite'
 import { COSMETICS, frameClass, isCosmetic } from '../cosmetics'
+import { CardImage } from './CardImage'
 import { PORTRAITS } from '../art/sheet'
 
 // The first tab: one big scene that says what to do now. Pifik greets the student, the next
@@ -140,7 +141,7 @@ export function HomeHero({ lang, progress, finalesWon }: { lang: Lang; progress:
               <li key={op.id} className="w-40 shrink-0 snap-start sm:w-44">
                 <a href={operationHref(op.id)}
                   className={`block overflow-hidden rounded-2xl border-[3px] bg-white shadow-[0_3px_0_var(--shadow-ink)] transition hover:-translate-y-0.5 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand ${current ? 'border-ink ring-4 ring-sun' : 'border-ink/70'}`}>
-                  <img src={chapterArt(op.chapters[0]?.comicId)} alt="" loading="lazy" className="aspect-[16/10] w-full object-cover" />
+                  <CardImage src={chapterArt(op.chapters[0]?.comicId)} sizes="(min-width: 1024px) 200px, 45vw" className="aspect-[16/10] w-full object-cover" />
                   <span className="block px-2.5 pt-1.5 pb-2">
                     <span className="line-clamp-2 block min-h-10 text-sm leading-tight font-black text-ink">{op.icon} {op.title[lang].replace(/^Операция |операциясы$/g, '').replace(/[«»]/g, '').trim()}</span>
                     <span className="mt-1 block h-2 overflow-hidden rounded-full bg-ink/10">

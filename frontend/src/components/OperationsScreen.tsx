@@ -8,6 +8,7 @@ import roadsCover from '../assets/roads/cover.webp'
 import weatherCover from '../assets/weather/units-1.webp'
 import burabayCover from '../assets/burabay/trail-4.webp'
 import { OPERATIONS, operationHref, type Operation } from '../operations'
+import { CardImage } from './CardImage'
 import { comicHref, SECTION_HREFS } from '../route'
 
 // The stories (the School Fair and the operations after it): a list of seasons and one page
@@ -70,7 +71,7 @@ function Cover({ operation, className = '' }: { operation: Operation; className?
   return (
     <div aria-hidden className={`relative overflow-hidden bg-gradient-to-br ${TINTS[operation.id] ?? 'from-sky-200 to-sun/40'} ${className}`}>
       {src
-        ? <img src={src} alt="" className="h-full w-full object-cover" />
+        ? <CardImage src={src} sizes="(min-width: 1024px) 340px, 95vw" className="h-full w-full object-cover" />
         : <span className="absolute inset-0 grid place-items-center text-6xl">{operation.icon}</span>}
     </div>
   )

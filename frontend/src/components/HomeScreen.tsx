@@ -16,7 +16,8 @@ import { BattleAlert, LessonAlert } from './BoardAlerts'
 import { WeakSpotCard } from './PracticeScreen'
 import { DailyCard } from './StudentDaily'
 import { HomeHero } from './HomeHero'
-import { PraiseInbox } from './ParentScreen'
+import { CardImage } from './CardImage'
+import { PraiseInbox } from './ParentCards'
 
 /** How a cover is cropped in its card: box aspect ratio + CSS object-position focal point. */
 interface Framing {
@@ -94,7 +95,7 @@ function CatalogCard({ entry, lang, t, completed }: {
         style={vars}
         className="relative aspect-(--ar-phone) overflow-hidden rounded-xl border-[5px] border-ink bg-sky-100 transition group-hover:-translate-y-0.5 sm:aspect-(--ar-wide)"
       >
-        <img src={entry.cover} alt="" className="h-full w-full object-cover object-(--focus-phone) sm:object-(--focus-wide)" />
+        <CardImage src={entry.cover} sizes="(min-width: 1280px) 300px, (min-width: 640px) 45vw, 95vw" className="h-full w-full object-cover object-(--focus-phone) sm:object-(--focus-wide)" />
         <p className="absolute top-2 left-2 flex flex-wrap gap-1.5">
           <span className="rounded-lg border-[3px] border-ink bg-sun px-2.5 py-0.5 text-sm font-black text-ink shadow-[0_2px_0_var(--shadow-ink)]">
             {t.catalogTopics[entry.topic]}
