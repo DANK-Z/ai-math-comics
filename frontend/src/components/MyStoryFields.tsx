@@ -26,7 +26,7 @@ const STYLE_PREVIEW: Record<StoryStyle, string> = { comic: comicPreview, cartoon
 // Choice cards follow the 16px card / yellow + ✓ selection pattern.
 const CHOICE =
   'group relative flex cursor-pointer flex-col items-center gap-2 rounded-2xl border-[3px] border-ink bg-white p-2 text-center font-black text-ink shadow-[0_3px_0_var(--shadow-ink)] transition select-none hover:bg-sky has-checked:translate-y-[2px] has-checked:bg-sun has-checked:shadow-[0_1px_0_var(--shadow-ink)] has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-brand has-disabled:cursor-default has-[input:disabled:not(:checked)]:opacity-50'
-const CHECK = 'absolute top-1.5 right-1.5 hidden size-6 place-items-center rounded-full border-2 border-ink bg-white text-sm group-has-checked:grid'
+const CHECK = 'absolute top-1.5 right-1.5 z-10 hidden size-6 place-items-center rounded-full border-2 border-ink bg-white text-sm group-has-checked:grid'
 const INPUT =
   'min-h-11 w-full min-w-0 rounded-xl border-[3px] border-ink bg-white px-3 py-2 font-semibold text-ink placeholder:font-normal placeholder:text-ink/50 focus-visible:outline-3 focus-visible:outline-offset-1 focus-visible:outline-brand aria-invalid:border-rose-600'
 
