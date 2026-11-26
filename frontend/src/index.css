@@ -68,6 +68,7 @@ html {
 /* Light hard-coded tints. */
 :root[data-theme='dark'] [class*='bg-[#fff2bd]'] { background: #3d3414; }
 :root[data-theme='dark'] [class*='bg-[linear-gradient(120deg,#d9f2e6'],
+:root[data-theme='dark'] [class*='bg-[linear-gradient(135deg,#ffe4ec'],
 :root[data-theme='dark'] [class*='bg-[linear-gradient(135deg,#fff4d1'] {
   background: #1f2858;
 }
@@ -694,3 +695,10 @@ html {
 @media (prefers-reduced-motion: reduce) {
   .celebration { display: none; }
 }
+
+/* The family plan card: a warm gold card by day, a deep gold one at night (text stays light). */
+:root[data-theme='dark'] .plan-card { background: linear-gradient(135deg, #3a300f, #4d3c0c); }
+
+/* The boss-triumph header stays gold at night, so its text stays dark (the close button keeps its own colours). */
+:root[data-theme='dark'] [class*='bg-[radial-gradient(circle_at_50%_70%,#fff6c7'] { color: #1d2766; }
+:root[data-theme='dark'] [class*='bg-[radial-gradient(circle_at_50%_70%,#fff6c7'] button { color: var(--color-ink); }

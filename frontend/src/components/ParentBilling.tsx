@@ -124,7 +124,7 @@ export function FamilyPlanCard({ lang, billing, onChange, onPlan }: {
   }
 
   return (
-    <section aria-label={c.plan} className="rounded-2xl border-[3px] border-ink bg-[linear-gradient(135deg,#fff6d6,#ffe08a)] p-4 text-ink shadow-[0_4px_0_var(--shadow-ink)] sm:p-5">
+    <section aria-label={c.plan} className="plan-card rounded-2xl border-[3px] border-ink bg-[linear-gradient(135deg,#fff6d6,#ffe08a)] p-4 text-ink shadow-[0_4px_0_var(--shadow-ink)] sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <h2 className="text-2xl font-black">⭐ {c.plan}</h2>
@@ -138,7 +138,7 @@ export function FamilyPlanCard({ lang, billing, onChange, onPlan }: {
       {billing.plan && billing.paidUntil && (
         <p className="mt-3 w-fit rounded-lg border-2 border-emerald-700 bg-emerald-100 px-2 py-0.5 font-black text-emerald-900">{c.active(dayMonth(new Date(billing.paidUntil), lang))}</p>
       )}
-      <button type="button" disabled={busy} onClick={buy} className={`${BUY} mt-3 bg-white`}>{billing.plan ? c.extend : c.buyPlan}</button>
+      <button type="button" disabled={busy} onClick={buy} className={`${BUY.replace('bg-sun', 'bg-white')} mt-3`}>{billing.plan ? c.extend : c.buyPlan}</button>
       {status && <p role="status" className={`mt-2 font-bold ${status.ok ? 'text-emerald-700' : 'text-rose-700'}`}>{status.ok ? '✓ ' : ''}{status.text}</p>}
       <p className="mt-2 text-sm font-semibold text-ink/70">{c.free}</p>
       {billing.mode === 'test' && <TestNote lang={lang} />}
