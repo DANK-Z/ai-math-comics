@@ -48,8 +48,17 @@ def test_leaderboard_ranks_the_class_by_this_weeks_earnings(env):
     assert board.json()["classSize"] == 3
 
     # Spending in the shop does not change the weekly table.
-    client.post("/api/v1/shop/buy", json={"itemId": "smart-glasses"}, headers=auth(aldiyar))
+    bought = client.post(
+        "/api/v1/shop/buy", json={"itemId": "smart-glasses"}, headers=auth(aldiyar)
+    )
     assert client.get("/api/me/leaderboard", headers=auth(dana)).json()["rows"][0]["coins"] == 40
+    # Classmates see what Aldiyar wears: the skin he put on (no frame or title yet).
+    glasses = next(i for i in bought.json()["items"] if i["id"] == "smart-glasses")
+    client.post(
+        "/api/v1/backpack/equip", json={"itemId": glasses["backpackItemId"]}, headers=auth(aldiyar)
+    )
+    top = client.get("/api/me/leaderboard", headers=auth(dana)).json()["rows"][0]
+    assert (top["skin"], top["frame"], top["title"]) == ("smart-glasses", None, None)
 
     # The teacher sees the same table; other teachers and classless students see nothing.
     class_id = client.get("/api/teacher/classes", headers=auth(teacher_token)).json()[0]["id"]

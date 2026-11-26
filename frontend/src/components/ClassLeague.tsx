@@ -2,6 +2,9 @@ import { useEffect, useId, useState } from 'react'
 import { accounts, isAbortError, type Lang, type Leaderboard, type LeaderRow } from '../api'
 import { useAccount } from '../account'
 import { CLASSROOM_COPY } from '../classroomCopy'
+import { PORTRAITS } from '../art/sheet'
+import { COSMETICS, frameClass, isCosmetic } from '../cosmetics'
+import { PifikSprite } from './PifikSprite'
 
 // Weekly class league: classmates ranked by stars, then coins earned this week. Students see
 // it on the home page; teachers on the class page. Only the student's own class is shown.
@@ -28,16 +31,25 @@ export function LeagueTable({ board, lang }: { board: Leaderboard; lang: Lang })
         <li
           key={`${row.rank}-${row.name}-${row.me}`}
           aria-current={row.me ? 'true' : undefined}
-          className={`grid grid-cols-[1.75rem_minmax(0,1fr)_auto_auto] items-center gap-2 rounded-xl border-2 px-2 py-1 text-sm font-bold ${
+          className={`grid grid-cols-[1.75rem_2.5rem_minmax(0,1fr)_auto_auto] items-center gap-2 rounded-xl border-2 px-2 py-1 text-sm font-bold ${
             row.me ? 'border-ink bg-sun' : 'border-transparent bg-sky-50'
           }`}
         >
           <span className={`grid size-7 place-items-center rounded-full text-xs font-black ${row.rank <= 3 ? 'border-2 border-ink bg-white' : 'text-ink/60'}`}>
             {row.rank <= 3 ? ['🥇', '🥈', '🥉'][row.rank - 1] : row.rank}
           </span>
-          <span className="truncate">
-            {row.name}
-            {row.me && <span className="ml-1 rounded-md bg-ink px-1 text-[11px] text-white">{copy.you}</span>}
+          <PifikSprite rect={PORTRAITS.pifikFace} skin={row.skin ?? null} eager
+            className={`aspect-square w-10 overflow-hidden rounded-full border-2 border-ink bg-sky ${row.frame ? `league-frame ${frameClass(row.frame)}` : ''}`} />
+          <span className="min-w-0">
+            <span className="block truncate">
+              {row.name}
+              {row.me && <span className="ml-1 rounded-md bg-ink px-1 text-[11px] text-white">{copy.you}</span>}
+            </span>
+            {row.title && isCosmetic(row.title) && (
+              <span className="mt-0.5 block w-fit max-w-full truncate rounded-full border border-ink/60 bg-sun/70 px-1.5 text-[11px] leading-tight font-black text-ink">
+                {COSMETICS[row.title].icon} {COSMETICS[row.title].name[lang]}
+              </span>
+            )}
           </span>
           <span className="tabular-nums" title={copy.stars}><span aria-hidden>⭐</span> {row.stars}<span className="sr-only"> {copy.stars}</span></span>
           <span className="w-14 text-right tabular-nums" title={copy.coins}><span aria-hidden>🪙</span> {row.coins}<span className="sr-only"> {copy.coins}</span></span>

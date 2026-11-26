@@ -81,13 +81,9 @@ export function ClassScreen({ lang }: { lang: Lang }) {
       <>
         <LessonAlert lang={lang} />
         <BattleSlot lang={lang} />
-        <div className="grid items-start gap-5 lg:grid-cols-2">
-          <div className="flex flex-col gap-5">
-            <MyHomeworkCard lang={lang} />
-            <StudentAssignments lang={lang} />
-          </div>
-          <ClassLeague lang={lang} />
-        </div>
+        <MyHomeworkCard lang={lang} />
+        <StudentAssignments lang={lang} />
+        <div className="max-w-3xl"><ClassLeague lang={lang} /></div>
       </>
     )
   }

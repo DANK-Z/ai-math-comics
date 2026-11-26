@@ -23,7 +23,16 @@ from sqlalchemy import case, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .auth import Session, current_student, current_teacher
-from .db import BattleTask, BossResult, ClassBattle, ProgressReward, Role, SchoolClass, User
+from .db import (
+    BackpackItem,
+    BattleTask,
+    BossResult,
+    ClassBattle,
+    ProgressReward,
+    Role,
+    SchoolClass,
+    User,
+)
 from .practice import Topic, answer_format, check, from_stored, make_problem
 from .presence import Present, present, touch
 from .schemas import Language
@@ -69,6 +78,10 @@ class LeaderRow(BaseModel):
     coins: int
     cleanWins: int
     me: bool = False
+    # What the student wears from the fair shop: Pifik's skin, the avatar frame and the title.
+    skin: str | None = None
+    frame: str | None = None
+    title: str | None = None
 
 
 class Leaderboard(BaseModel):
@@ -107,6 +120,17 @@ async def build_leaderboard(session: AsyncSession, school_class: SchoolClass, me
         )
         for student_id, total in rewards:
             coins[student_id] += int(total or 0)
+    worn: dict[int, dict[str, str]] = {}
+    if ids:
+        items = await session.execute(
+            select(BackpackItem.student_id, BackpackItem.item_type, BackpackItem.item_key).where(
+                BackpackItem.student_id.in_(ids),
+                BackpackItem.is_equipped.is_(True),
+                BackpackItem.item_type.in_(("skin", "frame", "title")),
+            )
+        )
+        for student_id, kind, key in items:
+            worn.setdefault(student_id, {})[kind] = key
     ordered = sorted(
         students,
         key=lambda s: (-stars[s.id], -coins[s.id], -clean[s.id], s.display_name.casefold()),
@@ -126,6 +150,7 @@ async def build_leaderboard(session: AsyncSession, school_class: SchoolClass, me
                 coins=score[1],
                 cleanWins=score[2],
                 me=student.id == me_id,
+                **worn.get(student.id, {}),
             )
         )
     shown = rows[:LEADERBOARD_SIZE] + [r for r in rows[LEADERBOARD_SIZE:] if r.me]

@@ -267,6 +267,10 @@ export interface LeaderRow {
   coins: number
   cleanWins: number
   me: boolean
+  /** What the student wears from the fair shop (shown next to the name). */
+  skin?: SkinKey | null
+  frame?: string | null
+  title?: string | null
 }
 
 export interface Leaderboard {

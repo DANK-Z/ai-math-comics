@@ -11,6 +11,7 @@ export interface MockStudent {
   displayName: string
   classId?: number
   rewards?: string[]
+  skins?: { key: string; equipped: boolean; type?: 'skin' | 'frame' | 'title' | 'helper' }[]
 }
 
 export interface MockBattle {
@@ -33,10 +34,10 @@ export const BATTLE_HP = [300, 600, 1000]
 const DEMO_HIT_MS = 3500
 
 const DEMO_CLASSMATES: Omit<LeaderRow, 'rank' | 'me'>[] = [
-  { name: 'Аружан Б.', stars: 9, coins: 150, cleanWins: 2 },
-  { name: 'Ерасыл К.', stars: 6, coins: 110, cleanWins: 1 },
-  { name: 'Мадина С.', stars: 6, coins: 95, cleanWins: 2 },
-  { name: 'Тимур А.', stars: 3, coins: 60, cleanWins: 0 },
+  { name: 'Аружан Б.', stars: 9, coins: 150, cleanWins: 2, skin: 'kalpak', frame: 'frame-gold', title: 'title-fair-hero' },
+  { name: 'Ерасыл К.', stars: 6, coins: 110, cleanWins: 1, skin: 'racer-helmet', title: 'title-equations' },
+  { name: 'Мадина С.', stars: 6, coins: 95, cleanWins: 2, skin: 'smart-glasses', frame: 'frame-space' },
+  { name: 'Тимур А.', stars: 3, coins: 60, cleanWins: 0, title: 'title-explorer' },
   { name: 'Айлин Ж.', stars: 3, coins: 45, cleanWins: 1 },
   { name: 'Нурсултан Е.', stars: 0, coins: 25, cleanWins: 0 },
 ]
@@ -45,6 +46,12 @@ const DEMO_FIGHTERS = DEMO_CLASSMATES.map((c) => c.name)
 export function shortName(displayName: string) {
   const [first, second] = displayName.trim().split(/\s+/)
   return second ? `${first} ${second[0]}.` : first || '?'
+}
+
+/** The skin, frame and title a demo student wears (same as the server sends). */
+function worn(u: MockStudent): Pick<LeaderRow, 'skin' | 'frame' | 'title'> {
+  const on = (type: 'skin' | 'frame' | 'title') => u.skins?.find((s) => s.equipped && (s.type ?? 'skin') === type)?.key ?? null
+  return { skin: on('skin') as LeaderRow['skin'], frame: on('frame'), title: on('title') }
 }
 
 export function demoLeaderboard(students: MockStudent[], schoolClass: ClassInfo, meId: number | null): Leaderboard {
@@ -56,6 +63,7 @@ export function demoLeaderboard(students: MockStudent[], schoolClass: ClassInfo,
       coins: (u.rewards ?? []).reduce((sum, key) => sum + (PROGRESS_REWARDS[key] ?? 0), 0),
       cleanWins: 0,
       me: u.id === meId,
+      ...worn(u),
     }))
   const all = [...DEMO_CLASSMATES.map((r) => ({ ...r, me: false })), ...real].sort(
     (a, b) => b.stars - a.stars || b.coins - a.coins || b.cleanWins - a.cleanWins || a.name.localeCompare(b.name),

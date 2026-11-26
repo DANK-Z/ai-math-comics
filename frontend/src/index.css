@@ -702,3 +702,6 @@ html {
 /* The boss-triumph header stays gold at night, so its text stays dark (the close button keeps its own colours). */
 :root[data-theme='dark'] [class*='bg-[radial-gradient(circle_at_50%_70%,#fff6c7'] { color: #1d2766; }
 :root[data-theme='dark'] [class*='bg-[radial-gradient(circle_at_50%_70%,#fff6c7'] button { color: var(--color-ink); }
+
+/* Frames in the class league: the same colours, thinner, to fit a 40px avatar. */
+.league-frame { border-width: 3px; box-shadow: 0 0 0 2px #1d2766; }
