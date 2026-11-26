@@ -17,7 +17,7 @@ import { WeakSpotCard } from './PracticeScreen'
 import { DailyCard } from './StudentDaily'
 import { HomeHero } from './HomeHero'
 import { CardImage } from './CardImage'
-import { PraiseInbox } from './ParentCards'
+import { MyChallengesCard, PraiseInbox } from './ParentCards'
 
 /** How a cover is cropped in its card: box aspect ratio + CSS object-position focal point. */
 interface Framing {
@@ -140,6 +140,7 @@ export function HomeScreen({ lang, progress, finalesWon }: {
       <LessonAlert lang={lang} />
       <BattleAlert lang={lang} />
       <PraiseInbox lang={lang} />
+      <MyChallengesCard lang={lang} />
       <HomeHero lang={lang} progress={progress} finalesWon={finalesWon} />
       <div className="grid items-start gap-4 empty:hidden lg:grid-cols-2">
         <DailyCard lang={lang} />

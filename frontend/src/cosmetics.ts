@@ -5,7 +5,7 @@ import sphinxArt from './assets/helpers/sphinx.webp'
 // Frames (around the hero card's picture) and titles (under the student's name) from the fair
 // shop. Prices here only feed demo mode: on the server the catalog in backend/app/shop.py rules.
 
-export type FrameKey = 'frame-sunny' | 'frame-steppe' | 'frame-space' | 'frame-gold'
+export type FrameKey = 'frame-sunny' | 'frame-steppe' | 'frame-space' | 'frame-gold' | 'frame-fire'
 export type TitleKey = 'title-explorer' | 'title-fractions' | 'title-equations' | 'title-fair-hero'
 export type HelperKey = 'helper-gear' | 'helper-sphinx'
 export type CosmeticKey = FrameKey | TitleKey | HelperKey
@@ -13,6 +13,8 @@ export type CosmeticKey = FrameKey | TitleKey | HelperKey
 interface Cosmetic {
   slot: 'frame' | 'title' | 'helper'
   price: number
+  /** Not for sale: a parent's gift for a five-day practice streak. */
+  gift?: boolean
   icon: string
   name: Record<Lang, string>
   about: Record<Lang, string>
@@ -40,6 +42,11 @@ export const COSMETICS: Record<CosmeticKey, Cosmetic> = {
     slot: 'frame', price: 80, icon: '🏆',
     name: t('Золотая рамка', 'Алтын жиек'),
     about: t('Рамка чемпиона: видна издалека.', 'Чемпион жиегі: алыстан көрінеді.'),
+  },
+  'frame-fire': {
+    slot: 'frame', price: 0, gift: true, icon: '🔥',
+    name: t('Огненная серия', 'Отты серия'),
+    about: t('Редкая рамка — подарок от родителей за 5 дней занятий подряд. В магазине не продаётся.', 'Сирек жиек — қатарынан 5 күн айналысқаның үшін ата-анаңнан сыйлық. Дүкенде сатылмайды.'),
   },
   'title-explorer': {
     slot: 'title', price: 20, icon: '🧭',

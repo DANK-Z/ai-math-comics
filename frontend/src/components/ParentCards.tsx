@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { accounts, type CardKind, type Lang, type PraiseCard } from '../api'
+import { accounts, isAbortError, type CardKind, type Challenge, type ChallengeKind, type Lang, type PraiseCard } from '../api'
+import { ACCOUNT_COPY } from '../accountCopy'
 import { useAccount } from '../account'
 import { CARD, PRIMARY } from './AuthScreen'
 
@@ -14,6 +15,7 @@ export const PRAISE: Record<CardKind, { icon: string; text: Record<Lang, string>
   star: { icon: '⭐', text: t('Ты моя звёздочка!', 'Сен менің жұлдызымсың!') },
   gift: { icon: '🎁', text: t('Подарок для магазина ярмарки', 'Жәрмеңке дүкеніне сыйлық') },
   coins: { icon: '🪙', text: t('Монеты для магазина ярмарки — трать с умом!', 'Жәрмеңке дүкеніне тиындар — ақылмен жұмса!') },
+  streak: { icon: '🔥', text: t('Редкая рамка «Огненная серия» — за 5 дней занятий подряд! Надень её в рюкзаке.', '«Отты серия» сирек жиегі — қатарынан 5 күн айналысқаның үшін! Оны рюкзакта киіп ал.') },
 }
 
 const STUDENT = {
@@ -68,6 +70,67 @@ export function PraiseInbox({ lang }: { lang: Lang }) {
       <button type="button" onClick={async () => { await accounts.praiseSeen(); setCards([]); refresh().catch(() => {}) }} className={`${PRIMARY} mt-3`}>
         ❤️ {c.thanks}
       </button>
+    </section>
+  )
+}
+
+
+// ---- challenges from parents (the student's side) ----------------------------------------
+
+export const topicName = (lang: Lang, topic?: string | null) => (topic ? (ACCOUNT_COPY[lang].topics as Record<string, string>)[topic] ?? topic : null)
+
+/** «Пройти 3 главы» and the like, for a challenge's goal. */
+export const GOAL_TEXT: Record<Lang, (kind: ChallengeKind, target: number, topic: string | null) => string> = {
+  ru: (kind, target, topic) =>
+      kind === 'boss_clean' ? `Победить босса${topic ? ` по теме «${topic}»` : ''} на 3 звезды без ошибок${target > 1 ? ` — ${target} раза` : ''}`
+        : kind === 'chapters' ? `Пройти ${target} ${target === 1 ? 'главу' : target < 5 ? 'главы' : 'глав'}`
+        : kind === 'drills' ? `Пройти ${target} ${target === 1 ? 'тренировку' : target < 5 ? 'тренировки' : 'тренировок'}`
+        : `Решать задачу дня ${target} дней подряд`,
+  kk: (kind, target, topic) =>
+      kind === 'boss_clean' ? `Боссты${topic ? ` «${topic}» тақырыбы бойынша` : ''} қатесіз 3 жұлдызға жеңу${target > 1 ? ` — ${target} рет` : ''}`
+        : kind === 'chapters' ? `${target} тарау өту`
+        : kind === 'drills' ? `${target} жаттығу өту`
+        : `Күн есебін қатарынан ${target} күн шешу`,
+}
+
+const CHALLENGE_COPY = {
+  ru: { title: 'Челленджи от родителей', progress: (p: number, t: number) => `${p} из ${t}`, done: 'Выполнено! Награда ждёт 🎁', given: 'Награда получена ✓' },
+  kk: { title: 'Ата-анадан челлендждер', progress: (p: number, t: number) => `${t}-ден ${p}`, done: 'Орындалды! Сыйлық күтіп тұр 🎁', given: 'Сыйлық алынды ✓' },
+}
+
+/** Student's home: the challenges the parents set, with progress. */
+export function MyChallengesCard({ lang }: { lang: Lang }) {
+  const s = CHALLENGE_COPY[lang]
+  const student = useAccount().user?.role === 'student'
+  const [items, setItems] = useState<Challenge[]>([])
+  useEffect(() => {
+    if (!student) return
+    const ctrl = new AbortController()
+    accounts.myChallenges(ctrl.signal).then(setItems, (err) => { if (!isAbortError(err)) setItems([]) })
+    return () => ctrl.abort()
+  }, [student])
+  if (!student || !items.length) return null
+  return (
+    <section className="rounded-2xl border-[3px] border-ink bg-[linear-gradient(135deg,#fff4d1,#e9ffe9)] p-3 shadow-[0_4px_0_var(--shadow-ink)] sm:p-4">
+      <h2 className="flex items-center gap-2 text-lg font-black text-ink"><span aria-hidden>🎯</span>{s.title}</h2>
+      <ul className="mt-2 flex flex-col gap-2">
+        {items.map((item) => (
+          <li key={item.id} className="rounded-xl border-2 border-ink/25 bg-white/70 p-2.5">
+            <p className="text-sm font-black text-ink">{GOAL_TEXT[lang](item.kind, item.target, topicName(lang, item.topic))}</p>
+            <p className="text-sm font-bold text-ink/80">🎁 {item.reward} <span className="text-xs font-semibold text-ink/55">· {item.fromName}</span></p>
+            {item.done ? (
+              <p className="mt-1 text-sm font-black text-emerald-800">{item.rewardedAt ? s.given : s.done}</p>
+            ) : (
+              <div className="mt-1.5 flex items-center gap-2">
+                <span className="h-2.5 flex-1 overflow-hidden rounded-full border-2 border-ink bg-white" aria-hidden>
+                  <span className="block h-full bg-[#16a36a]" style={{ width: `${Math.min(100, (item.progress / item.target) * 100)}%` }} />
+                </span>
+                <span className="text-xs font-black text-ink tabular-nums">{s.progress(Math.min(item.progress, item.target), item.target)}</span>
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
     </section>
   )
 }

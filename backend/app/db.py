@@ -342,6 +342,23 @@ class Praise(Base):
     seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
+class ParentChallenge(Base):
+    """A parent's rule with a real reward («3 звезды по уравнениям = поход в кино»)."""
+
+    __tablename__ = "parent_challenges"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    parent_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    student_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(20))  # boss_clean | chapters | drills | streak
+    topic: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    target: Mapped[int] = mapped_column(Integer)
+    reward: Mapped[str] = mapped_column(String(80))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    rewarded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 class SignInWindow(Base):
     """Shared sign-in counters. Keys contain a digest, with no stored login or IP."""
 

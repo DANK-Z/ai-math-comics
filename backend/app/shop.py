@@ -32,6 +32,8 @@ CATALOG: dict[str, dict] = {
     "frame-steppe": {"type": "frame", "price": 45},
     "frame-space": {"type": "frame", "price": 45},
     "frame-gold": {"type": "frame", "price": 80},
+    # Not for sale: a parent's gift for a five-day practice streak (motivation.py).
+    "frame-fire": {"type": "frame", "price": 0, "gift": True},
     # Titles under the student's name.
     "title-explorer": {"type": "title", "price": 20},
     "title-fractions": {"type": "title", "price": 25},
@@ -123,7 +125,11 @@ async def build_shop(session, student: User) -> Shop:
         coins=profile.total_coins,
         equippedSkin=equipped,
         items=[entry(k, i) for k, i in CATALOG.items() if i["type"] == "skin"],
-        cosmetics=[entry(k, i) for k, i in CATALOG.items() if i["type"] != "skin"],
+        cosmetics=[
+            entry(k, i)
+            for k, i in CATALOG.items()
+            if i["type"] != "skin" and (not i.get("gift") or k in owned)
+        ],
     )
 
 
@@ -135,7 +141,7 @@ async def read_shop(user: Student, session: Session):
 @router.post("/shop/buy", status_code=201, response_model=Shop)
 async def buy(body: BuyRequest, user: Student, session: Session):
     info = CATALOG.get(body.itemId)
-    if info is None:
+    if info is None or info.get("gift"):
         raise HTTPException(404, "item_not_found")
     # Lock the profile so two purchases from the same student run one after another.
     await profile_for(session, user, lock=True)

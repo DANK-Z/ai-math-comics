@@ -2,7 +2,7 @@ import { authToken } from './authToken'
 import { ApiError } from './errors'
 import type { BattleAnswerResult, BattleBoard, Leaderboard, PracticeReport, PracticeResult, PracticeTask, StudentBattle, StudentCredentials, WeakSpot } from './types'
 import type { ItemLore, VoiceAnswerKind } from './types'
-import type { StudentCard, ClassSummary, DailyResult, DailyTask, HomeworkItem, LessonBoard, LessonReport, MyHomework, ReviewItem, StudentLesson } from './types'
+import type { Benchmark, Challenge, PracticeCalendar, StudentCard, ClassSummary, DailyResult, DailyTask, HomeworkItem, LessonBoard, LessonReport, MyHomework, ReviewItem, StudentLesson } from './types'
 import type { Billing, ChildSummary, PraiseCard } from './types'
 import type { AssignmentReport, ClassAssignment, ComicJobRequest, Lang, TeacherDraft, TeacherDraftJob, TeacherPublication, TeacherTask } from './types'
 import type { AccountApi, Api, AuthResponse, BossState, CheckResponse, ClassInfo, Comic, ComicJob, ComicJobCreated, ContinuationJobRequest, Dashboard, HintResponse, Me, Shop } from './types'
@@ -297,6 +297,30 @@ export function createHttpApi(baseUrl: string): Api & AccountApi & {
     },
     studentCard(classId, studentId, days, signal) {
       return request<StudentCard>(`/api/teacher/classes/${classId}/students/${studentId}/card?days=${days}`, { signal })
+    },
+    challenges(childId, signal) {
+      return request<Challenge[]>(`/api/parent/children/${childId}/challenges`, { signal })
+    },
+    setChallenge(childId, body) {
+      return request<Challenge>(`/api/parent/children/${childId}/challenges`, { method: 'POST', body: JSON.stringify(body) })
+    },
+    challengeRewarded(challengeId) {
+      return request<Challenge>(`/api/parent/challenges/${encodeURIComponent(challengeId)}/rewarded`, { method: 'POST' })
+    },
+    async deleteChallenge(challengeId) {
+      await request<void>(`/api/parent/challenges/${encodeURIComponent(challengeId)}`, { method: 'DELETE' })
+    },
+    myChallenges(signal) {
+      return request<Challenge[]>('/api/me/challenges', { signal })
+    },
+    practiceCalendar(childId, month, signal) {
+      return request<PracticeCalendar>(`/api/parent/children/${childId}/calendar${month ? `?month=${month}` : ''}`, { signal })
+    },
+    streakGift(childId) {
+      return request<PracticeCalendar>(`/api/parent/children/${childId}/streak-gift`, { method: 'POST' })
+    },
+    benchmark(childId, signal) {
+      return request<Benchmark>(`/api/parent/children/${childId}/benchmark`, { signal })
     },
     weakSpot(signal) {
       return request<WeakSpot | null>('/api/me/practice/weak', { signal })

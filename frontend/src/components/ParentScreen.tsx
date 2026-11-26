@@ -4,6 +4,7 @@ import { accounts, isAbortError, type Billing, type ChildSummary, type Lang, typ
 import { CoinPacks, FamilyPlanCard } from './ParentBilling'
 import { PRAISE } from './ParentCards'
 import { ParentSummary } from './ParentSummary'
+import { ChildChallenges, PeerBenchmark, PracticeCalendarCard } from './ParentMotivation'
 import { useAccount } from '../account'
 import { ACCOUNT_COPY, skillCopy } from '../accountCopy'
 import { PORTRAITS } from '../art/sheet'
@@ -149,8 +150,11 @@ function ChildCard({ child, lang, billing, onChange, onPaid, onRemove }: {
       </section>
 
       <ParentSummary child={child} lang={lang} />
+      <PracticeCalendarCard childId={child.id} childName={child.name.split(' ')[0]} lang={lang} />
+      <PeerBenchmark childId={child.id} lang={lang} />
       </div>
       <div className="flex min-w-0 flex-col gap-4">
+      <ChildChallenges childId={child.id} childName={child.name.split(' ')[0]} lang={lang} />
 
       <section className={CARD}>
         <h3 className="text-xl font-black text-ink">{c.praise}</h3>

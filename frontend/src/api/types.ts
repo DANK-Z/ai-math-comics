@@ -556,7 +556,45 @@ export interface MyHomework {
 
 export type PraiseKind = 'proud' | 'keep-going' | 'star' | 'gift'
 /** Cards a child can get: praise plus coins bought by a parent. */
-export type CardKind = PraiseKind | 'coins'
+export type CardKind = PraiseKind | 'coins' | 'streak'
+
+export type ChallengeKind = 'boss_clean' | 'chapters' | 'drills' | 'streak'
+
+/** A parent's rule with a real reward, with the child's progress since it was set. */
+export interface Challenge {
+  id: string
+  kind: ChallengeKind
+  topic?: 'equations' | 'fractions' | null
+  target: number
+  reward: string
+  progress: number
+  done: boolean
+  createdAt: string
+  completedAt?: string | null
+  rewardedAt?: string | null
+  childName?: string | null
+  fromName?: string | null
+}
+
+/** Days of a month with practice; a five-day streak lets the parent send a rare frame. */
+export interface PracticeCalendar {
+  month: string
+  days: { day: string; count: number; chapters: number; bosses: number }[]
+  streak: number
+  giftReady: boolean
+  giftSent: boolean
+}
+
+/** The child next to anonymous peers of the same grade (shown only with enough peers). */
+export interface Benchmark {
+  grade?: number | null
+  peers: number
+  days: number
+  topics: { topic: string; answers: number; accuracy?: number | null; peerAverage?: number | null; percentile?: number | null }[]
+  activeDays: number
+  activePercentile?: number | null
+  peerActiveDays?: number | null
+}
 export type CoinPack = 'coins-100' | 'coins-300' | 'coins-700'
 
 /** GET /api/parent/billing (test mode: purchases take effect without money). */
@@ -645,6 +683,14 @@ export interface AccountApi {
   startPractice(body: { topic: BattleTopic; skill?: string | null; lang: Lang }): Promise<PracticeTask>
   answerPractice(body: { taskId: string; answer: string; lang: Lang }): Promise<PracticeResult>
   weakSpot(signal?: AbortSignal): Promise<WeakSpot | null>
+  challenges(childId: number, signal?: AbortSignal): Promise<Challenge[]>
+  setChallenge(childId: number, body: { kind: ChallengeKind; topic?: 'equations' | 'fractions' | null; target: number; reward: string }): Promise<Challenge>
+  challengeRewarded(challengeId: string): Promise<Challenge>
+  deleteChallenge(challengeId: string): Promise<void>
+  myChallenges(signal?: AbortSignal): Promise<Challenge[]>
+  practiceCalendar(childId: number, month?: string, signal?: AbortSignal): Promise<PracticeCalendar>
+  streakGift(childId: number): Promise<PracticeCalendar>
+  benchmark(childId: number, signal?: AbortSignal): Promise<Benchmark>
   daily(lang: Lang, signal?: AbortSignal): Promise<DailyTask>
   answerDaily(body: { taskId: string; answer: string; lang: Lang }): Promise<DailyResult>
   review(signal?: AbortSignal): Promise<ReviewItem[]>

@@ -36,6 +36,7 @@ from .family import router as family_router
 from .item_lore import router as lore_router
 from .lessons import router as lessons_router
 from .library_episode import EXERCISE_PREFIX, check_library_answer
+from .motivation import router as motivation_router
 from .practice import router as practice_router
 from .prepared_art import ART_DIR, PREPARED_FILES
 from .roster import router as roster_router
@@ -140,6 +141,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(roster_router)
     app.include_router(lessons_router)
     app.include_router(daily_router)
+    app.include_router(motivation_router)
     app.include_router(summary_router)
     app.include_router(chapters_router)
     app.include_router(family_router)

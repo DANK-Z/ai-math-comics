@@ -50,8 +50,9 @@ GIFT_EVERY = timedelta(days=7)
 MAX_CHILDREN = 6
 CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"  # no 0/O, 1/I
 PraiseKind = Literal["proud", "keep-going", "star", "gift"]
-# Cards a child can get: the ones above plus coins bought by a parent (billing.py).
-CardKind = Literal["proud", "keep-going", "star", "gift", "coins"]
+# Cards a child can get: the ones above plus coins bought by a parent (billing.py) and the
+# rare frame for a practice streak (motivation.py).
+CardKind = Literal["proud", "keep-going", "star", "gift", "coins", "streak"]
 
 
 async def current_parent(user: Annotated[User, Depends(current_user)]) -> User:

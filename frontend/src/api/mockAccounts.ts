@@ -2,7 +2,7 @@ import { authToken } from './authToken'
 import { PROGRESS_REWARDS } from '../rewards'
 import { ApiError } from './errors'
 import { COSMETICS, isCosmetic, type CosmeticKey } from '../cosmetics'
-import type { AccountApi, BattleTopic, ChildSummary, ClassInfo, DailyTask, Dashboard, Grade, Lang, Me, PracticeReport, Shop, SkinKey, Billing, CardKind, CoinPack } from './types'
+import type { AccountApi, BattleTopic, Challenge, ChallengeKind, PracticeCalendar, ChildSummary, ClassInfo, DailyTask, Dashboard, Grade, Lang, Me, PracticeReport, Shop, SkinKey, Billing, CardKind, CoinPack } from './types'
 import { mockPracticeAnswer, mockPracticeTask, mockPracticeTopic, mockProblem } from './mockClassroom'
 import { currentLesson, demoCard, demoReview, demoSummary, homeworkOf, lessonBoardOf, lessonReportsOf, myHomeworkOf, openAnswering, quizRanking, saveAnswer, setPhase, settleLesson, stepAnswer, studentLessonOf, wholeAnswer, type MockHomework, type MockLesson, type PracticeDone } from './mockLessons'
 import { DEMO_LOBBY } from './mockClassroom'
@@ -45,6 +45,7 @@ interface MockState {
   presence?: Record<string, Record<number, number>>
   familyCodes?: Record<number, string>
   familyLinks?: { parentId: number; studentId: number }[]
+  challenges?: { id: string; parentId: number; studentId: number; kind: ChallengeKind; topic: 'equations' | 'fractions' | null; target: number; reward: string; createdAt: number; base: number; completedAt: number | null; rewardedAt: number | null }[]
   praises?: { id: number; parentId: number; studentId: number; kind: CardKind; coins: number; at: number; seen: boolean }[]
   plans?: Record<number, number>
   payments?: { id: number; parentId: number; childId: number | null; product: string; amount: number; coins: number; at: number }[]
@@ -116,7 +117,7 @@ function shopOf(user: MockUser): Shop {
       const owned = skins.find((s) => s.key === key)
       return { id: key, type: 'skin', price: PRICES[key], owned: !!owned, equipped: key === equipped, backpackItemId: owned?.id ?? null }
     }),
-    cosmetics: (Object.keys(COSMETICS) as CosmeticKey[]).map((key) => {
+    cosmetics: (Object.keys(COSMETICS) as CosmeticKey[]).filter((key) => !COSMETICS[key].gift || skins.some((s) => s.key === key)).map((key) => {
       const owned = skins.find((s) => s.key === key)
       return { id: key, type: COSMETICS[key].slot, price: COSMETICS[key].price, owned: !!owned, equipped: !!owned?.equipped, backpackItemId: owned?.id ?? null }
     }),
@@ -355,6 +356,103 @@ export const mockAccounts: AccountApi = {
       praises.push({ id: praises.length + 1, parentId: user.id, studentId, kind: 'coins', coins, at: Date.now(), seen: false })
       save(state)
       return childSummary(state, user.id, studentId)
+    })
+  },
+  challenges(childId) {
+    return later(() => {
+      const state = load()
+      const user = parentOf(state)
+      linkedChild(state, user.id, childId)
+      const list = (state.challenges ?? []).filter((c) => c.parentId === user.id && c.studentId === childId).reverse().map((c) => challengeOf(state, c))
+      save(state)
+      return list
+    })
+  },
+  setChallenge(childId, body) {
+    return later(() => {
+      const state = load()
+      const user = parentOf(state)
+      const child = linkedChild(state, user.id, childId)
+      const [low, high] = CHALLENGE_TARGETS[body.kind]
+      if (body.target < low || body.target > high || body.reward.trim().length < 2) throw fail(422, 'invalid_target')
+      const list = (state.challenges ??= [])
+      if (list.filter((c) => c.parentId === user.id && c.studentId === childId && !c.rewardedAt).length >= 5) throw fail(409, 'too_many_challenges')
+      const item = { id: `ch-${Date.now()}`, parentId: user.id, studentId: childId, kind: body.kind, topic: body.kind === 'boss_clean' ? body.topic ?? null : null, target: body.target, reward: body.reward.trim(), createdAt: Date.now(), base: baseOf(state, child, body.kind), completedAt: null, rewardedAt: null }
+      list.push(item)
+      const out = challengeOf(state, item)
+      save(state)
+      return out
+    })
+  },
+  challengeRewarded(challengeId) {
+    return later(() => {
+      const state = load()
+      const user = parentOf(state)
+      const item = (state.challenges ?? []).find((c) => c.id === challengeId && c.parentId === user.id)
+      if (!item) throw fail(404, 'challenge_not_found')
+      if (!item.completedAt) throw fail(409, 'not_done')
+      item.rewardedAt ??= Date.now()
+      const out = challengeOf(state, item)
+      save(state)
+      return out
+    })
+  },
+  deleteChallenge(challengeId) {
+    return later(() => {
+      const state = load()
+      const user = parentOf(state)
+      state.challenges = (state.challenges ?? []).filter((c) => !(c.id === challengeId && c.parentId === user.id))
+      save(state)
+    })
+  },
+  myChallenges() {
+    return later(() => {
+      const state = load()
+      const user = student(state)
+      const list = (state.challenges ?? []).filter((c) => c.studentId === user.id && !(c.rewardedAt && Date.now() - c.rewardedAt > 7 * 86400_000)).reverse()
+        .map((c) => ({ ...challengeOf(state, c), fromName: state.users.find((u) => u.id === c.parentId)?.displayName ?? '' }))
+      save(state)
+      return list
+    })
+  },
+  practiceCalendar(childId, month) {
+    return later(() => {
+      const state = load()
+      const user = parentOf(state)
+      return calendarOf(state, linkedChild(state, user.id, childId), month)
+    })
+  },
+  streakGift(childId) {
+    return later(() => {
+      const state = load()
+      const user = parentOf(state)
+      const child = linkedChild(state, user.id, childId)
+      const cal = calendarOf(state, child)
+      if (cal.streak < 5) throw fail(409, 'streak_too_short')
+      if (cal.giftSent) throw fail(409, 'already_sent')
+      const skins = (child.skins ??= [])
+      skins.push({ id: skins.length + 1, key: 'frame-fire', equipped: false, type: 'frame' })
+      const praises = (state.praises ??= [])
+      praises.push({ id: praises.length + 1, parentId: user.id, studentId: childId, kind: 'streak', coins: 0, at: Date.now(), seen: false })
+      save(state)
+      return calendarOf(state, child)
+    })
+  },
+  benchmark(childId) {
+    return later(() => {
+      const state = load()
+      const user = parentOf(state)
+      const child = linkedChild(state, user.id, childId)
+      const grade = state.classes.find((c) => c.id === child.classId)?.grade ?? null
+      // Demo: a typical picture of a grade on the platform.
+      return {
+        grade, peers: 124, days: 30,
+        topics: [
+          { topic: 'equations', answers: 46, accuracy: 78, peerAverage: 64, percentile: 72 },
+          { topic: 'fractions', answers: 31, accuracy: 91, peerAverage: 70, percentile: 92 },
+        ],
+        activeDays: 12, activePercentile: 65, peerActiveDays: 8.4,
+      }
     })
   },
   myPraise() {
@@ -971,6 +1069,58 @@ function lobby(state: MockState, boardId: string, classId: number) {
     .sort((a, b) => seen[a.id] - seen[b.id])
     .map((u) => ({ id: u.id, name: shortName(u.displayName) }))
   return [...DEMO_LOBBY, ...real]
+}
+
+const CHALLENGE_TARGETS: Record<ChallengeKind, [number, number]> = { boss_clean: [1, 5], chapters: [1, 20], drills: [1, 10], streak: [3, 30] }
+
+function linkedChild(state: MockState, parentId: number, childId: number) {
+  const child = state.users.find((u) => u.id === childId)
+  if (!child || !(state.familyLinks ?? []).some((l) => l.parentId === parentId && l.studentId === childId)) throw fail(404, 'child_not_found')
+  return child
+}
+
+/** What a challenge counts from (demo mode keeps no dates for chapters: their count then). */
+function baseOf(state: MockState, child: MockUser, kind: ChallengeKind) {
+  if (kind === 'chapters') return child.completedChapters.length
+  if (kind === 'drills') return (state.practiceDone ?? []).filter((d) => d.userId === child.id).length
+  return 0
+}
+
+function challengeOf(state: MockState, c: NonNullable<MockState['challenges']>[number]): Challenge {
+  const child = state.users.find((u) => u.id === c.studentId)
+  let progress = 0
+  if (child) {
+    if (c.kind === 'chapters' || c.kind === 'drills') progress = Math.max(0, baseOf(state, child, c.kind) - c.base)
+    if (c.kind === 'streak') progress = calendarOf(state, child).streak
+  }
+  if (!c.completedAt && progress >= c.target) c.completedAt = Date.now()
+  return {
+    id: c.id, kind: c.kind, topic: c.topic, target: c.target, reward: c.reward,
+    progress: c.completedAt ? Math.min(progress, c.target) || c.target : progress, done: !!c.completedAt,
+    createdAt: new Date(c.createdAt).toISOString(),
+    completedAt: c.completedAt ? new Date(c.completedAt).toISOString() : null,
+    rewardedAt: c.rewardedAt ? new Date(c.rewardedAt).toISOString() : null,
+    childName: child?.displayName ?? null,
+  }
+}
+
+/** Demo practice calendar: the last five days in a row, some earlier days, and real daily tasks. */
+function calendarOf(_state: MockState, child: MockUser, month?: string): PracticeCalendar {
+  const day = (shift: number) => new Date(Date.now() + 5 * 3600_000 + shift * 86400_000).toISOString().slice(0, 10)
+  const active = new Map<string, { count: number; chapters: number; bosses: number }>()
+  for (let i = 0; i < 5; i++) active.set(day(-i), { count: 3 + (i % 3), chapters: i % 2, bosses: i === 1 ? 1 : 0 })
+  for (const i of [7, 8, 10, 13, 15, 16, 20, 23]) active.set(day(-i), { count: 2 + (i % 4), chapters: i % 3 === 0 ? 1 : 0, bosses: i % 5 === 0 ? 1 : 0 })
+  for (const d of child.dailyDays ?? []) if (!active.has(d)) active.set(d, { count: 1, chapters: 0, bosses: 0 })
+  let streak = 0
+  for (let i = active.has(day(0)) ? 0 : 1; active.has(day(-i)); i++) streak++
+  const first = new Date(`${month ?? day(0).slice(0, 7)}-01T00:00:00Z`)
+  const days: PracticeCalendar['days'] = []
+  for (let d = new Date(first); d.getUTCMonth() === first.getUTCMonth(); d.setUTCDate(d.getUTCDate() + 1)) {
+    const key = d.toISOString().slice(0, 10)
+    days.push({ day: key, ...(active.get(key) ?? { count: 0, chapters: 0, bosses: 0 }) })
+  }
+  const sent = (child.skins ?? []).some((s) => s.key === 'frame-fire')
+  return { month: first.toISOString().slice(0, 7), days, streak, giftReady: streak >= 5 && !sent, giftSent: sent }
 }
 
 function parentOf(state: MockState) {

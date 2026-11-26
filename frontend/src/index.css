@@ -632,6 +632,14 @@ html {
   background-clip: padding-box, border-box;
   box-shadow: 0 0 0 3px #1d2766, 0 0 22px 6px rgb(255 200 40 / 0.7);
 }
+.hero-frame-fire {
+  border: 6px solid transparent;
+  background-image: linear-gradient(var(--color-sky, #dff1ff), var(--color-sky, #dff1ff)),
+    linear-gradient(160deg, #ffe066, #ff8a00 40%, #e2361e 75%, #8b1a10);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  box-shadow: 0 0 0 3px #1d2766, 0 0 20px 5px rgb(255 120 30 / 0.75);
+}
 .hero-title {
   display: inline-block;
   border: 2px solid #1d2766;
