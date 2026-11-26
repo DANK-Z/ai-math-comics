@@ -177,18 +177,18 @@ function findClass(state: MockState, code: string) {
 }
 
 // Fixed demo statistics for a class dashboard (clearly labelled as demo data in the UI).
-function demoDashboard(schoolClass: ClassInfo, students: number): Dashboard {
+// The demo classmates are the same everywhere (lobby, league, analytics): ids -1…-6.
+function demoDashboard(schoolClass: ClassInfo, real: MockUser[]): Dashboard {
   const rows = [
-    ['Аружан', 'aruzhan', 9, 120, 3, 0, 9],
-    ['Нурсултан', 'nursultan', 8, 110, 3, 1, 7],
-    ['Алихан', 'alikhan', 6, 90, 3, 4, 4],
-    ['Дана', 'dana', 4, 60, 2, 5, 3],
-    ['Ерасыл', 'yerassyl', 1, 20, 1, 7, 1],
+    ['Аружан Бекова', 'aruzhan', 9, 120, 3, 0, 9],
+    ['Ерасыл Касымов', 'yerassyl', 6, 110, 3, 2, 7],
+    ['Мадина Садыкова', 'madina', 6, 95, 3, 1, 6],
+    ['Тимур Ахметов', 'timur', 3, 60, 2, 5, 3],
+    ['Айлин Жумабаева', 'aylin', 2, 45, 1, 6, 2],
+    ['Нурсултан Ерланов', 'nursultan', 0, 20, 0, 0, 0],
   ] as const
-  return {
-    schoolClass: { ...schoolClass, students: Math.max(students, rows.length) },
-    students: rows.map(([displayName, login, stars, coins, bossesBeaten, misses, bestCombo], i) => ({
-      id: 1000 + i,
+  const demo = rows.map(([displayName, login, stars, coins, bossesBeaten, misses, bestCombo], i) => ({
+      id: -(i + 1),
       displayName,
       login,
       stars,
@@ -200,7 +200,14 @@ function demoDashboard(schoolClass: ClassInfo, students: number): Dashboard {
         equations: { beaten: Math.min(bossesBeaten, 2), bestStars: Math.min(3, Math.ceil(stars / 3)), stars: Math.ceil(stars * 0.6) },
         ...(bossesBeaten > 2 ? { fractions: { beaten: 1, bestStars: 3, stars: Math.floor(stars * 0.4) } } : {}),
       },
-    })),
+    }))
+  const students = [
+    ...demo,
+    ...real.map((u) => ({ id: u.id, displayName: u.displayName, login: u.login ?? '', stars: 0, coins: u.coins ?? 0, bossesBeaten: 0, misses: 0, bestCombo: 0, topics: {} })),
+  ].sort((a, b) => b.stars - a.stars || a.displayName.localeCompare(b.displayName))
+  return {
+    schoolClass: { ...schoolClass, students: students.length },
+    students,
     heatmap: [
       { topic: 'equations', round: 1, skill: 'add', students: 5, studentsWithMistakes: 1, mistakeRate: 0.2, invalidAnswers: 1, commonWrong: ['икс'] },
       { topic: 'equations', round: 2, skill: 'div', students: 4, studentsWithMistakes: 3, mistakeRate: 0.75, invalidAnswers: 0, commonWrong: ['7', '112'] },
@@ -493,7 +500,7 @@ export const mockAccounts: AccountApi = {
       const user = currentUser(state)
       const schoolClass = state.classes.find((c) => c.id === classId && c.teacherId === user.id)
       if (!schoolClass) throw fail(404, 'class_not_found')
-      return demoDashboard(schoolClass, state.users.filter((u) => u.classId === classId).length)
+      return demoDashboard(schoolClass, state.users.filter((u) => u.role === 'student' && u.classId === classId))
     })
   },
   leaderboard() {
@@ -664,7 +671,7 @@ export const mockAccounts: AccountApi = {
         .map((u) => ({ id: u.id, displayName: u.displayName, drills: 0, finished: 0, solved: 0, topics: {}, lastAt: null }))
       const demo: PracticeReport['students'] = [
         { id: -1, displayName: 'Аружан Бекова', drills: 3, finished: 2, solved: 13, topics: { equations: 8, gcd: 5 }, lastAt: new Date(Date.now() - 3600_000).toISOString() },
-        { id: -2, displayName: 'Тимур Ахметов', drills: 1, finished: 0, solved: 3, topics: { fractions: 3 }, lastAt: new Date(Date.now() - 86400_000).toISOString() },
+        { id: -4, displayName: 'Тимур Ахметов', drills: 1, finished: 0, solved: 3, topics: { fractions: 3 }, lastAt: new Date(Date.now() - 86400_000).toISOString() },
       ]
       const students: PracticeReport['students'] = [...demo, ...real]
       return { days: 30, students }

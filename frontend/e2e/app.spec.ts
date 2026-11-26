@@ -132,9 +132,9 @@ test('a teacher makes a student account; the student signs in from the battle QR
   await page.getByRole('button', { name: 'Ученики', exact: true }).click()
   await page.getByLabel('Имена учеников').fill('Әлия Сапарова')
   await page.getByRole('button', { name: 'Создать аккаунты' }).click()
-  const row = page.getByRole('row', { name: /Әлия Сапарова/ })
-  await expect(row).toBeVisible()
-  const [, login, password] = await row.getByRole('cell').allInnerTexts()
+  await expect(page.getByRole('row', { name: /Әлия Сапарова/ })).toBeVisible()
+  const made = page.getByRole('listitem').filter({ hasText: /Әлия Сапарова:/ })
+  const [login, password] = await made.locator('code').allInnerTexts()
   expect(login).toMatch(/^aliya\d{3}$/)
 
   // The teacher signs out; the student scans the QR (opens #/battle), signs in, lands in the battle.

@@ -14,7 +14,7 @@ import { ClassAnalytics } from './ClassAnalytics'
 import { HomeworkCard } from './HomeworkCards'
 import { TeacherLeague } from './ClassLeague'
 import { CurriculumCard } from './CurriculumCard'
-import { PracticeReportCard, RosterCard } from './RosterCard'
+import { StudentsTab } from './StudentsTab'
 import { CARD, errorKey, FieldError, INPUT, PRIMARY, SECONDARY } from './AuthScreen'
 import { ClassAssignmentReports } from './ClassAssignments'
 import { TeacherWorkshop } from './TeacherWorkshop'
@@ -448,8 +448,7 @@ export function ClassDashboard({ lang, classId }: { lang: Lang; classId: number 
 
       <section id={`${id}-roster`} aria-labelledby={`${id}-button-roster`} hidden={section !== 'roster'}>
         <div className="grid gap-4">
-          <RosterCard classId={classId} lang={lang} students={data.students} />
-          <PracticeReportCard classId={classId} lang={lang} />
+          <StudentsTab classId={classId} lang={lang} students={data.students} />
         </div>
       </section>
       <section id={`${id}-assignments`} aria-labelledby={`${id}-button-assignments`} hidden={section !== 'assignments'}>
