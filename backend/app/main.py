@@ -30,6 +30,7 @@ from .chapters import router as chapters_router
 from .classroom import router as classroom_router
 from .config import Settings
 from .content import FEEDBACK, HINTS, get_comic
+from .daily import router as daily_router
 from .db import Database, Role, User, default_database_url
 from .family import router as family_router
 from .item_lore import router as lore_router
@@ -54,6 +55,7 @@ from .shop import router as shop_router
 from .side_episode import EXERCISE_PREFIX as SIDE_EXERCISE_PREFIX
 from .side_episode import check_side_answer
 from .storage import Store
+from .summary import router as summary_router
 from .voice import router as voice_router
 
 # Restrict input to an integer numerator and denominator, allowing spaces and signs.
@@ -137,6 +139,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(practice_router)
     app.include_router(roster_router)
     app.include_router(lessons_router)
+    app.include_router(daily_router)
+    app.include_router(summary_router)
     app.include_router(chapters_router)
     app.include_router(family_router)
     app.include_router(billing_router)

@@ -1,4 +1,4 @@
-import type { ChartBar, ClassInfo, HomeworkItem, LessonReport, LobbyStudent, HomeworkKind, LessonBoard, LessonPhase, MyHomework, PodiumRow, StudentLesson } from './types'
+import type { ChartBar, ClassInfo, ClassSummary, HomeworkItem, LessonReport, ReviewItem, LobbyStudent, HomeworkKind, LessonBoard, LessonPhase, MyHomework, PodiumRow, StudentLesson } from './types'
 import { DEMO_LOBBY } from './mockClassroom'
 
 // Demo lessons and homework (no backend). Demo classmates answer a lesson a few seconds after
@@ -28,7 +28,7 @@ export interface MockLesson {
   step?: number
   timer?: number
   deadline?: number | null
-  quiz?: { comicId: string; answer: number }[]
+  quiz?: { comicId?: string; text?: string; answer: number }[]
   podium?: PodiumRow[]
 }
 
@@ -195,7 +195,8 @@ export function lessonBoardOf(schoolClass: ClassInfo, lesson: MockLesson, roster
     firstAnswered: first ? first.length : null,
     firstCorrect: first ? first.filter((a) => a.answer.correct).length : null,
     step: stepOf(lesson),
-    quiz: (lesson.quiz ?? []).map((t) => t.comicId),
+    quiz: (lesson.quiz ?? []).map((t) => t.comicId ?? ''),
+    stepText: stepOf(lesson) && lesson.quiz ? lesson.quiz[stepOf(lesson) - 1].text ?? null : null,
     timer: lesson.timer ?? 0,
     secondsLeft: lesson.phase === 'answering' && lesson.deadline ? Math.max(0, Math.round((lesson.deadline - Date.now()) / 1000)) : null,
     podium: lesson.podium ?? [],
@@ -217,7 +218,8 @@ export function studentLessonOf(lesson: MockLesson, userId: number): StudentLess
     correct: mine && revealed ? mine.correct : null,
     attempt: attemptOf(lesson),
     step: stepOf(lesson),
-    stepComicId: stepOf(lesson) && lesson.quiz ? lesson.quiz[stepOf(lesson) - 1].comicId : null,
+    stepComicId: stepOf(lesson) && lesson.quiz ? lesson.quiz[stepOf(lesson) - 1].comicId ?? null : null,
+    stepText: stepOf(lesson) && lesson.quiz ? lesson.quiz[stepOf(lesson) - 1].text ?? null : null,
     quizSize: lesson.quiz?.length ?? 0,
     secondsLeft: lesson.phase === 'answering' && lesson.deadline ? Math.max(0, Math.round((lesson.deadline - Date.now()) / 1000)) : null,
     points: revealed ? points : 0,
@@ -244,7 +246,7 @@ export function lessonReportsOf(lessons: MockLesson[], classId: number, roster: 
         first: summary(tries[0]),
         second: attemptOf(lesson) === 2 ? summary(tries[1]) : null,
         students: everyone.map((p) => ({ id: p.id, name: p.name, first: tries[0].get(p.id) ?? null, second: tries[1].get(p.id) ?? null })),
-        quiz: (lesson.quiz ?? []).map((t) => t.comicId),
+        quiz: (lesson.quiz ?? []).map((t) => t.comicId ?? ''),
         podium: lesson.podium ?? [],
       }]
     })
@@ -301,4 +303,81 @@ export function homeworkOf(item: MockHomework, pupils: MockPupil[], practice: Pr
 export function myHomeworkOf(item: MockHomework, pupil: MockPupil, practice: PracticeDone[]): MyHomework {
   const done = isDone(item, pupil, practice)
   return { id: item.id, kind: item.kind, target: item.target, dueDate: item.dueDate, overdue: !done && almatyToday() > item.dueDate, done }
+}
+
+/** Demo review: the user's own lesson slips (at once, no two-day wait) and a typical boss skill. */
+export function demoReview(lessons: MockLesson[], userId: number, solved: string[]): ReviewItem[] {
+  const items = new Map<string, ReviewItem>()
+  for (const lesson of lessons) {
+    for (const [key, answers] of Object.entries(lesson.rounds ?? { '0-1': lesson.answers })) {
+      const mine = answers[userId]
+      const [step, attempt] = key.split('-').map(Number)
+      if (!mine || mine.correct) continue
+      if (!step && attempt === 1 && lesson.rounds?.['0-2']?.[userId]?.correct) continue
+      const comicId = step ? lesson.quiz?.[step - 1]?.comicId : lesson.comicId
+      if (!comicId || solved.includes(comicId)) continue
+      const item = items.get(comicId)
+      if (item) item.mistakes += 1
+      else items.set(comicId, { kind: 'chapter', comicId, mistakes: 1, since: new Date(lesson.createdAt).toISOString() })
+    }
+  }
+  const demo: ReviewItem[] = [{ kind: 'drill', topic: 'equations', skill: 'mul_add', mistakes: 3, since: new Date(Date.now() - 3 * 86400_000).toISOString() }]
+  if (!items.size && !solved.includes('roads-bridge')) demo.push({ kind: 'chapter', comicId: 'roads-bridge', mistakes: 1, since: new Date(Date.now() - 4 * 86400_000).toISOString() })
+  return [...items.values(), ...demo].slice(0, 5)
+}
+
+/** Demo class summary: fixed numbers for the demo classmates, lessons from this browser. */
+export function demoSummary(lessons: MockLesson[], classId: number, roster: { id: number; name: string }[], days: number): ClassSummary {
+  const scale = days === 7 ? 1 : days === 30 ? 4 : 11
+  const counts = new Map<string, { answered: number; correct: number }>()
+  for (const lesson of lessons.filter((l) => l.classId === classId && Date.now() - l.createdAt < days * 86400_000)) {
+    const first = allAnswers(lesson, '0-1')
+    const row = counts.get(lesson.comicId) ?? { answered: 0, correct: 0 }
+    row.answered += first.length
+    row.correct += first.filter((a) => a.answer.correct).length
+    if (row.answered) counts.set(lesson.comicId, row)
+  }
+  const demo = [
+    { name: 'Аружан Б.', answers: 24, correct: 21, solved: 15, chapters: 9, activeDays: 5 },
+    { name: 'Ерасыл К.', answers: 20, correct: 15, solved: 10, chapters: 8, activeDays: 4 },
+    { name: 'Мадина С.', answers: 18, correct: 14, solved: 12, chapters: 7, activeDays: 4 },
+    { name: 'Тимур А.', answers: 14, correct: 7, solved: 3, chapters: 4, activeDays: 2 },
+    { name: 'Айлин Ж.', answers: 10, correct: 5, solved: 2, chapters: 3, activeDays: 2 },
+    { name: 'Нурсултан Е.', answers: 0, correct: 0, solved: 0, chapters: 2, activeDays: 0 },
+  ]
+  const pupils = [
+    ...demo.map((p, i) => ({
+      id: -(i + 1),
+      ...p,
+      answers: p.answers * scale,
+      correct: p.correct * scale,
+      solved: p.solved * scale,
+      activeDays: Math.min(days, p.activeDays * scale),
+      lastActive: p.activeDays ? new Date(Date.now() - (i + 1) * 3600_000 * 7).toISOString() : null,
+      lagging: !p.activeDays || p.correct / p.answers < 0.6,
+    })),
+    ...roster.map((p) => {
+      // Real students: their first-try answers in this browser's lessons of the period.
+      const mine = lessons
+        .filter((l) => l.classId === classId && Date.now() - l.createdAt < days * 86400_000)
+        .flatMap((l) => Object.entries(l.rounds ?? { '0-1': l.answers }).filter(([key]) => key.endsWith('-1')).map(([, answers]) => ({ at: l.createdAt, answer: answers[p.id] })))
+        .filter((a) => a.answer)
+      const answers = mine.length
+      const correct = mine.filter((a) => a.answer.correct).length
+      const daysActive = new Set(mine.map((a) => new Date(a.at).toDateString())).size
+      const last = mine.length ? Math.max(...mine.map((a) => a.at)) : null
+      return { id: p.id, name: p.name, answers, correct, solved: 0, chapters: 0, activeDays: daysActive, lastActive: last ? new Date(last).toISOString() : null, lagging: !daysActive || (answers >= 5 && correct / answers < 0.6) }
+    }),
+  ].sort((a, b) => a.name.localeCompare(b.name))
+  return {
+    days,
+    since: new Date(Date.now() - days * 86400_000).toISOString(),
+    students: pupils.length,
+    topics: [
+      { topic: 'equations', answers: 46 * scale, correct: 31 * scale },
+      { topic: 'fractions', answers: 38 * scale, correct: 33 * scale },
+    ],
+    lessons: [...counts].map(([comicId, c]) => ({ comicId, ...c })),
+    pupils,
+  }
 }

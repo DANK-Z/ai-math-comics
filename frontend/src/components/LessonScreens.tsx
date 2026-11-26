@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react'
-import { accounts, LOCAL_COMICS, type ChartBar, type Lang, type LessonBoard, type PodiumRow, type StudentLesson } from '../api'
+import { accounts, LOCAL_COMICS, type ChartBar, type Lang, type LessonBoard, type PodiumRow, type QuizTask, type StudentLesson } from '../api'
+import { giveDrill } from './LessonReports'
 import { buildLocalComic, type LocalComicDef } from '../api/localComics'
 import { useAccount } from '../account'
 import { CURRICULUM, CURRICULUM_COPY } from '../curriculum'
@@ -72,6 +73,32 @@ export const LESSON_COPY = {
     projectorOff: 'Выйти из полноэкранного режима',
     keys: 'Клавиши: → или пробел — дальше, ← — назад, F — весь экран. Кликер тоже работает.',
     error: 'Не удалось загрузить урок.',
+    planTitle: 'Готовый план урока',
+    planLead: 'Выберите тему — система соберёт урок: глава, ответы с телефонов, разбор и вторая попытка, финал, мини-викторина и домашка тем, кто ошибся. Ведите его одной кнопкой «Следующий шаг».',
+    planTopic: 'Тема',
+    planLaunch: 'Собрать урок',
+    planStages: ['Комикс', 'Ответы', 'Разбор', 'Финал', 'Викторина', 'Домашка'],
+    planNext: 'Следующий шаг',
+    planActions: {
+      panel: 'следующий кадр',
+      collect: 'собрать ответы',
+      reveal: 'показать результат',
+      retry: 'вторая попытка',
+      ending: 'финал главы',
+      quiz: 'мини-викторина',
+      question: 'следующий вопрос',
+      podium: 'пьедестал',
+      homework: 'задать домашку и завершить',
+    },
+    planDone: (n: number) => (n ? `Урок завершён. Тренировка задана ${n} ${n % 10 === 1 && n % 100 !== 11 ? 'ученику' : 'ученикам'}, кто ошибся.` : 'Урок завершён. Все, кто ответил, решили верно — домашка не нужна.'),
+    ownTitle: 'Свои задачи',
+    ownLead: 'До трёх задач с ответом — целым числом. Сохраняются на этом устройстве для следующих уроков.',
+    ownText: 'Условие задачи',
+    ownAnswer: 'Ответ',
+    ownAdd: 'Добавить',
+    ownRemove: 'Убрать задачу',
+    ownInvalid: 'Напишите условие (от 3 символов) и ответ целым числом.',
+    ownTask: 'Задача учителя',
   },
   kk: {
     start: 'Комикс бойынша сабақ',
@@ -125,6 +152,32 @@ export const LESSON_COPY = {
     projectorOff: 'Толық экраннан шығу',
     keys: 'Пернелер: → немесе бос орын — әрі қарай, ← — артқа, F — толық экран. Кликер де жұмыс істейді.',
     error: 'Сабақты жүктеу мүмкін болмады.',
+    planTitle: 'Дайын сабақ жоспары',
+    planLead: 'Тақырыпты таңдаңыз — жүйе сабақты өзі құрады: тарау, телефоннан жауаптар, талдау және екінші әрекет, финал, мини-викторина және қателескендерге үй жұмысы. Оны бір ғана «Келесі қадам» батырмасымен жүргізіңіз.',
+    planTopic: 'Тақырып',
+    planLaunch: 'Сабақты құру',
+    planStages: ['Комикс', 'Жауаптар', 'Талдау', 'Финал', 'Викторина', 'Үй жұмысы'],
+    planNext: 'Келесі қадам',
+    planActions: {
+      panel: 'келесі кадр',
+      collect: 'жауаптарды жинау',
+      reveal: 'нәтижені көрсету',
+      retry: 'екінші әрекет',
+      ending: 'тараудың финалы',
+      quiz: 'мини-викторина',
+      question: 'келесі сұрақ',
+      podium: 'тұғыр',
+      homework: 'үй жұмысын беріп, аяқтау',
+    },
+    planDone: (n: number) => (n ? `Сабақ аяқталды. Қателескен ${n} оқушыға жаттығу берілді.` : 'Сабақ аяқталды. Жауап бергендердің бәрі дұрыс шешті — үй жұмысы керек емес.'),
+    ownTitle: 'Өз есептеріңіз',
+    ownLead: 'Жауабы бүтін сан болатын үш есепке дейін. Келесі сабақтар үшін осы құрылғыда сақталады.',
+    ownText: 'Есептің шарты',
+    ownAnswer: 'Жауабы',
+    ownAdd: 'Қосу',
+    ownRemove: 'Есепті алып тастау',
+    ownInvalid: 'Шартын (3 таңбадан) және жауабын бүтін санмен жазыңыз.',
+    ownTask: 'Мұғалімнің есебі',
   },
 }
 
@@ -202,6 +255,52 @@ export function quizFor(comicId: string) {
   return [...same, ...grade, ...rest].slice(0, 4).map((d) => ({ comicId: d.id, answer: d.answer }))
 }
 
+/** The course sections the bundled chapters cover, in course order (the plan's topics). */
+function planSections(lang: Lang) {
+  const seen = new Map<string, { key: string; label: string }>()
+  for (const d of lessonChapters()) {
+    const goal = CURRICULUM[d.id]
+    if (!seen.has(goal.section.ru)) seen.set(goal.section.ru, { key: goal.section.ru, label: `${goal.section[lang]} · ${CURRICULUM_COPY[lang].grade(goal.grade)}` })
+  }
+  return [...seen.values()]
+}
+
+const PLAN_KEY = 'amc.lessonPlans'
+const USED_KEY = 'amc.planUsed'
+const OWN_KEY = 'amc.ownQuiz'
+
+function readList<T>(key: string): T[] {
+  try {
+    const value = JSON.parse(localStorage.getItem(key) ?? '[]')
+    return Array.isArray(value) ? value : []
+  } catch {
+    return []
+  }
+}
+
+function writeList(key: string, value: unknown[]) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value.slice(-30)))
+  } catch {
+    // Private mode: the plan still works until the page is reloaded.
+  }
+}
+
+/** The plan's chapter: the first chapter of the section this device has not used in a plan yet. */
+function planChapter(section: string) {
+  const inSection = lessonChapters().filter((d) => CURRICULUM[d.id].section.ru === section)
+  const used = readList<string>(USED_KEY)
+  return inSection.find((d) => !used.includes(d.id)) ?? inSection[0]
+}
+
+type OwnTask = { text: string; answer: number }
+
+/** The quiz: chapters of the same section first, then the teacher's own problems (3–5 in all). */
+function quizTasksFor(comicId: string, own: OwnTask[]): QuizTask[] {
+  const chapters = quizFor(comicId).slice(0, Math.max(0, 5 - own.length))
+  return [...chapters, ...own].slice(0, 5)
+}
+
 const percent = (n: number | null | undefined, total: number | null | undefined) => (total ? Math.round(((n ?? 0) / total) * 100) : 0)
 
 /** Seconds left, counted down locally between polls (the server sends a fresh value each poll). */
@@ -225,16 +324,22 @@ export function LessonLauncher({ classId, lang }: { classId: number; lang: Lang 
   const id = useId()
   const chapters = lessonChapters()
   const [comicId, setComicId] = useState(chapters[0]?.id ?? '')
+  const sections = planSections(lang)
+  const [section, setSection] = useState(sections[0]?.key ?? '')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(false)
 
-  async function launch() {
-    const def = chapterDef(comicId)
+  async function launch(chosen = comicId, plan = false) {
+    const def = chapterDef(chosen)
     if (!def) return
     setBusy(true)
     setError(false)
     try {
-      const board = await accounts.startLesson(classId, { comicId, answer: def.answer })
+      const board = await accounts.startLesson(classId, { comicId: chosen, answer: def.answer })
+      if (plan) {
+        writeList(PLAN_KEY, [...readList<string>(PLAN_KEY), board.id])
+        writeList(USED_KEY, [...readList<string>(USED_KEY).filter((id) => id !== chosen), chosen])
+      }
       window.location.hash = lessonBoardHref(board.id)
     } catch {
       setError(true)
@@ -254,9 +359,23 @@ export function LessonLauncher({ classId, lang }: { classId: number; lang: Lang 
           return <option key={d.id} value={d.id}>{chapterTitle(d.id, lang)} — {CURRICULUM_COPY[lang].grade(goal.grade)}, {goal.section[lang]}</option>
         })}
       </select>
-      <button type="button" onClick={launch} disabled={busy || !comicId} className={`${PRIMARY} mt-3`}>
+      <button type="button" onClick={() => launch()} disabled={busy || !comicId} className={`${PRIMARY} mt-3`}>
         <span aria-hidden>📽️ </span>{copy.launch}
       </button>
+      <div className="mt-4 rounded-xl border-[3px] border-dashed border-ink/50 bg-sun/15 p-3">
+        <h3 className="flex items-center gap-2 font-black text-ink"><span aria-hidden>⚡</span>{copy.planTitle}</h3>
+        <p className="mt-0.5 text-sm font-semibold text-ink/80">{copy.planLead}</p>
+        <label htmlFor={`${id}-section`} className="mt-2 block text-sm font-black text-ink/80">{copy.planTopic}</label>
+        <div className="mt-1 flex flex-wrap gap-2">
+          <select id={`${id}-section`} value={section} onChange={(e) => setSection(e.target.value)}
+            className="min-h-11 min-w-0 flex-1 rounded-xl border-[3px] border-ink bg-white px-3 font-bold text-ink focus-visible:ring-4 focus-visible:ring-sun">
+            {sections.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+          </select>
+          <button type="button" disabled={busy || !section} onClick={() => { const d = planChapter(section); if (d) void launch(d.id, true) }} className={PRIMARY}>
+            ⚡ {copy.planLaunch}
+          </button>
+        </div>
+      </div>
       {error && <p role="alert" className="mt-2 font-bold text-rose-700">{copy.error}</p>}
     </section>
   )
@@ -315,14 +434,17 @@ export function LessonBoardScreen({ lessonId, lang }: { lessonId: string; lang: 
   const load = useCallback((signal: AbortSignal) => accounts.lessonBoard(lessonId, signal), [lessonId])
   const { value: board, setValue, failed } = usePolled<LessonBoard>(load, 2000)
   const [busy, setBusy] = useState(false)
-  const [timer, setTimer] = useState(0)
+  const plan = useMemo(() => readList<string>(PLAN_KEY).includes(lessonId), [lessonId])
+  const [timer, setTimer] = useState(plan ? 60 : 0)
   const [projector, setProjector] = useState(false)
+  const [own, setOwn] = useState<OwnTask[]>(() => readList<OwnTask>(OWN_KEY).slice(0, 3))
+  const [planDone, setPlanDone] = useState<number | null>(null)
   const frame = useRef<HTMLDivElement>(null)
   const def = board ? chapterDef(board.comicId) : undefined
   const comic = useMemo(() => (def ? buildLocalComic(def, lang) : null), [def, lang])
   const step = board?.step ?? 0
   const quiz = board?.quiz ?? []
-  const quizDef = step ? chapterDef(quiz[step - 1]) : undefined
+  const quizDef = step && quiz[step - 1] ? chapterDef(quiz[step - 1]) : undefined
   const quizComic = useMemo(() => (quizDef ? buildLocalComic(quizDef, lang) : null), [quizDef, lang])
   const left = useCountdown(board?.secondsLeft, `${step}-${board?.attempt}-${board?.phase}`)
 
@@ -347,14 +469,15 @@ export function LessonBoardScreen({ lessonId, lang }: { lessonId: string; lang: 
   const exerciseIndex = def.exercisePanelId - 1
   const revealed = board.phase === 'reveal' || board.phase === 'podium' || board.phase === 'closed'
   const maxPanel = revealed ? total - 1 : exerciseIndex
-  const inQuiz = step > 0 && !!quizComic && !!quizDef
-  const shown = inQuiz ? quizComic.panels[quizDef.exercisePanelId - 1] : comic.panels[Math.min(board.panel, total - 1)]
+  const inQuiz = step > 0
+  const ownText = inQuiz ? board.stepText ?? null : null
+  const shown = quizComic && quizDef ? quizComic.panels[quizDef.exercisePanelId - 1] : comic.panels[Math.min(board.panel, total - 1)]
   const onExercise = !inQuiz && board.panel === exerciseIndex
   const lessonUrl = `${window.location.origin}${window.location.pathname}${joinHref(board.classCode, 'lesson')}`
-  const hints = (inQuiz ? quizDef.text[lang].commonMistakes : def.text[lang].commonMistakes) ?? {}
+  const hints = (inQuiz ? quizDef?.text[lang].commonMistakes : def.text[lang].commonMistakes) ?? {}
   const attempt = board.attempt ?? 1
-  const quizTasks = quizFor(board.comicId)
-  const prompt = inQuiz ? quizComic.exercise.prompt : comic.exercise.prompt
+  const quizTasks = quizTasksFor(board.comicId, own)
+  const prompt = ownText ?? (inQuiz && quizComic ? quizComic.exercise.prompt : comic.exercise.prompt)
 
   async function update(body: Parameters<typeof accounts.updateLesson>[1]) {
     setBusy(true)
@@ -377,12 +500,61 @@ export function LessonBoardScreen({ lessonId, lang }: { lessonId: string; lang: 
   const collect = () => update({ phase: 'answering', timer })
   const nextQuestion = () => run(() => accounts.nextQuestion(lessonId))
 
+  type PlanAction = keyof typeof copy.planActions
+  /** The plan's next step, from where the lesson is now (null: nothing left). */
+  function planAction(): PlanAction | null {
+    const b = board!
+    if (b.phase === 'closed' || planDone != null) return null
+    if (b.phase === 'answering') return 'reveal'
+    if (b.phase === 'podium') return 'homework'
+    if (inQuiz) return b.phase === 'reveal' ? (step < quiz.length ? 'question' : 'podium') : null
+    if (b.phase === 'reading') return b.panel < exerciseIndex ? 'panel' : 'collect'
+    if (attempt === 1) return 'retry'
+    if (b.panel < total - 1) return 'ending'
+    return quizTasks.length >= 3 ? 'quiz' : 'homework'
+  }
+
+  async function finishPlan() {
+    setBusy(true)
+    try {
+      const report = (await accounts.lessonReports(board!.classId)).find((r) => r.id === lessonId)
+      const given = report ? await giveDrill(board!.classId, report) : 0
+      setValue(await accounts.updateLesson(lessonId, { phase: 'closed' }))
+      setPlanDone(given)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function planNext() {
+    const action = planAction()
+    if (busy || !action) return
+    if (action === 'panel') return void update({ panel: board!.panel + 1 })
+    if (action === 'collect') return void collect()
+    if (action === 'reveal') return void update({ phase: 'reveal' })
+    if (action === 'retry') return void update({ retry: true, timer })
+    if (action === 'ending') return void update({ panel: total - 1 })
+    if (action === 'quiz') return void run(() => accounts.startQuiz(lessonId, quizTasks))
+    if (action === 'question' || action === 'podium') return void nextQuestion()
+    void finishPlan()
+  }
+
   function forward() {
+    if (plan) return planNext()
     if (busy || board!.phase === 'podium' || board!.phase === 'closed') return
     if (board!.phase === 'answering') return void update({ phase: 'reveal' })
     if (inQuiz) return void (board!.phase === 'reveal' && nextQuestion())
     if (onExercise && board!.phase === 'reading') return void collect()
     if (board!.panel < maxPanel) void update({ panel: board!.panel + 1 })
+  }
+
+  /** Where the plan is: comic, answers, walkthrough, ending, quiz, homework. */
+  function planStage() {
+    if (planDone != null || board!.phase === 'closed' || board!.phase === 'podium') return 5
+    if (inQuiz) return 4
+    if (board!.phase === 'reading' && board!.panel < exerciseIndex) return 0
+    if (attempt === 1) return 1
+    return board!.panel >= total - 1 ? 3 : 2
   }
 
   function toggleProjector() {
@@ -467,7 +639,8 @@ export function LessonBoardScreen({ lessonId, lang }: { lessonId: string; lang: 
             <div className="mt-3 rounded-xl border-2 border-dashed border-ink/50 p-3">
               <p className="font-black text-ink">🏆 {copy.quiz}</p>
               <p className="mt-0.5 text-sm font-semibold text-ink/75">{copy.quizHint(quizTasks.length)}</p>
-              <button type="button" disabled={busy} onClick={() => run(() => accounts.startQuiz(lessonId, quizTasks))} className={`${PRIMARY} mt-2 w-full`}>{copy.quizStart}</button>
+              <OwnTasks own={own} lang={lang} onChange={(next) => { setOwn(next); writeList(OWN_KEY, next) }} />
+              {!plan && <button type="button" disabled={busy} onClick={() => run(() => accounts.startQuiz(lessonId, quizTasks))} className={`${PRIMARY} mt-2 w-full`}>{copy.quizStart}</button>}
             </div>
           )}
           {board.panel < total - 1 && (
@@ -509,22 +682,38 @@ export function LessonBoardScreen({ lessonId, lang }: { lessonId: string; lang: 
         </div>
       </div>
 
-      {board.phase === 'podium' ? (
+      {plan && (
+        <PlanBar lang={lang} stage={planStage()} action={planAction()} busy={busy} onNext={planNext} />
+      )}
+      {planDone != null && (
+        <section className={`${CARD} flex flex-wrap items-center gap-3`} role="status">
+          <p className="min-w-0 flex-1 text-lg font-black text-emerald-800">✓ {copy.planDone(planDone)}</p>
+          <a href={teacherClassHref(board.classId)} className={PRIMARY}>{copy.back} →</a>
+        </section>
+      )}
+      {planDone != null ? null : board.phase === 'podium' ? (
         <section className={`${CARD} flex flex-col items-center gap-4`} aria-live="polite">
           <h2 className="text-3xl font-black text-ink">🏆 {copy.podium}</h2>
           <Podium rows={board.podium ?? []} lang={lang} />
         </section>
       ) : (
         <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
-          <figure className="overflow-hidden rounded-2xl border-[5px] border-ink bg-sky-100" aria-label={`${shown.speaker}: ${shown.text}`}>
-            <PanelArt imageKey={shown.imageKey} imageUrl={shown.imageUrl} lang={lang} speaker={shown.speaker} text={shown.text}
-              imageAspect={shown.imageAspect} placeholder={shown.placeholder} priority />
-          </figure>
+          {ownText ? (
+            <section className="flex min-h-64 flex-col justify-center gap-3 rounded-2xl border-[5px] border-ink bg-sun/30 p-6">
+              <p className="text-sm font-black text-brand-dark">✏️ {copy.ownTask} · {copy.question(step, quiz.length)}</p>
+              <p className="text-3xl leading-snug font-black text-ink sm:text-4xl">{ownText}</p>
+            </section>
+          ) : (
+            <figure className="overflow-hidden rounded-2xl border-[5px] border-ink bg-sky-100" aria-label={`${shown.speaker}: ${shown.text}`}>
+              <PanelArt imageKey={shown.imageKey} imageUrl={shown.imageUrl} lang={lang} speaker={shown.speaker} text={shown.text}
+                imageAspect={shown.imageAspect} placeholder={shown.placeholder} priority />
+            </figure>
+          )}
           <aside className="flex flex-col gap-3">
             {(onExercise || inQuiz) && (
               <section className={CARD}>
-                {inQuiz && <p className="mb-1 text-sm font-black text-brand-dark">🏆 {copy.quiz} · {chapterTitle(quizDef.id, lang)}</p>}
-                <p className="text-lg leading-snug font-extrabold text-ink"><RichText text={prompt} /></p>
+                {inQuiz && <p className="mb-1 text-sm font-black text-brand-dark">🏆 {copy.quiz} · {quizDef ? chapterTitle(quizDef.id, lang) : copy.ownTask}</p>}
+                {!ownText && <p className="text-lg leading-snug font-extrabold text-ink"><RichText text={prompt} /></p>}
                 {board.phase === 'reading' && !inQuiz && (
                   <>
                     <p className="mt-2 text-sm font-semibold text-ink/75">{copy.collectHint}</p>
@@ -557,6 +746,79 @@ export function LessonBoardScreen({ lessonId, lang }: { lessonId: string; lang: 
   )
 }
 
+/** The plan's stages and its one button (also the arrow keys and the clicker). */
+function PlanBar({ lang, stage, action, busy, onNext }: { lang: Lang; stage: number; action: keyof (typeof LESSON_COPY)['ru']['planActions'] | null; busy: boolean; onNext: () => void }) {
+  const copy = LESSON_COPY[lang]
+  return (
+    <section className="flex flex-col gap-3 rounded-2xl border-[3px] border-ink bg-white p-3 shadow-[0_3px_0_var(--shadow-ink)] sm:flex-row sm:items-center" aria-label={copy.planTitle}>
+      <ol className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+        {copy.planStages.map((name, i) => (
+          <li key={name} aria-current={i === stage ? 'step' : undefined}
+            className={`rounded-full border-2 px-2.5 py-0.5 text-sm font-black ${i === stage ? 'border-ink bg-sun text-ink' : i < stage ? 'border-emerald-600 bg-emerald-100 text-emerald-900' : 'border-ink/30 text-ink/60'}`}>
+            {i < stage ? '✓ ' : `${i + 1}. `}{name}
+          </li>
+        ))}
+      </ol>
+      {action && (
+        <button type="button" disabled={busy} onClick={onNext} className={`${PRIMARY} shrink-0`}>
+          ⚡ {copy.planNext}: {copy.planActions[action]} →
+        </button>
+      )}
+    </section>
+  )
+}
+
+/** The teacher's own quiz problems (up to three, kept on this device). */
+function OwnTasks({ own, lang, onChange }: { own: OwnTask[]; lang: Lang; onChange: (next: OwnTask[]) => void }) {
+  const copy = LESSON_COPY[lang]
+  const id = useId()
+  const [text, setText] = useState('')
+  const [answer, setAnswer] = useState('')
+  const [invalid, setInvalid] = useState(false)
+
+  function add(e: FormEvent) {
+    e.preventDefault()
+    const value = answer.trim()
+    if (text.trim().length < 3 || !/^\d{1,7}$/.test(value)) return setInvalid(true)
+    setInvalid(false)
+    onChange([...own, { text: text.trim().slice(0, 300), answer: Number(value) }].slice(0, 3))
+    setText('')
+    setAnswer('')
+  }
+
+  return (
+    <details className="mt-2" open={own.length > 0}>
+      <summary className="cursor-pointer text-sm font-black text-ink">✏️ {copy.ownTitle} ({own.length}/3)</summary>
+      <p className="mt-1 text-xs font-semibold text-ink/70">{copy.ownLead}</p>
+      {own.length > 0 && (
+        <ul className="mt-1.5 flex flex-col gap-1">
+          {own.map((t, i) => (
+            <li key={i} className="flex items-start gap-2 rounded-lg bg-sky-50 px-2 py-1 text-sm font-semibold text-ink">
+              <span className="min-w-0 flex-1">{t.text} <span className="font-black">= {t.answer}</span></span>
+              <button type="button" onClick={() => onChange(own.filter((_, j) => j !== i))} aria-label={copy.ownRemove} title={copy.ownRemove}
+                className="grid size-6 shrink-0 place-items-center rounded-full font-black hover:bg-ink hover:text-white">×</button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {own.length < 3 && (
+        <form onSubmit={add} className="mt-2 flex flex-col gap-1.5">
+          <label htmlFor={`${id}-text`} className="sr-only">{copy.ownText}</label>
+          <textarea id={`${id}-text`} value={text} onChange={(e) => setText(e.target.value)} rows={2} maxLength={300} placeholder={copy.ownText}
+            className="w-full rounded-lg border-2 border-ink bg-white px-2 py-1 text-sm font-semibold text-ink focus-visible:ring-4 focus-visible:ring-sun" />
+          <div className="flex gap-1.5">
+            <label htmlFor={`${id}-answer`} className="sr-only">{copy.ownAnswer}</label>
+            <input id={`${id}-answer`} value={answer} onChange={(e) => setAnswer(e.target.value)} inputMode="numeric" placeholder={copy.ownAnswer}
+              className="min-h-10 w-24 min-w-0 rounded-lg border-2 border-ink bg-white px-2 font-mono font-bold text-ink focus-visible:ring-4 focus-visible:ring-sun" />
+            <button type="submit" className={`${SECONDARY} min-h-10 flex-1 text-sm`}>＋ {copy.ownAdd}</button>
+          </div>
+          {invalid && <p role="alert" className="text-xs font-bold text-rose-700">{copy.ownInvalid}</p>}
+        </form>
+      )}
+    </details>
+  )
+}
+
 /** The student's phone (#/lesson): follow the board, answer the exercise, see the result. */
 export function StudentLessonScreen({ lang }: { lang: Lang }) {
   const copy = STUDENT_LESSON_COPY[lang]
@@ -583,7 +845,7 @@ export function StudentLessonScreen({ lang }: { lang: Lang }) {
   const quizDef = lesson.stepComicId ? chapterDef(lesson.stepComicId) : undefined
   const quizComic = quizDef ? buildLocalComic(quizDef, lang) : null
   const panel = quizComic && quizDef ? quizComic.panels[quizDef.exercisePanelId - 1] : comic.panels[Math.min(lesson.panel, comic.panels.length - 1)]
-  const prompt = quizComic ? quizComic.exercise.prompt : comic.exercise.prompt
+  const prompt = lesson.stepText ?? (quizComic ? quizComic.exercise.prompt : comic.exercise.prompt)
   const revealed = lesson.phase === 'reveal' || lesson.phase === 'closed'
   const step = lesson.step ?? 0
   return (
@@ -597,7 +859,7 @@ export function StudentLessonScreen({ lang }: { lang: Lang }) {
           {lesson.place ? copy.place(lesson.place, lesson.stars ?? 0) : copy.finished}
           {lesson.points ? <span className="mt-1 block text-base font-bold">{copy.points(lesson.points)}</span> : null}
         </p>
-      ) : (
+      ) : lesson.stepText ? null : (
         <figure className="overflow-hidden rounded-2xl border-[4px] border-ink bg-sky-100" aria-label={`${panel.speaker}: ${panel.text}`}>
           <PanelArt imageKey={panel.imageKey} imageUrl={panel.imageUrl} lang={lang} speaker={panel.speaker} text={panel.text}
             imageAspect={panel.imageAspect} placeholder={panel.placeholder} animateDialogue={false} />

@@ -55,9 +55,27 @@ const finalOf = (s: LessonReport['students'][number]) => (s.second ?? s.first ??
 
 const inDays = (n: number) => new Date(Date.now() + n * 86400_000).toISOString().slice(0, 10)
 
+/** Who still slipped on a lesson's exercise (wrong on their last try). */
+export const slippedIn = (report: LessonReport) => report.students.filter((s) => finalOf(s) === false)
+
+/** Sets the chapter's drill (or the chapter itself) for those who slipped, due in two days. */
+export async function giveDrill(classId: number, report: LessonReport) {
+  const slipped = slippedIn(report)
+  if (!slipped.length) return 0
+  const topic = practiceTopicFor(report.comicId)
+  await accounts.setHomework(classId, {
+    kind: topic ? 'practice' : 'chapter',
+    target: topic ?? report.comicId,
+    dueDate: inDays(2),
+    studentIds: slipped.map((s) => s.id),
+  })
+  window.dispatchEvent(new Event(HOMEWORK_CHANGED))
+  return slipped.length
+}
+
 function ReportItem({ report, classId, lang }: { report: LessonReport; classId: number; lang: Lang }) {
   const copy = COPY[lang]
-  const slipped = report.students.filter((s) => finalOf(s) === false)
+  const slipped = slippedIn(report)
   const topic = practiceTopicFor(report.comicId)
   const [given, setGiven] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
@@ -67,14 +85,7 @@ function ReportItem({ report, classId, lang }: { report: LessonReport; classId: 
     setBusy(true)
     setError(false)
     try {
-      await accounts.setHomework(classId, {
-        kind: topic ? 'practice' : 'chapter',
-        target: topic ?? report.comicId,
-        dueDate: inDays(2),
-        studentIds: slipped.map((s) => s.id),
-      })
-      setGiven(slipped.length)
-      window.dispatchEvent(new Event(HOMEWORK_CHANGED))
+      setGiven(await giveDrill(classId, report))
     } catch {
       setError(true)
     } finally {

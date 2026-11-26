@@ -2,7 +2,7 @@ import { authToken } from './authToken'
 import { ApiError } from './errors'
 import type { BattleAnswerResult, BattleBoard, Leaderboard, PracticeReport, PracticeResult, PracticeTask, StudentBattle, StudentCredentials, WeakSpot } from './types'
 import type { ItemLore, VoiceAnswerKind } from './types'
-import type { HomeworkItem, LessonBoard, LessonReport, MyHomework, StudentLesson } from './types'
+import type { ClassSummary, DailyResult, DailyTask, HomeworkItem, LessonBoard, LessonReport, MyHomework, ReviewItem, StudentLesson } from './types'
 import type { Billing, ChildSummary, PraiseCard } from './types'
 import type { AssignmentReport, ClassAssignment, ComicJobRequest, Lang, TeacherDraft, TeacherDraftJob, TeacherPublication, TeacherTask } from './types'
 import type { AccountApi, Api, AuthResponse, BossState, CheckResponse, ClassInfo, Comic, ComicJob, ComicJobCreated, ContinuationJobRequest, Dashboard, HintResponse, Me, Shop } from './types'
@@ -282,6 +282,18 @@ export function createHttpApi(baseUrl: string): Api & AccountApi & {
     },
     myHomework(signal) {
       return request<MyHomework[]>('/api/me/homework', { signal })
+    },
+    daily(lang, signal) {
+      return request<DailyTask>(`/api/me/daily?lang=${lang}`, { signal })
+    },
+    answerDaily(body) {
+      return request<DailyResult>('/api/me/daily/answer', { method: 'POST', body: JSON.stringify(body) })
+    },
+    review(signal) {
+      return request<ReviewItem[]>('/api/me/review', { signal })
+    },
+    classSummary(classId, days, signal) {
+      return request<ClassSummary>(`/api/teacher/classes/${classId}/summary?days=${days}`, { signal })
     },
     weakSpot(signal) {
       return request<WeakSpot | null>('/api/me/practice/weak', { signal })

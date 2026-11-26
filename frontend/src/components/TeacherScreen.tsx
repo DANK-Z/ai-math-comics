@@ -10,6 +10,7 @@ import { SCHOOL_FAIR_STOPS } from '../schoolFair'
 import { BattleLauncher, ReviewBattleButton } from './ClassBattle'
 import { LessonLauncher } from './LessonScreens'
 import { LessonReports } from './LessonReports'
+import { ClassSummaryCard } from './ClassSummaryCard'
 import { HomeworkCard } from './HomeworkCards'
 import { TeacherLeague } from './ClassLeague'
 import { CurriculumCard } from './CurriculumCard'
@@ -490,6 +491,7 @@ export function ClassDashboard({ lang, classId }: { lang: Lang; classId: number 
             </div>
           ))}
         </dl>
+        <ClassSummaryCard classId={classId} lang={lang} />
         {data.heatmap.length > 0 && (rec || fewAnswers) && (
           <section className={`${CARD} ${rec ? 'border-rose-700 bg-rose-50' : 'bg-cream'}`} aria-labelledby={`${id}-review`}>
             <h2 id={`${id}-review`} className="text-lg font-black text-ink">{copy.first}</h2>

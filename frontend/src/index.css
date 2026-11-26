@@ -709,3 +709,11 @@ html {
 /* Lesson board in projector mode: full screen, everything a little larger for the back rows. */
 .lesson-projector { zoom: 1.2; }
 @media (min-width: 1600px) { .lesson-projector { zoom: 1.4; } }
+
+/* «Сохранить в PDF» on the class summary: print only that card, on white paper. */
+@media print {
+  body.printing-summary * { visibility: hidden; }
+  body.printing-summary .print-summary, body.printing-summary .print-summary * { visibility: visible; }
+  body.printing-summary .print-summary { position: absolute; inset: 0 0 auto 0; box-shadow: none; border: 0; background: #fff; color: #1d2766; }
+  body.printing-summary .print-summary details > :not(summary) { display: block; }
+}

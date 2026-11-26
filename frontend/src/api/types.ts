@@ -352,6 +352,57 @@ export interface PracticeResult {
 }
 
 /** The skill a student missed most in recent boss fights. */
+/** The daily task: one short problem a day, a streak, bonuses for 3, 7 and 14 days. */
+export interface DailyTask {
+  day: string
+  taskId: string
+  topic: BattleTopic
+  prompt: string
+  answerFormat: AnswerFormat
+  solved: boolean
+  streak: number
+  nextBonus?: { days: number; coins: number } | null
+  coins: number
+}
+
+export interface DailyResult {
+  status: 'correct' | 'incorrect' | 'invalid'
+  message: string
+  coins: number
+  bonus?: { days: number; coins: number } | null
+  daily: DailyTask
+}
+
+/** A past mistake that came back: a chapter to solve again or a boss skill to drill. */
+export interface ReviewItem {
+  kind: 'chapter' | 'drill'
+  comicId?: string | null
+  topic?: BattleTopic | null
+  skill?: string | null
+  mistakes: number
+  since: string
+}
+
+/** The class over a week, a month or a quarter (teacher; printable). */
+export interface ClassSummary {
+  days: number
+  since: string
+  students: number
+  topics: { topic: string; answers: number; correct: number }[]
+  lessons: { comicId: string; answered: number; correct: number }[]
+  pupils: {
+    id: number
+    name: string
+    answers: number
+    correct: number
+    solved: number
+    chapters: number
+    activeDays: number
+    lastActive?: string | null
+    lagging: boolean
+  }[]
+}
+
 export interface WeakSpot {
   topic: BattleTopic
   skill: string
@@ -379,6 +430,9 @@ export interface ChartBar {
   count: number
   correct: boolean
 }
+
+/** A quiz question: a chapter's exercise, or the teacher's own problem. */
+export type QuizTask = { comicId: string; answer: number } | { text: string; answer: number }
 
 /** A podium place of the mini-quiz (its stars count in the class league). */
 export interface PodiumRow {
@@ -418,6 +472,8 @@ export interface LessonBoard {
   /** 0: the chapter's exercise; k: question k of the mini-quiz (quiz[k - 1]). */
   step?: number
   quiz?: string[]
+  /** The teacher's own quiz problem (its chapter id in quiz is empty). */
+  stepText?: string | null
   timer?: number
   secondsLeft?: number | null
   podium?: PodiumRow[]
@@ -448,6 +504,7 @@ export interface StudentLesson {
   /** The chapter whose exercise is asked now (a quiz question). */
   stepComicId?: string | null
   quizSize?: number
+  stepText?: string | null
   secondsLeft?: number | null
   points?: number
   place?: number | null
@@ -570,6 +627,10 @@ export interface AccountApi {
   startPractice(body: { topic: BattleTopic; skill?: string | null; lang: Lang }): Promise<PracticeTask>
   answerPractice(body: { taskId: string; answer: string; lang: Lang }): Promise<PracticeResult>
   weakSpot(signal?: AbortSignal): Promise<WeakSpot | null>
+  daily(lang: Lang, signal?: AbortSignal): Promise<DailyTask>
+  answerDaily(body: { taskId: string; answer: string; lang: Lang }): Promise<DailyResult>
+  review(signal?: AbortSignal): Promise<ReviewItem[]>
+  classSummary(classId: number, days: 7 | 30 | 90, signal?: AbortSignal): Promise<ClassSummary>
   createStudents(classId: number, names: string[]): Promise<StudentCredentials[]>
   resetStudentPassword(classId: number, studentId: number): Promise<StudentCredentials>
   /** Takes a student out of the class (the lobby's «убрать»). */
@@ -578,7 +639,7 @@ export interface AccountApi {
   startLesson(classId: number, body: { comicId: string; answer: number }): Promise<LessonBoard>
   lessonBoard(lessonId: string, signal?: AbortSignal): Promise<LessonBoard>
   updateLesson(lessonId: string, body: { panel?: number; phase?: Exclude<LessonPhase, 'podium'>; timer?: number; retry?: boolean }): Promise<LessonBoard>
-  startQuiz(lessonId: string, tasks: { comicId: string; answer: number }[]): Promise<LessonBoard>
+  startQuiz(lessonId: string, tasks: QuizTask[]): Promise<LessonBoard>
   nextQuestion(lessonId: string): Promise<LessonBoard>
   lessonReports(classId: number, signal?: AbortSignal): Promise<LessonReport[]>
   myLesson(signal?: AbortSignal): Promise<StudentLesson | null>

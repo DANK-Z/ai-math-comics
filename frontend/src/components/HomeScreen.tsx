@@ -14,6 +14,7 @@ import { comicHref, DEMO_COMIC_ID } from '../route'
 import { schoolFairChapter } from '../schoolFair'
 import { BattleAlert, LessonAlert } from './BoardAlerts'
 import { WeakSpotCard } from './PracticeScreen'
+import { DailyCard } from './StudentDaily'
 import { HomeHero } from './HomeHero'
 import { PraiseInbox } from './ParentScreen'
 
@@ -139,6 +140,7 @@ export function HomeScreen({ lang, progress, finalesWon }: {
       <BattleAlert lang={lang} />
       <PraiseInbox lang={lang} />
       <HomeHero lang={lang} progress={progress} finalesWon={finalesWon} />
+      <DailyCard lang={lang} />
       <WeakSpotCard lang={lang} />
     </div>
   )

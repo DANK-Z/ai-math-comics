@@ -8,6 +8,7 @@ import { BattleAlert, LessonAlert } from './BoardAlerts'
 import { StudentAssignments } from './ClassAssignments'
 import { ClassLeague } from './ClassLeague'
 import { MyHomeworkCard } from './HomeworkCards'
+import { DailyCard, ReviewCard } from './StudentDaily'
 
 // «Мой класс»: everything the student does together with the class in one place. A lesson or a
 // battle in progress, homework and the teacher's assignments, and the weekly class league.
@@ -80,6 +81,8 @@ export function ClassScreen({ lang }: { lang: Lang }) {
     body = (
       <>
         <LessonAlert lang={lang} />
+        <DailyCard lang={lang} />
+        <ReviewCard lang={lang} />
         <BattleSlot lang={lang} />
         <MyHomeworkCard lang={lang} />
         <StudentAssignments lang={lang} />

@@ -2,9 +2,9 @@ import { authToken } from './authToken'
 import { PROGRESS_REWARDS } from '../rewards'
 import { ApiError } from './errors'
 import { COSMETICS, isCosmetic, type CosmeticKey } from '../cosmetics'
-import type { AccountApi, ChildSummary, ClassInfo, Dashboard, Grade, Me, PracticeReport, Shop, SkinKey, Billing, CardKind, CoinPack } from './types'
-import { mockPracticeAnswer, mockPracticeTask, mockPracticeTopic } from './mockClassroom'
-import { currentLesson, homeworkOf, lessonBoardOf, lessonReportsOf, myHomeworkOf, openAnswering, quizRanking, saveAnswer, setPhase, settleLesson, stepAnswer, studentLessonOf, wholeAnswer, type MockHomework, type MockLesson, type PracticeDone } from './mockLessons'
+import type { AccountApi, BattleTopic, ChildSummary, ClassInfo, DailyTask, Dashboard, Grade, Lang, Me, PracticeReport, Shop, SkinKey, Billing, CardKind, CoinPack } from './types'
+import { mockPracticeAnswer, mockPracticeTask, mockPracticeTopic, mockProblem } from './mockClassroom'
+import { currentLesson, demoReview, demoSummary, homeworkOf, lessonBoardOf, lessonReportsOf, myHomeworkOf, openAnswering, quizRanking, saveAnswer, setPhase, settleLesson, stepAnswer, studentLessonOf, wholeAnswer, type MockHomework, type MockLesson, type PracticeDone } from './mockLessons'
 import { DEMO_LOBBY } from './mockClassroom'
 import { BATTLE_HP, boardOf, checkMockAnswer, demoLeaderboard, latestBattle, MOCK_BATTLE_COPY, settle, shortName, studentView, type MockBattle } from './mockClassroom'
 
@@ -30,6 +30,9 @@ interface MockUser {
   skins?: { id: number; key: string; equipped: boolean; type?: 'skin' | 'frame' | 'title' | 'helper' }[]
   /** Stars from the podiums of lesson mini-quizzes (the class league). */
   lessonStars?: number
+  /** The demo daily task: today's problem and the days solved (a streak of two to start). */
+  daily?: { day: string; taskId: string; topic: BattleTopic; prompt: Record<Lang, string>; answer: string; solved: boolean }
+  dailyDays?: string[]
 }
 interface MockState {
   users: MockUser[]
@@ -667,6 +670,49 @@ export const mockAccounts: AccountApi = {
       return { days: 30, students }
     })
   },
+  daily(lang) {
+    return later(() => {
+      const state = load()
+      const user = student(state)
+      const view = dailyOf(user, lang)
+      save(state)
+      return view
+    })
+  },
+  answerDaily(body) {
+    return later(() => {
+      const state = load()
+      const user = student(state)
+      const task = user.daily
+      if (!task || task.taskId !== body.taskId || task.day !== almatyDay()) throw fail(404, 'task_not_found')
+      if (task.solved) throw fail(409, 'task_solved')
+      const status = checkMockAnswer(body.answer, task.answer)
+      const copy = MOCK_DAILY_COPY[body.lang]
+      if (status !== 'correct') return { status, message: copy[status], coins: 0, bonus: null, daily: dailyOf(user, body.lang) }
+      task.solved = true
+      user.dailyDays = [...new Set([...(user.dailyDays ?? []), task.day])]
+      const streak = streakOf(user)
+      const bonus = DAILY_BONUS[streak] ? { days: streak, coins: DAILY_BONUS[streak] } : null
+      const coins = DAILY_COINS + (bonus?.coins ?? 0)
+      user.coins = (user.coins ?? DEMO_COINS) + coins
+      save(state)
+      return { status, message: copy.done, coins, bonus, daily: dailyOf(user, body.lang) }
+    })
+  },
+  review() {
+    return later(() => {
+      const state = load()
+      const user = student(state)
+      return demoReview(state.lessons ?? [], user.id, user.completedChapters)
+    })
+  },
+  classSummary(classId, days) {
+    return later(() => {
+      const state = load()
+      ownClass(state, classId)
+      return demoSummary(state.lessons ?? [], classId, roster(state, classId), days)
+    })
+  },
   weakSpot() {
     // Demo mode keeps no answer log: show a typical weak spot so the review card is visible.
     return later(() => {
@@ -848,6 +894,50 @@ function roster(state: MockState, classId: number) {
     .filter((u) => u.role === 'student' && u.classId === classId)
     .sort((a, b) => a.displayName.localeCompare(b.displayName))
     .map((u) => ({ id: u.id, name: shortName(u.displayName) }))
+}
+
+const DAILY_COINS = 5
+const DAILY_BONUS: Record<number, number> = { 3: 15, 7: 40, 14: 100 }
+const DAILY_TOPICS: BattleTopic[] = ['fractions', 'equations', 'gcd', 'decimals', 'parts']
+const MOCK_DAILY_COPY = {
+  ru: { done: 'Верно! Задача дня решена.', incorrect: 'Пока неверно. Проверь вычисления и попробуй ещё раз.', invalid: 'Запиши ответ числом или дробью, например 12, 3/4 или 4,2.' },
+  kk: { done: 'Дұрыс! Күн есебі шешілді.', incorrect: 'Әзірге дұрыс емес. Есебіңді тексеріп, қайта көр.', invalid: 'Жауапты санмен немесе бөлшекпен жаз, мысалы 12, 3/4 немесе 4,2.' },
+}
+const almatyDay = (shift = 0) => new Date(Date.now() + 5 * 3600_000 + shift * 86400_000).toISOString().slice(0, 10)
+
+function streakOf(user: MockUser) {
+  const days = new Set(user.dailyDays ?? [])
+  let shift = days.has(almatyDay()) ? 0 : -1
+  let count = 0
+  while (days.has(almatyDay(shift))) {
+    count += 1
+    shift -= 1
+  }
+  return count
+}
+
+/** Today's demo task (a new one each day); a fresh demo account starts with a two-day streak. */
+function dailyOf(user: MockUser, lang: Lang): DailyTask {
+  const day = almatyDay()
+  user.dailyDays ??= [almatyDay(-2), almatyDay(-1)]
+  if (user.daily?.day !== day) {
+    const topic = DAILY_TOPICS[(Math.floor(Date.now() / 86400_000) + user.id) % DAILY_TOPICS.length]
+    const problem = mockProblem(topic)
+    user.daily = { day, taskId: `daily-${day}-${user.id}`, topic, prompt: problem.prompt, answer: problem.answer, solved: false }
+  }
+  const streak = streakOf(user)
+  const next = Object.keys(DAILY_BONUS).map(Number).find((d) => d > streak)
+  return {
+    day,
+    taskId: user.daily.taskId,
+    topic: user.daily.topic,
+    prompt: user.daily.prompt[lang],
+    answerFormat: user.daily.topic === 'fractions' ? 'fraction' : user.daily.topic === 'decimals' ? 'decimal' : 'whole-number',
+    solved: user.daily.solved,
+    streak,
+    nextBonus: next ? { days: next, coins: DAILY_BONUS[next] } : null,
+    coins: DAILY_COINS,
+  }
 }
 
 function lobby(state: MockState, boardId: string, classId: number) {

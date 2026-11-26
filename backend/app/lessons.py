@@ -91,9 +91,12 @@ class LessonUpdate(BaseModel):
 
 
 class QuizTask(BaseModel):
+    """A quiz question: a chapter's exercise, or the teacher's own problem (its text)."""
+
     model_config = {"extra": "forbid"}
 
-    comicId: str = Field(min_length=1, max_length=64)
+    comicId: str | None = Field(default=None, min_length=1, max_length=64)
+    text: str | None = Field(default=None, min_length=3, max_length=300)
     answer: int = Field(ge=0, le=10_000_000)
 
 
@@ -149,7 +152,9 @@ class LessonBoard(BaseModel):
     """The first try, shown next to the second one."""
     step: int = 0
     quiz: list[str] = []
-    """The mini-quiz chapters (their exercises are the questions); step k is quiz[k - 1]."""
+    """The mini-quiz chapters (their exercises are the questions); step k is quiz[k - 1].
+    An empty id is the teacher's own problem: its text is ``stepText``."""
+    stepText: str | None = None
     timer: int = 0
     secondsLeft: int | None = None
     podium: list[PodiumRow] = []
@@ -168,6 +173,8 @@ class StudentLesson(BaseModel):
     stepComicId: str | None = None
     """The chapter whose exercise is asked now (a quiz question)."""
     quizSize: int = 0
+    stepText: str | None = None
+    """The teacher's own quiz problem, when the question is not a chapter's exercise."""
     secondsLeft: int | None = None
     points: int = 0
     place: int | None = None
@@ -186,10 +193,21 @@ def step_answer(lesson: ClassLesson) -> int:
     return lesson.answer
 
 
-def step_comic(lesson: ClassLesson) -> str:
+def step_comic(lesson: ClassLesson) -> str | None:
     if lesson.step and lesson.quiz:
-        return lesson.quiz[lesson.step - 1]["comicId"]
+        return lesson.quiz[lesson.step - 1].get("comicId")
     return lesson.comic_id
+
+
+def step_text(lesson: ClassLesson) -> str | None:
+    """The teacher's own quiz problem (shown instead of a chapter's exercise)."""
+    if lesson.step and lesson.quiz:
+        return lesson.quiz[lesson.step - 1].get("text")
+    return None
+
+
+def quiz_ids(lesson: ClassLesson) -> list[str]:
+    return [t.get("comicId") or "" for t in lesson.quiz or []]
 
 
 def seconds_left(lesson: ClassLesson) -> int | None:
@@ -308,7 +326,8 @@ async def lesson_board(session, lesson: ClassLesson) -> LessonBoard:
         firstAnswered=len(first) if first is not None else None,
         firstCorrect=sum(a.correct for a in first) if first is not None else None,
         step=lesson.step,
-        quiz=[t["comicId"] for t in lesson.quiz or []],
+        quiz=quiz_ids(lesson),
+        stepText=step_text(lesson),
         timer=lesson.timer,
         secondsLeft=seconds_left(lesson),
         podium=await podium_of(session, lesson) if lesson.phase in ("podium", "closed") else [],
@@ -390,11 +409,14 @@ async def update_lesson(lesson_id: str, body: LessonUpdate, user: Teacher, sessi
 async def start_quiz(lesson_id: str, body: QuizStart, user: Teacher, session: Session):
     """The mini-quiz after the chapter: a few exercises of other chapters, one by one."""
     lesson = await teacher_lesson(session, user, lesson_id)
-    if any(t.comicId not in CHAPTERS for t in body.tasks):
-        raise HTTPException(422, "unknown_chapter")
+    for task in body.tasks:
+        if (task.comicId is None) == (task.text is None):
+            raise HTTPException(422, "chapter_or_text")
+        if task.comicId is not None and task.comicId not in CHAPTERS:
+            raise HTTPException(422, "unknown_chapter")
     if lesson.quiz or lesson.phase == "closed":
         raise HTTPException(409, "quiz_started")
-    lesson.quiz = [t.model_dump() for t in body.tasks]
+    lesson.quiz = [t.model_dump(exclude_none=True) for t in body.tasks]
     lesson.step = 1
     open_answering(lesson)
     await session.commit()
@@ -492,6 +514,7 @@ async def student_lesson(session, lesson: ClassLesson, student: User) -> Student
         step=lesson.step,
         stepComicId=step_comic(lesson) if lesson.step else None,
         quizSize=len(lesson.quiz or []),
+        stepText=step_text(lesson),
         secondsLeft=seconds_left(lesson),
         points=int(points) if revealed or lesson.phase == "podium" else 0,
         place=award.place if award else None,
@@ -622,7 +645,7 @@ async def lesson_reports(class_id: int, user: Teacher, session: Session, respons
                     )
                     for s in students
                 ],
-                quiz=[t["comicId"] for t in lesson.quiz or []],
+                quiz=quiz_ids(lesson),
                 podium=await podium_of(session, lesson),
             )
         )

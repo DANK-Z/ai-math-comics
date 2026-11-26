@@ -79,7 +79,7 @@ test('a student repeats a weak spot in a five-problem drill', async ({ page }) =
   await expect(page.getByRole('heading', { name: /Тренировка/ })).toBeVisible()
   for (let n = 1; n <= 5; n++) {
     await expect(page.getByText(`Задача ${n} из 5`)).toBeVisible()
-    const prompt = await page.locator('form p').first().innerText()
+    const prompt = await page.locator('form', { has: page.getByLabel('Твой ответ') }).locator('p').first().innerText()
     await page.getByLabel('Твой ответ').fill(solveEquation(prompt))
     await page.getByRole('button', { name: 'Проверить' }).click()
   }
@@ -100,7 +100,7 @@ test('a class battle: the teacher starts it, a student hits the boss @phone', as
   await page.goto('/')
   await page.reload()
   await page.getByRole('link', { name: /В бой/ }).click()
-  const prompt = await page.locator('form p').first().innerText()
+  const prompt = await page.locator('form', { has: page.getByLabel('Твой ответ') }).locator('p').first().innerText()
   await page.getByLabel('Твой ответ').fill(solveEquation(prompt))
   await page.getByRole('button', { name: /Ударить/ }).click()
   await expect(page.getByText(/Попадание! −10 HP/)).toBeVisible()
@@ -311,4 +311,23 @@ test('the Burabay season: a typical LCM mistake gets its own hint, then the answ
   await page.getByRole('button', { name: 'Проверить' }).click()
   await page.getByRole('button', { name: 'Далее', exact: true }).click()
   await expect(page.getByText(/Через 36 минут — в 8:36/).first()).toBeVisible()
+})
+
+test('the daily task keeps a streak; the teacher sees the class summary for a quarter', async ({ page }) => {
+  await seed(page, 'student')
+  await page.goto('/#/class')
+  await expect(page.getByRole('heading', { name: /Задача дня/ })).toBeVisible()
+  await expect(page.getByText('🔥 Серия: 2 дня подряд')).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Повтори ошибки/ })).toBeVisible()
+  await page.getByPlaceholder('Ответ').fill('абв')
+  await page.getByRole('button', { name: 'Проверить' }).click()
+  await expect(page.getByText(/Запиши ответ числом/)).toBeVisible()
+
+  await page.evaluate(() => localStorage.setItem('amc.auth.token', 'mock-2'))
+  await page.reload()
+  await page.goto('/#/teacher/class/1')
+  await expect(page.getByRole('heading', { name: /Сводка по классу/ })).toBeVisible()
+  await page.getByText('Четверть', { exact: true }).click()
+  await expect(page.getByRole('columnheader', { name: 'Последний раз' })).toBeVisible()
+  await expect(page.getByText(/Кому нужна помощь/)).toBeVisible()
 })

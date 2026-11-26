@@ -321,8 +321,8 @@ async def start_practice(body: PracticeStart, user: Student, session: Session):
 @router.post("/me/practice/answer", response_model=PracticeResult)
 async def answer_practice(body: PracticeAnswer, user: Student, session: Session):
     task = await session.get(PracticeTask, body.taskId)
-    if task is None or task.student_id != user.id:
-        raise HTTPException(404, "task_not_found")
+    if task is None or task.student_id != user.id or task.run_id.startswith("daily-"):
+        raise HTTPException(404, "task_not_found")  # the daily task has its own endpoint
     copy = FEEDBACK[body.lang]
     if task.solved_at is not None:
         raise HTTPException(409, "task_solved")
