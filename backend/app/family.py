@@ -271,7 +271,8 @@ async def summary(session, parent: User, child: User) -> ChildSummary:
         chaptersTotal=len(season.get("verifiedChapters", [])),
         bossWins=len(wins),
         cleanWins=sum(1 for w in wins if w.misses == 0),
-        strengths=[s for s, _ in right.most_common(2)],
+        # The weak skill is never also listed as a strength (a skill can have both counts).
+        strengths=[s for s, _ in right.most_common() if s != weak[0]][:2],
         weakSkill=weak[0],
         weakMistakes=weak[1],
         drillsWeek=drills or 0,
