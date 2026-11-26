@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useState, type FormEvent } from 'react'
-import { accounts, isAbortError, type Benchmark, type Challenge, type ChallengeKind, type Lang, type PracticeCalendar } from '../api'
+import { accounts, isAbortError, type Benchmark, type Challenge, type ChallengeKind, type ChildSummary, type Lang, type PracticeCalendar } from '../api'
+import { skillCopy } from '../accountCopy'
 import { CARD, PRIMARY } from './AuthScreen'
 import { GOAL_TEXT, topicName } from './ParentCards'
 
@@ -349,6 +350,82 @@ export function PeerBenchmark({ childId, lang }: { childId: number; lang: Lang }
         ))}
       </ul>
       <p className="mt-3 text-sm font-semibold text-ink/80">{c.active(bench.activeDays, bench.peerActiveDays, bench.activePercentile)}</p>
+    </section>
+  )
+}
+
+
+const WEEK = {
+  ru: {
+    title: 'Неделя в одной строке',
+    lead: 'Готовое сообщение — перешлите бабушке, папе или в семейный чат.',
+    line: (c: ChildSummary) => {
+      const parts = [
+        `${c.chaptersWeek ?? 0} ${plural(c.chaptersWeek ?? 0, ['глава', 'главы', 'глав'])}`,
+        `${c.bossWinsWeek ?? 0} ${plural(c.bossWinsWeek ?? 0, ['победа', 'победы', 'побед'])} над боссом`,
+        `${c.drillsWeek} ${plural(c.drillsWeek, ['тренировка', 'тренировки', 'тренировок'])}`,
+      ]
+      return parts
+    },
+    weak: (skill: string) => `стоит повторить: ${skill}`,
+    homework: (open: number) => (open ? `домашка: не сделано ${open}` : 'домашка сделана'),
+    head: (first: string) => `📚 ${first} за неделю:`,
+    tail: 'AI Math Comics',
+    whatsapp: '📤 Отправить в WhatsApp',
+    copy: '📋 Скопировать',
+    copied: '✓ Скопировано',
+  },
+  kk: {
+    title: 'Апта бір жолда',
+    lead: 'Дайын хабарлама — әжеге, әкеге немесе отбасы чатына жіберіңіз.',
+    line: (c: ChildSummary) => [
+      `${c.chaptersWeek ?? 0} тарау`,
+      `боссты ${c.bossWinsWeek ?? 0} рет жеңді`,
+      `${c.drillsWeek} жаттығу`,
+    ],
+    weak: (skill: string) => `қайталау керек: ${skill}`,
+    homework: (open: number) => (open ? `үй жұмысы: ${open} орындалмаған` : 'үй жұмысы орындалды'),
+    head: (first: string) => `📚 ${first} осы аптада:`,
+    tail: 'AI Math Comics',
+    whatsapp: '📤 WhatsApp-қа жіберу',
+    copy: '📋 Көшіру',
+    copied: '✓ Көшірілді',
+  },
+}
+
+function plural(n: number, [one, few, many]: [string, string, string]) {
+  const d = n % 10
+  const h = n % 100
+  return d === 1 && h !== 11 ? one : d >= 2 && d <= 4 && (h < 10 || h >= 20) ? few : many
+}
+
+/** The week in one line a parent can forward (WhatsApp or anywhere). */
+export function WeeklyLine({ child, lang }: { child: ChildSummary; lang: Lang }) {
+  const w = WEEK[lang]
+  const [copied, setCopied] = useState(false)
+  const first = child.name.split(' ')[0]
+  const parts = w.line(child)
+  if (child.weakSkill) parts.push(w.weak(skillCopy(lang, child.weakSkill)?.review ?? child.weakSkill))
+  if (child.className) parts.push(w.homework(child.homeworkOpen))
+  const text = `${w.head(first)} ${parts.join(' · ')}. — ${w.tail}`
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+    } catch {
+      window.prompt('', text)
+    }
+  }
+  return (
+    <section className="rounded-2xl border-[3px] border-ink bg-[linear-gradient(135deg,#e9ffe9,#e8f4ff)] p-3 shadow-[0_4px_0_var(--shadow-ink)] sm:p-4">
+      <h3 className="flex items-center gap-2 text-lg font-black text-ink"><span aria-hidden>💬</span>{w.title}</h3>
+      <p className="text-xs font-semibold text-ink/65">{w.lead}</p>
+      <p className="mt-2 rounded-xl border-2 border-ink/20 bg-white px-3 py-2 font-bold text-ink">{text}</p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        <a href={`https://wa.me/?text=${encodeURIComponent(text)}`} target="_blank" rel="noopener noreferrer"
+          className="rounded-lg border-2 border-ink bg-[#25d366] px-3 py-1 text-sm font-black text-ink hover:brightness-95 focus-visible:outline-3 focus-visible:outline-brand">{w.whatsapp}</a>
+        <button type="button" onClick={copy} className="rounded-lg border-2 border-ink bg-white px-3 py-1 text-sm font-black text-ink hover:bg-sky focus-visible:outline-3 focus-visible:outline-brand">{copied ? w.copied : w.copy}</button>
+      </div>
     </section>
   )
 }

@@ -4,7 +4,7 @@ import { accounts, isAbortError, type Billing, type ChildSummary, type Lang, typ
 import { CoinPacks, FamilyPlanCard } from './ParentBilling'
 import { PRAISE } from './ParentCards'
 import { ParentSummary } from './ParentSummary'
-import { ChildChallenges, PeerBenchmark, PracticeCalendarCard } from './ParentMotivation'
+import { ChildChallenges, PeerBenchmark, PracticeCalendarCard, WeeklyLine } from './ParentMotivation'
 import { useAccount } from '../account'
 import { ACCOUNT_COPY, skillCopy } from '../accountCopy'
 import { PORTRAITS } from '../art/sheet'
@@ -154,6 +154,7 @@ function ChildCard({ child, lang, billing, onChange, onPaid, onRemove }: {
       <PeerBenchmark childId={child.id} lang={lang} />
       </div>
       <div className="flex min-w-0 flex-col gap-4">
+      <WeeklyLine child={child} lang={lang} />
       <ChildChallenges childId={child.id} childName={child.name.split(' ')[0]} lang={lang} />
 
       <section className={CARD}>

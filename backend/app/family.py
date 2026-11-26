@@ -152,6 +152,9 @@ class ChildSummary(BaseModel):
     weakSkill: str | None = None
     weakMistakes: int = 0
     drillsWeek: int
+    chaptersWeek: int = 0
+    bossWinsWeek: int = 0
+    """For the one-line weekly summary a parent can forward."""
     homeworkOpen: int
     homeworkOverdue: int
     lastActive: datetime | None = None
@@ -197,6 +200,7 @@ async def summary(session, parent: User, child: User) -> ChildSummary:
     chapters_month = sum(
         1 for key, at in rewards if key in CHAPTER_IDS and aware(at) >= month_start
     )
+    chapters_week = sum(1 for key, at in rewards if key in CHAPTER_IDS and aware(at) >= week_ago)
     wins = (
         await session.scalars(
             select(BossResult)
@@ -232,6 +236,8 @@ async def summary(session, parent: User, child: User) -> ChildSummary:
             await session.scalars(select(Homework).where(Homework.class_id == school_class.id))
         ).all()
         for item in items:
+            if item.student_ids is not None and child.id not in item.student_ids:
+                continue  # set for other students only
             done = item.target in verified if item.kind == "chapter" else False
             if item.kind == "practice":
                 done = (
@@ -277,6 +283,8 @@ async def summary(session, parent: User, child: User) -> ChildSummary:
         weakSkill=weak[0],
         weakMistakes=weak[1],
         drillsWeek=drills or 0,
+        chaptersWeek=chapters_week,
+        bossWinsWeek=sum(1 for w in wins if aware(w.created_at) >= week_ago),
         homeworkOpen=homework_open,
         homeworkOverdue=homework_overdue,
         lastActive=max(moments) if moments else None,

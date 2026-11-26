@@ -1151,6 +1151,8 @@ function childSummary(state: MockState, parentId: number, studentId: number): Ch
     weakSkill: 'div',
     weakMistakes: 3,
     drillsWeek: 1,
+    chaptersWeek: 2,
+    bossWinsWeek: 1,
     homeworkOpen: (state.homework ?? []).filter((h) => h.classId === child.classId).length,
     homeworkOverdue: 0,
     lastActive: new Date().toISOString(),

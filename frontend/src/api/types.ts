@@ -623,6 +623,8 @@ export interface ChildSummary {
   weakSkill?: string | null
   weakMistakes: number
   drillsWeek: number
+  chaptersWeek?: number
+  bossWinsWeek?: number
   homeworkOpen: number
   homeworkOverdue: number
   lastActive?: string | null
