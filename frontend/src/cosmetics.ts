@@ -5,7 +5,7 @@ import sphinxArt from './assets/helpers/sphinx.webp'
 // Frames (around the hero card's picture) and titles (under the student's name) from the fair
 // shop. Prices here only feed demo mode: on the server the catalog in backend/app/shop.py rules.
 
-export type FrameKey = 'frame-sunny' | 'frame-steppe' | 'frame-space' | 'frame-gold' | 'frame-fire'
+export type FrameKey = 'frame-sunny' | 'frame-steppe' | 'frame-space' | 'frame-gold' | 'frame-fire' | 'frame-knowledge' | 'frame-winter' | 'frame-nauryz'
 export type TitleKey = 'title-explorer' | 'title-fractions' | 'title-equations' | 'title-fair-hero'
 export type HelperKey = 'helper-gear' | 'helper-sphinx'
 export type CosmeticKey = FrameKey | TitleKey | HelperKey
@@ -47,6 +47,21 @@ export const COSMETICS: Record<CosmeticKey, Cosmetic> = {
     slot: 'frame', price: 0, gift: true, icon: '🔥',
     name: t('Огненная серия', 'Отты серия'),
     about: t('Редкая рамка — подарок от родителей за 5 дней занятий подряд. В магазине не продаётся.', 'Сирек жиек — қатарынан 5 күн айналысқаның үшін ата-анаңнан сыйлық. Дүкенде сатылмайды.'),
+  },
+  'frame-knowledge': {
+    slot: 'frame', price: 0, gift: true, icon: '📚',
+    name: t('День знаний', 'Білім күні'),
+    about: t('Приз сентябрьского события: 10 задач дня за месяц. В магазине не продаётся.', 'Қыркүйек оқиғасының жүлдесі: айына 10 күн есебі. Дүкенде сатылмайды.'),
+  },
+  'frame-winter': {
+    slot: 'frame', price: 0, gift: true, icon: '❄️',
+    name: t('Новогодняя рамка', 'Жаңа жыл жиегі'),
+    about: t('Приз зимнего события: 12 задач дня до праздников. В магазине не продаётся.', 'Қысқы оқиғаның жүлдесі: мерекеге дейін 12 күн есебі. Дүкенде сатылмайды.'),
+  },
+  'frame-nauryz': {
+    slot: 'frame', price: 0, gift: true, icon: '🌷',
+    name: t('Наурыз', 'Наурыз'),
+    about: t('Приз весеннего события Наурыз: 10 задач дня в марте. В магазине не продаётся.', 'Наурыз көктемгі оқиғасының жүлдесі: наурызда 10 күн есебі. Дүкенде сатылмайды.'),
   },
   'title-explorer': {
     slot: 'title', price: 20, icon: '🧭',

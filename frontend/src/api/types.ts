@@ -560,6 +560,76 @@ export type CardKind = PraiseKind | 'coins' | 'streak'
 
 export type ChallengeKind = 'boss_clean' | 'chapters' | 'drills' | 'streak'
 
+/** The teacher's own problem shown to the class as a comic panel. */
+export interface TeacherTaskItem {
+  id: string
+  hero: CastHeroId
+  scene: string
+  textRu: string
+  textKk: string
+  hintRu?: string | null
+  hintKk?: string | null
+  answer?: string | null
+  createdAt: string
+  solved: number
+  total: number
+  students: { id: number; name: string; solved: boolean; tries: number }[]
+  mySolved?: boolean | null
+  myTries?: number | null
+}
+
+export interface MessageThread {
+  teacherId: number
+  teacherName: string
+  parentId: number
+  parentName: string
+  studentId: number
+  studentName: string
+  unread: number
+  messages: { id: number; sender: 'teacher' | 'parent'; text: string; link?: string | null; at: string; read: boolean }[]
+}
+
+export interface DuelState {
+  id: string
+  code: string
+  topic: BattleTopic
+  status: 'waiting' | 'active' | 'done'
+  total: number
+  me: number
+  opponent: number
+  opponentName?: string | null
+  secondsLeft?: number | null
+  prompt?: string | null
+  answerFormat: AnswerFormat
+  result?: 'won' | 'lost' | 'tie' | null
+  coins: number
+}
+
+export interface PrepTest {
+  id: string
+  problems: { id: string; topic: string; prompt: string }[]
+  secondsLeft: number
+  minutes: number
+}
+
+export interface PrepResult {
+  id: string
+  score: number
+  total: number
+  minutesUsed: number
+  problems: { id: string; prompt: string; yourAnswer?: string | null; correct: boolean; answer: number; solution: string }[]
+}
+
+export interface SeasonEvent {
+  id: 'knowledge' | 'winter' | 'nauryz'
+  start: string
+  end: string
+  target: number
+  progress: number
+  frame: string
+  claimed: boolean
+}
+
 /** A parent's rule with a real reward, with the child's progress since it was set. */
 export interface Challenge {
   id: string
@@ -693,6 +763,29 @@ export interface AccountApi {
   practiceCalendar(childId: number, month?: string, signal?: AbortSignal): Promise<PracticeCalendar>
   streakGift(childId: number): Promise<PracticeCalendar>
   benchmark(childId: number, signal?: AbortSignal): Promise<Benchmark>
+  objectiveCodes(signal?: AbortSignal): Promise<Record<string, string>>
+  setObjectiveCodes(comicId: string, codes: string): Promise<Record<string, string>>
+  printDrill(topic: BattleTopic, count: number, grade: number, lang: Lang): Promise<{ prompt: string; answer: string }[]>
+  teacherTasks(classId: number, signal?: AbortSignal): Promise<TeacherTaskItem[]>
+  createTeacherTask(classId: number, body: { hero: CastHeroId; scene: string; textRu: string; textKk: string; answer: string; hintRu?: string; hintKk?: string }): Promise<TeacherTaskItem>
+  deleteTeacherTask(taskId: string): Promise<void>
+  myTasks(signal?: AbortSignal): Promise<TeacherTaskItem[]>
+  answerTask(taskId: string, answer: string): Promise<{ status: 'correct' | 'incorrect' | 'invalid'; tries: number }>
+  writeToParents(studentId: number, text: string, link?: string): Promise<MessageThread[]>
+  studentParents(studentId: number): Promise<number>
+  teacherThreads(signal?: AbortSignal): Promise<MessageThread[]>
+  parentThreads(signal?: AbortSignal): Promise<MessageThread[]>
+  parentReply(teacherId: number, studentId: number, text: string): Promise<MessageThread[]>
+  readThread(as: 'teacher' | 'parent', otherId: number, studentId: number): Promise<void>
+  openDuel(topic: BattleTopic, mode: 'code' | 'class', lang: Lang): Promise<DuelState>
+  joinDuel(code: string, lang: Lang): Promise<DuelState>
+  duel(duelId: string, lang: Lang, signal?: AbortSignal): Promise<DuelState>
+  answerDuel(duelId: string, answer: string, lang: Lang): Promise<{ status: 'correct' | 'incorrect' | 'invalid'; duel: DuelState }>
+  startPrep(lang: Lang): Promise<PrepTest>
+  submitPrep(testId: string, answers: Record<string, string>, lang: Lang): Promise<PrepResult>
+  prepHistory(signal?: AbortSignal): Promise<{ id: string; score: number; total: number; at: string }[]>
+  myEvent(signal?: AbortSignal): Promise<SeasonEvent | null>
+  claimEvent(): Promise<SeasonEvent>
   daily(lang: Lang, signal?: AbortSignal): Promise<DailyTask>
   answerDaily(body: { taskId: string; answer: string; lang: Lang }): Promise<DailyResult>
   review(signal?: AbortSignal): Promise<ReviewItem[]>

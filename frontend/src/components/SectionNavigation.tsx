@@ -9,6 +9,8 @@ const NAV = {
   ru: {
     home: 'Главная',
     homeDetail: 'Что делать сейчас',
+    path: 'Мой путь',
+    pathDetail: 'Следующие шаги',
     stories: 'Истории',
     myClass: 'Мой класс',
     myClassDetail: 'Уроки, батлы, лига',
@@ -17,6 +19,8 @@ const NAV = {
   kk: {
     home: 'Басты бет',
     homeDetail: 'Қазір не істеу керек',
+    path: 'Менің жолым',
+    pathDetail: 'Келесі қадамдар',
     stories: 'Оқиғалар',
     myClass: 'Менің сыныбым',
     myClassDetail: 'Сабақ, шайқас, лига',
@@ -50,6 +54,7 @@ function SectionLinks({ t, active, completed, myComics, operationsDone, classNam
   const id = useId()
   const links = [
     { section: 'map', icon: '🏠', label: NAV[lang].home, detail: NAV[lang].homeDetail },
+    { section: 'path', icon: '🧭', label: NAV[lang].path, detail: NAV[lang].pathDetail },
     { section: 'operations', icon: '📚', label: NAV[lang].stories, detail: NAV[lang].storiesDetail(operationsDone, STORY_CHAPTERS) },
     { section: 'myClass', icon: '👥', label: NAV[lang].myClass, detail: className ?? NAV[lang].myClassDetail },
     { section: 'myComics', icon: '🖍️', label: t.myComics.title, detail: myComics > 0 ? t.myComics.count(myComics) : undefined },

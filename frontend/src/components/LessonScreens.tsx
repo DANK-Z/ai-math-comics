@@ -8,6 +8,7 @@ import { joinHref, lessonBoardHref, SECTION_HREFS, teacherClassHref } from '../r
 import { CARD, PRIMARY, SECONDARY } from './AuthScreen'
 import { usePolled } from '../usePolled'
 import { chapterTitle } from './CurriculumCard'
+import { useLoaded } from '../usePolled'
 import { PanelArt } from './PanelArt'
 import { Lobby } from './Lobby'
 import { QrCode } from './QrCode'
@@ -329,6 +330,7 @@ export function LessonLauncher({ classId, lang }: { classId: number; lang: Lang 
   const [section, setSection] = useState(sections[0]?.key ?? '')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(false)
+  const codes = useLoaded(useCallback((s: AbortSignal) => accounts.objectiveCodes(s), [])).value
 
   async function launch(chosen = comicId, plan = false) {
     const def = chapterDef(chosen)
@@ -360,6 +362,7 @@ export function LessonLauncher({ classId, lang }: { classId: number; lang: Lang 
           return <option key={d.id} value={d.id}>{chapterTitle(d.id, lang)} — {CURRICULUM_COPY[lang].grade(goal.grade)}, {goal.section[lang]}</option>
         })}
       </select>
+      {codes?.[comicId] && <p className="mt-1 font-mono text-xs font-bold text-ink/70">🎯 {codes[comicId]}</p>}
       <button type="button" onClick={() => launch()} disabled={busy || !comicId} className={`${PRIMARY} mt-3`}>
         <span aria-hidden>📽️ </span>{copy.launch}
       </button>

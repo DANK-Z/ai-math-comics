@@ -19,6 +19,9 @@ export const SECTION_HREFS = {
   lesson: '#/lesson',
   parent: '#/parent',
   myClass: '#/class',
+  duel: '#/duel',
+  prep: '#/prep',
+  path: '#/path',
 } as const
 
 export type Section = keyof typeof SECTION_HREFS

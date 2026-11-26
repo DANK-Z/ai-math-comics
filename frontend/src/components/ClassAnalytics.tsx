@@ -3,6 +3,7 @@ import { accounts, isAbortError, type BattleTopic, type ClassSummary, type Lang,
 import { CLASSROOM_COPY } from '../classroomCopy'
 import { CURRICULUM, practiceTopicFor } from '../curriculum'
 import { dayMonth } from '../dates'
+import { printMeetingReport } from '../meetingReport'
 import { CARD } from './AuthScreen'
 import { ReviewBattleButton } from './ClassBattle'
 import { HOMEWORK_CHANGED } from './LessonReports'
@@ -21,6 +22,8 @@ const COPY = {
     periods: { 7: 'Неделя', 30: 'Месяц', 90: 'Четверть' } as Record<Period, string>,
     period: 'Период',
     print: '🖨️ Сохранить в PDF',
+    meeting: '👪 Отчёт к собранию',
+    meetingHint: 'По странице на каждого ученика — для родительского собрания',
     main: (p: Period) => (p === 7 ? 'Главное за неделю' : p === 30 ? 'Главное за месяц' : 'Главное за четверть'),
     weak: (topic: string, pct: number) => `Проседает тема «${topic}» — верно только ${pct}% ответов.`,
     strong: (topic: string, pct: number) => `Лучше всего — «${topic}» (${pct}%).`,
@@ -65,6 +68,8 @@ const COPY = {
     periods: { 7: 'Апта', 30: 'Ай', 90: 'Тоқсан' } as Record<Period, string>,
     period: 'Кезең',
     print: '🖨️ PDF-ке сақтау',
+    meeting: '👪 Жиналысқа есеп',
+    meetingHint: 'Әр оқушыға бір беттен — ата-аналар жиналысына',
     main: (p: Period) => (p === 7 ? 'Аптаның басты қорытындысы' : p === 30 ? 'Айдың басты қорытындысы' : 'Тоқсанның басты қорытындысы'),
     weak: (topic: string, pct: number) => `«${topic}» тақырыбы әлсіз — жауаптардың тек ${pct}%-ы дұрыс.`,
     strong: (topic: string, pct: number) => `Ең жақсысы — «${topic}» (${pct}%).`,
@@ -204,7 +209,7 @@ export function DrillButton({ classId, row, students, label, lang, small = false
   )
 }
 
-export function ClassAnalytics({ classId, lang, details }: { classId: number; lang: Lang; details?: ReactNode }) {
+export function ClassAnalytics({ classId, className, lang, details }: { classId: number; className?: string; lang: Lang; details?: ReactNode }) {
   const copy = COPY[lang]
   const id = useId()
   const [days, setDays] = useState<Period>(7)
@@ -260,6 +265,10 @@ export function ClassAnalytics({ classId, lang, details }: { classId: number; la
         <button type="button" onClick={print} disabled={!summary}
           className="min-h-10 rounded-xl border-[3px] border-ink bg-white px-3 text-sm font-black text-ink hover:bg-sky focus-visible:outline-3 focus-visible:outline-brand print:hidden">
           {copy.print}
+        </button>
+        <button type="button" onClick={() => summary && printMeetingReport(summary, className ?? '', lang)} disabled={!summary?.pupils.length} title={copy.meetingHint}
+          className="min-h-10 rounded-xl border-[3px] border-ink bg-white px-3 text-sm font-black text-ink hover:bg-sky focus-visible:outline-3 focus-visible:outline-brand print:hidden">
+          {copy.meeting}
         </button>
       </div>
 

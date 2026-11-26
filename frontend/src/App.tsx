@@ -44,6 +44,9 @@ const LessonBoardScreen = lazy(() => import('./components/LessonScreens').then((
 const StudentLessonScreen = lazy(() => import('./components/LessonScreens').then((m) => ({ default: m.StudentLessonScreen })))
 const ParentScreen = lazy(() => import('./components/ParentScreen').then((m) => ({ default: m.ParentScreen })))
 const JoinScreen = lazy(() => import('./components/JoinScreen').then((m) => ({ default: m.JoinScreen })))
+const DuelScreen = lazy(() => import('./components/DuelScreen').then((m) => ({ default: m.DuelScreen })))
+const PrepScreen = lazy(() => import('./components/PrepScreen').then((m) => ({ default: m.PrepScreen })))
+const PathScreen = lazy(() => import('./components/PathScreen').then((m) => ({ default: m.PathScreen })))
 const MotionLeague = lazy(() => import('./components/MotionLeague'))
 const GuardianScreen = lazy(() => import('./components/GuardianScreen'))
 const MyComicsScreen = lazy(() => import('./components/MyComicsScreen'))
@@ -121,7 +124,7 @@ function screenFor(route: Route, role: Role | null): Route | null {
   const teacherRoute = route.name === 'teacher' || route.name === 'teacherClass' || route.name === 'teacherBattle' || route.name === 'teacherLesson'
   if (role === 'teacher') return teacherRoute ? null : { name: 'teacher' }
   if (role === 'student') return teacherRoute || route.name === 'login' ? { name: 'map' } : null
-  return teacherRoute || route.name === 'profile' || route.name === 'battle' || route.name === 'lesson' ? { name: 'login' } : null
+  return teacherRoute || route.name === 'profile' || route.name === 'battle' || route.name === 'lesson' || route.name === 'duel' || route.name === 'prep' ? { name: 'login' } : null
 }
 
 const THEME_LABEL = { ru: { dark: 'Включить светлую тему', light: 'Включить ночную тему' }, kk: { dark: 'Жарық тақырыпты қосу', light: 'Түнгі тақырыпты қосу' } }
@@ -254,7 +257,7 @@ function AppShell() {
   // A saved generated comic belongs to My Comics; everything else to the catalog.
   const readerSection = route.name === 'comic' && myComics.some((c) => c.comicId === route.comicId) ? 'myComics' as const : 'comics' as const
   const readerNav = route.name === 'comic' && operationChapter(route.comicId) ? 'operations' as const : readerSection === 'comics' ? 'map' as const : readerSection
-  const activeSection = route.name === 'comic' ? readerNav : route.name === 'operation' || route.name === 'operationFinale' ? 'operations' : route.name === 'teacherClass' || route.name === 'teacherBattle' || route.name === 'teacherLesson' ? 'teacher' : route.name === 'join' || route.name === 'lesson' || route.name === 'battle' ? 'myClass' : route.name === 'practice' || route.name === 'practiceTopic' ? 'map' : route.name === 'motionLeague' || route.name === 'roadGuardian' ? 'operations' : route.name === 'guardianAssignment' || route.name === 'guardian' || route.name === 'comics' ? 'map' : route.name
+  const activeSection = route.name === 'comic' ? readerNav : route.name === 'operation' || route.name === 'operationFinale' ? 'operations' : route.name === 'teacherClass' || route.name === 'teacherBattle' || route.name === 'teacherLesson' ? 'teacher' : route.name === 'join' || route.name === 'lesson' || route.name === 'battle' || route.name === 'duel' || route.name === 'prep' ? 'myClass' : route.name === 'practice' || route.name === 'practiceTopic' ? 'map' : route.name === 'motionLeague' || route.name === 'roadGuardian' ? 'operations' : route.name === 'guardianAssignment' || route.name === 'guardian' || route.name === 'comics' ? 'map' : route.name
   const navigation = { t, active: activeSection, completed: completedChapters.size, remaining, myComics: myComics.length, guardianWon: guardian.run.won, operationsDone: storyProgress.size, className: student?.schoolClass?.name ?? null, lang }
 
   const openGenerated = useCallback(
@@ -316,6 +319,9 @@ function AppShell() {
           {route.name === 'lesson' && role === 'student' && <StudentLessonScreen lang={lang} />}
           {route.name === 'join' && <JoinScreen key={route.code} lang={lang} code={route.code} to={route.to} />}
           {route.name === 'myClass' && <ClassScreen lang={lang} />}
+          {route.name === 'duel' && <DuelScreen lang={lang} />}
+          {route.name === 'prep' && <PrepScreen lang={lang} />}
+          {route.name === 'path' && <PathScreen lang={lang} completed={storyProgress} />}
           {route.name === 'practice' && <PracticeScreen lang={lang} topic={null} skill={null} />}
           {route.name === 'practiceTopic' && (
             <PracticeScreen lang={lang} topic={PRACTICE_TOPICS.includes(route.topic as BattleTopic) ? route.topic as BattleTopic : null} skill={route.skill} />

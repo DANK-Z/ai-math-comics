@@ -6,6 +6,7 @@ import { dayMonth } from '../dates'
 import { DrillButton, pct, pupilIn, weakestTopic, type Period, type TopicRow } from './ClassAnalytics'
 import { chapterTitle } from './CurriculumCard'
 import { formatDate, homeworkTitle } from './HomeworkCards'
+import { WriteToParent } from './Messages'
 
 // One student for the teacher, in a dialog over the analytics: how it goes by topic, the
 // typical slips with the chapter's hint, homework, activity over two weeks, and two actions
@@ -138,6 +139,8 @@ export function StudentCardDialog({ classId, pupil, days, rows, lang, onClose }:
             {copied ? copy.copied : copy.copy}
           </button>
         </div>
+        <WriteToParent key={p.id} studentId={p.id} name={(card?.fullName ?? p.name).split(' ')[0]} lang={lang}
+          pending={(card?.homework ?? []).filter((h) => !h.done).map((h) => homeworkTitle(h.kind, h.target, lang)).join(', ')} />
 
         {failed && <p role="alert" className="font-bold text-rose-700">{copy.error}</p>}
 

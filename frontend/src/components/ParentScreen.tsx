@@ -1,3 +1,4 @@
+import { MessagesCard } from './Messages'
 import { useEffect, useId, useState, type FormEvent } from 'react'
 import { dayMonth } from '../dates'
 import { accounts, isAbortError, type Billing, type ChildSummary, type Lang, type PraiseKind } from '../api'
@@ -245,6 +246,7 @@ export function ParentScreen({ lang }: { lang: Lang }) {
         <button type="button" onClick={logOut} className="min-h-11 rounded-lg px-2 text-sm font-bold text-ink/70 underline decoration-2 underline-offset-4 hover:text-ink focus-visible:outline-3 focus-visible:outline-brand">{ACCOUNT_COPY[lang].signOut}</button>
       </div>
       {children?.length === 0 && <p className={`${CARD} font-bold`}>{c.empty}</p>}
+      <MessagesCard as="parent" lang={lang} />
       {children && children.length > 1 && (
         <div role="tablist" aria-label={c.title} className="flex flex-wrap gap-1.5 self-start rounded-2xl border-[3px] border-ink bg-white p-1.5 shadow-[0_3px_0_var(--shadow-ink)]">
           {children.map((child) => {

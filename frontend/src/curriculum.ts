@@ -101,5 +101,7 @@ export function practiceTopicFor(comicId: string): BattleTopic | undefined {
   if (section === FRACTIONS) return 'fractions'
   if (section === EQUATIONS) return 'equations'
   if (section === PROPORTION) return 'parts'
+  if (section === DECIMALS) return 'decimals'
+  if (section === DIVISIBILITY) return 'gcd'
   return undefined
 }

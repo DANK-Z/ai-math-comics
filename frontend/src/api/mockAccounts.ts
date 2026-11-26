@@ -2,8 +2,9 @@ import { authToken } from './authToken'
 import { PROGRESS_REWARDS } from '../rewards'
 import { ApiError } from './errors'
 import { COSMETICS, isCosmetic, type CosmeticKey } from '../cosmetics'
-import type { AccountApi, BattleTopic, Challenge, ChallengeKind, PracticeCalendar, ChildSummary, ClassInfo, DailyTask, Dashboard, Grade, Lang, Me, PracticeReport, Shop, SkinKey, Billing, CardKind, CoinPack } from './types'
+import type { AccountApi, BattleTopic, CastHeroId, DuelState, MessageThread, SeasonEvent, TeacherTaskItem, Challenge, ChallengeKind, PracticeCalendar, ChildSummary, ClassInfo, DailyTask, Dashboard, Grade, Lang, Me, PracticeReport, Shop, SkinKey, Billing, CardKind, CoinPack } from './types'
 import { mockPracticeAnswer, mockPracticeTask, mockPracticeTopic, mockProblem } from './mockClassroom'
+import { PREP_BANK } from './prepBank'
 import { currentLesson, demoCard, demoReview, demoSummary, homeworkOf, lessonBoardOf, lessonReportsOf, myHomeworkOf, openAnswering, quizRanking, saveAnswer, setPhase, settleLesson, stepAnswer, studentLessonOf, wholeAnswer, type MockHomework, type MockLesson, type PracticeDone } from './mockLessons'
 import { DEMO_LOBBY } from './mockClassroom'
 import { BATTLE_HP, boardOf, checkMockAnswer, demoLeaderboard, latestBattle, MOCK_BATTLE_COPY, settle, shortName, studentView, type MockBattle } from './mockClassroom'
@@ -45,6 +46,11 @@ interface MockState {
   presence?: Record<string, Record<number, number>>
   familyCodes?: Record<number, string>
   familyLinks?: { parentId: number; studentId: number }[]
+  objectiveCodes?: Record<number, Record<string, string>>
+  teacherTasks?: { id: string; classId: number; hero: CastHeroId; scene: string; textRu: string; textKk: string; answer: string; hintRu?: string | null; hintKk?: string | null; createdAt: number; answers: Record<number, { tries: number; solved: boolean }> }[]
+  messages?: { id: number; teacherId: number; parentId: number; studentId: number; sender: 'teacher' | 'parent'; text: string; link?: string | null; at: number; read: boolean }[]
+  duels?: { id: string; code: string; topic: BattleTopic; me: number; problems: { prompt: Record<Lang, string>; answer: string }[]; progress: number; startedAt: number; done?: 'won' | 'lost' | 'tie' }[]
+  prepTests?: { id: string; userId: number; ids: string[]; startedAt: number; score?: number; at?: number }[]
   challenges?: { id: string; parentId: number; studentId: number; kind: ChallengeKind; topic: 'equations' | 'fractions' | null; target: number; reward: string; createdAt: number; base: number; completedAt: number | null; rewardedAt: number | null }[]
   praises?: { id: number; parentId: number; studentId: number; kind: CardKind; coins: number; at: number; seen: boolean }[]
   plans?: Record<number, number>
@@ -453,6 +459,238 @@ export const mockAccounts: AccountApi = {
         ],
         activeDays: 12, activePercentile: 65, peerActiveDays: 8.4,
       }
+    })
+  },
+  objectiveCodes() {
+    return later(() => {
+      const state = load()
+      return { ...(state.objectiveCodes?.[teacherOf(state).id] ?? {}) }
+    })
+  },
+  setObjectiveCodes(comicId, codes) {
+    return later(() => {
+      const state = load()
+      const user = teacherOf(state)
+      const mine = ((state.objectiveCodes ??= {})[user.id] ??= {})
+      const clean = codes.split(/\s+/).filter(Boolean).join(' ').slice(0, 80)
+      if (clean) mine[comicId] = clean
+      else delete mine[comicId]
+      save(state)
+      return { ...mine }
+    })
+  },
+  printDrill(topic, count, _grade, lang) {
+    return later(() => {
+      teacherOf(load())
+      const out = new Map<string, string>()
+      for (let i = 0; i < count * 10 && out.size < count; i++) {
+        const p = mockProblem(topic)
+        out.set(p.prompt[lang], String(p.answer))
+      }
+      return [...out].map(([prompt, answer]) => ({ prompt, answer }))
+    })
+  },
+  teacherTasks(classId) {
+    return later(() => {
+      const state = load()
+      ownClass(state, classId)
+      return (state.teacherTasks ?? []).filter((t) => t.classId === classId).reverse().map((t) => taskOf(state, t, true))
+    })
+  },
+  createTeacherTask(classId, body) {
+    return later(() => {
+      const state = load()
+      ownClass(state, classId)
+      if (wholeAnswerOrFraction(body.answer) === null) throw fail(422, 'invalid_answer')
+      const task = { id: `task-${Date.now()}`, classId, ...body, hintRu: body.hintRu || null, hintKk: body.hintKk || null, createdAt: Date.now(), answers: {} }
+      ;(state.teacherTasks ??= []).push(task)
+      save(state)
+      return taskOf(state, task, true)
+    })
+  },
+  deleteTeacherTask(taskId) {
+    return later(() => {
+      const state = load()
+      state.teacherTasks = (state.teacherTasks ?? []).filter((t) => t.id !== taskId)
+      save(state)
+    })
+  },
+  myTasks() {
+    return later(() => {
+      const state = load()
+      const user = student(state)
+      return (state.teacherTasks ?? []).filter((t) => t.classId === user.classId).reverse().map((t) => taskOf(state, t, false, user.id))
+    })
+  },
+  answerTask(taskId, answer) {
+    return later(() => {
+      const state = load()
+      const user = student(state)
+      const task = (state.teacherTasks ?? []).find((t) => t.id === taskId && t.classId === user.classId)
+      if (!task) throw fail(404, 'task_not_found')
+      const value = wholeAnswerOrFraction(answer)
+      if (value === null) return { status: 'invalid' as const, tries: 0 }
+      const mine = (task.answers[user.id] ??= { tries: 0, solved: false })
+      if (mine.solved) return { status: 'correct' as const, tries: mine.tries }
+      mine.tries += 1
+      mine.solved = value === wholeAnswerOrFraction(task.answer)
+      save(state)
+      return { status: mine.solved ? 'correct' as const : 'incorrect' as const, tries: mine.tries }
+    })
+  },
+  writeToParents(studentId, text, link) {
+    return later(() => {
+      const state = load()
+      const user = teacherOf(state)
+      const parents = (state.familyLinks ?? []).filter((l) => l.studentId === studentId).map((l) => l.parentId)
+      if (!parents.length) throw fail(409, 'no_parents')
+      const messages = (state.messages ??= [])
+      for (const parentId of parents) messages.push({ id: messages.length + 1, teacherId: user.id, parentId, studentId, sender: 'teacher', text: text.trim(), link: link ?? null, at: Date.now(), read: false })
+      save(state)
+      return threadsOf(state, (m) => m.teacherId === user.id && m.studentId === studentId, 'teacher')
+    })
+  },
+  studentParents(studentId) {
+    return later(() => (load().familyLinks ?? []).filter((l) => l.studentId === studentId).length)
+  },
+  teacherThreads() {
+    return later(() => {
+      const state = load()
+      const user = teacherOf(state)
+      return threadsOf(state, (m) => m.teacherId === user.id, 'teacher')
+    })
+  },
+  parentThreads() {
+    return later(() => {
+      const state = load()
+      const user = parentOf(state)
+      return threadsOf(state, (m) => m.parentId === user.id, 'parent')
+    })
+  },
+  parentReply(teacherId, studentId, text) {
+    return later(() => {
+      const state = load()
+      const user = parentOf(state)
+      const messages = (state.messages ??= [])
+      messages.push({ id: messages.length + 1, teacherId, parentId: user.id, studentId, sender: 'parent', text: text.trim(), link: null, at: Date.now(), read: false })
+      save(state)
+      return threadsOf(state, (m) => m.parentId === user.id, 'parent')
+    })
+  },
+  readThread(as, otherId, studentId) {
+    return later(() => {
+      const state = load()
+      const me = as === 'teacher' ? teacherOf(state).id : parentOf(state).id
+      for (const m of state.messages ?? []) {
+        const mine = as === 'teacher' ? m.teacherId === me && m.parentId === otherId : m.parentId === me && m.teacherId === otherId
+        if (mine && m.studentId === studentId && m.sender !== as) m.read = true
+      }
+      save(state)
+    })
+  },
+  openDuel(topic, mode, lang) {
+    return later(() => {
+      const state = load()
+      const user = student(state)
+      if (mode === 'class' && !user.classId) throw fail(409, 'no_class')
+      const duel = { id: `duel-${Date.now()}`, code: Math.random().toString(36).slice(2, 7).toUpperCase(), topic, me: user.id, problems: Array.from({ length: 5 }, () => mockProblem(topic)), progress: 0, startedAt: mode === 'class' ? Date.now() + 2500 : Date.now() + 6000 }
+      ;(state.duels ??= []).push(duel)
+      save(state)
+      return duelOf(duel, lang)
+    })
+  },
+  joinDuel(code, lang) {
+    return later(() => {
+      const state = load()
+      student(state)
+      const duel = (state.duels ?? []).find((d) => d.code === code.trim().toUpperCase())
+      if (!duel) throw fail(404, 'duel_not_found')
+      duel.startedAt = Math.min(duel.startedAt, Date.now())
+      save(state)
+      return duelOf(duel, lang)
+    })
+  },
+  duel(duelId, lang) {
+    return later(() => {
+      const state = load()
+      const duel = (state.duels ?? []).find((d) => d.id === duelId)
+      if (!duel) throw fail(404, 'duel_not_found')
+      const out = duelOf(duel, lang)
+      save(state)
+      return out
+    })
+  },
+  answerDuel(duelId, answer, lang) {
+    return later(() => {
+      const state = load()
+      const duel = (state.duels ?? []).find((d) => d.id === duelId)
+      if (!duel) throw fail(404, 'duel_not_found')
+      const now = duelOf(duel, lang)
+      if (now.status !== 'active') throw fail(409, 'duel_not_active')
+      const status = checkMockAnswer(answer, duel.problems[duel.progress].answer)
+      if (status === 'correct') duel.progress += 1
+      const out = duelOf(duel, lang)
+      save(state)
+      return { status, duel: out }
+    })
+  },
+  startPrep(lang) {
+    return later(() => {
+      const state = load()
+      const user = student(state)
+      const ids = [...PREP_BANK].sort(() => Math.random() - 0.5).slice(0, 10).map((p) => p.id)
+      const test = { id: `prep-${Date.now()}`, userId: user.id, ids, startedAt: Date.now() }
+      ;(state.prepTests ??= []).push(test)
+      save(state)
+      return {
+        id: test.id, minutes: 25, secondsLeft: 25 * 60,
+        problems: ids.map((id) => { const p = PREP_BANK.find((b) => b.id === id)!; return { id, topic: p.topic, prompt: lang === 'kk' ? p.kk : p.ru } }),
+      }
+    })
+  },
+  submitPrep(testId, answers, lang) {
+    return later(() => {
+      const state = load()
+      const test = (state.prepTests ?? []).find((t) => t.id === testId)
+      if (!test) throw fail(404, 'test_not_found')
+      if (test.score !== undefined) throw fail(409, 'already_submitted')
+      const problems = test.ids.map((id) => {
+        const p = PREP_BANK.find((b) => b.id === id)!
+        const given = answers[id]
+        return { id, prompt: lang === 'kk' ? p.kk : p.ru, yourAnswer: given ?? null, correct: !!given && wholeAnswerOrFraction(given) === String(p.answer), answer: p.answer, solution: lang === 'kk' ? p.solutionKk : p.solutionRu }
+      })
+      test.score = problems.filter((p) => p.correct).length
+      test.at = Date.now()
+      save(state)
+      return { id: test.id, score: test.score, total: problems.length, minutesUsed: Math.max(1, Math.min(25, Math.round((Date.now() - test.startedAt) / 60000))), problems }
+    })
+  },
+  prepHistory() {
+    return later(() => {
+      const state = load()
+      const user = student(state)
+      return (state.prepTests ?? []).filter((t) => t.userId === user.id && t.score !== undefined).reverse().slice(0, 10)
+        .map((t) => ({ id: t.id, score: t.score!, total: t.ids.length, at: new Date(t.at!).toISOString() }))
+    })
+  },
+  myEvent() {
+    return later(() => {
+      const state = load()
+      return eventOf(student(state))
+    })
+  },
+  claimEvent() {
+    return later(() => {
+      const state = load()
+      const user = student(state)
+      const event = eventOf(user)
+      if (!event) throw fail(404, 'no_event')
+      if (event.claimed) throw fail(409, 'already_claimed')
+      if (event.progress < event.target) throw fail(409, 'not_yet')
+      const skins = (user.skins ??= [])
+      skins.push({ id: skins.length + 1, key: event.frame, equipped: false, type: 'frame' })
+      save(state)
+      return eventOf(user)!
     })
   },
   myPraise() {
@@ -1121,6 +1359,94 @@ function calendarOf(_state: MockState, child: MockUser, month?: string): Practic
   }
   const sent = (child.skins ?? []).some((s) => s.key === 'frame-fire')
   return { month: first.toISOString().slice(0, 7), days, streak, giftReady: streak >= 5 && !sent, giftSent: sent }
+}
+
+function teacherOf(state: MockState) {
+  const user = currentUser(state)
+  if (user.role !== 'teacher') throw fail(403, 'teachers_only')
+  return user
+}
+
+/** "7", "x = 7", "3/4" or "4,2" → a comparable string; null when not a number. */
+function wholeAnswerOrFraction(text: string): string | null {
+  const t = text.trim().replace(/^x\s*=\s*/i, '').replace(/\s/g, '').replace(',', '.')
+  if (/^-?\d+(\.\d+)?$/.test(t)) return String(Number(t))
+  const f = /^(-?\d+)\/(\d+)$/.exec(t)
+  return f && Number(f[2]) ? String(Number(f[1]) / Number(f[2])) : null
+}
+
+function taskOf(state: MockState, t: NonNullable<MockState['teacherTasks']>[number], teacher: boolean, me?: number): TeacherTaskItem {
+  const pupils = state.users.filter((u) => u.role === 'student' && u.classId === t.classId)
+  const students = pupils.map((u) => ({ id: u.id, name: shortName(u.displayName), solved: !!t.answers[u.id]?.solved, tries: t.answers[u.id]?.tries ?? 0 }))
+  return {
+    id: t.id, hero: t.hero, scene: t.scene, textRu: t.textRu, textKk: t.textKk || t.textRu, hintRu: t.hintRu, hintKk: t.hintKk || t.hintRu,
+    answer: teacher ? t.answer : null, createdAt: new Date(t.createdAt).toISOString(),
+    solved: students.filter((x) => x.solved).length, total: students.length, students: teacher ? students : [],
+    mySolved: me ? !!t.answers[me]?.solved : null, myTries: me ? t.answers[me]?.tries ?? 0 : null,
+  }
+}
+
+function threadsOf(state: MockState, pick: (m: NonNullable<MockState['messages']>[number]) => boolean, me: 'teacher' | 'parent'): MessageThread[] {
+  const groups = new Map<string, NonNullable<MockState['messages']>>()
+  for (const m of [...(state.messages ?? [])].filter(pick).reverse()) {
+    const key = `${m.teacherId}-${m.parentId}-${m.studentId}`
+    groups.set(key, [...(groups.get(key) ?? []), m])
+  }
+  const name = (id: number) => state.users.find((u) => u.id === id)?.displayName ?? ''
+  return [...groups.values()].map((items) => {
+    const first = items[0]
+    const messages = [...items].reverse().map((m) => ({ id: m.id, sender: m.sender, text: m.text, link: m.link ?? null, at: new Date(m.at).toISOString(), read: m.read }))
+    return {
+      teacherId: first.teacherId, teacherName: name(first.teacherId), parentId: first.parentId, parentName: name(first.parentId),
+      studentId: first.studentId, studentName: shortName(name(first.studentId)),
+      unread: messages.filter((m) => m.sender !== me && !m.read).length, messages,
+    }
+  })
+}
+
+/** Demo duel: the classmate «Ерасыл К.» solves a problem every ~14 seconds. */
+function duelOf(d: NonNullable<MockState['duels']>[number], lang: Lang): DuelState {
+  const total = 5
+  const now = Date.now()
+  const waiting = now < d.startedAt
+  const elapsed = Math.max(0, now - d.startedAt)
+  const opponent = waiting ? 0 : Math.min(total, Math.floor(elapsed / 14000))
+  const timeUp = elapsed >= 180_000
+  if (!waiting && !d.done && (d.progress >= total || opponent >= total || timeUp)) {
+    d.done = d.progress >= total && d.progress > opponent ? 'won' : opponent >= total && opponent > d.progress ? 'lost' : d.progress > opponent ? 'won' : d.progress < opponent ? 'lost' : 'tie'
+  }
+  const status = waiting ? 'waiting' : d.done ? 'done' : 'active'
+  return {
+    id: d.id, code: d.code, topic: d.topic, status, total, me: d.progress, opponent,
+    opponentName: waiting ? null : 'Ерасыл К.',
+    secondsLeft: status === 'active' ? Math.max(0, Math.round((180_000 - elapsed) / 1000)) : null,
+    prompt: status === 'active' && d.progress < total ? d.problems[d.progress].prompt[lang] : null,
+    answerFormat: d.topic === 'fractions' ? 'fraction' : d.topic === 'decimals' ? 'decimal' : 'whole-number',
+    result: d.done ?? null, coins: d.done === 'won' ? 10 : 0,
+  }
+}
+
+const DEMO_EVENTS: { id: SeasonEvent['id']; from: [number, number]; to: [number, number]; target: number; frame: string }[] = [
+  { id: 'knowledge', from: [9, 1], to: [9, 30], target: 10, frame: 'frame-knowledge' },
+  { id: 'winter', from: [11, 20], to: [1, 10], target: 12, frame: 'frame-winter' },
+  { id: 'nauryz', from: [3, 10], to: [3, 31], target: 10, frame: 'frame-nauryz' },
+]
+
+function eventOf(user: MockUser): SeasonEvent | null {
+  const today = new Date(Date.now() + 5 * 3600_000).toISOString().slice(0, 10)
+  const year = Number(today.slice(0, 4))
+  const iso = (y: number, [m, d]: [number, number]) => `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+  for (const e of DEMO_EVENTS) {
+    for (const y of [year - 1, year]) {
+      const start = iso(y, e.from)
+      const end = iso(e.to[0] < e.from[0] ? y + 1 : y, e.to)
+      if (start <= today && today <= end) {
+        const progress = (user.dailyDays ?? []).filter((d) => start <= d && d <= end).length
+        return { id: e.id, start, end, target: e.target, progress, frame: e.frame, claimed: (user.skins ?? []).some((s) => s.key === e.frame) }
+      }
+    }
+  }
+  return null
 }
 
 function parentOf(state: MockState) {

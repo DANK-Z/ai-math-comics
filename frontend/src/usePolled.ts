@@ -19,3 +19,14 @@ export function usePolled<T>(load: (signal: AbortSignal) => Promise<T>, ms: numb
   return { value, setValue, failed, refresh: () => setTick((n) => n + 1) }
 }
 
+
+/** Loads once per `load` identity; returns the value (undefined until loaded). */
+export function useLoaded<T>(load: (signal: AbortSignal) => Promise<T>) {
+  const [value, setValue] = useState<T | undefined>(undefined)
+  useEffect(() => {
+    const ctrl = new AbortController()
+    load(ctrl.signal).then(setValue, () => {})
+    return () => ctrl.abort()
+  }, [load])
+  return { value, setValue }
+}

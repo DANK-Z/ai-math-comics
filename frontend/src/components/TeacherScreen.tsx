@@ -14,7 +14,9 @@ import { ClassAnalytics } from './ClassAnalytics'
 import { HomeworkCard } from './HomeworkCards'
 import { TeacherLeague } from './ClassLeague'
 import { CurriculumCard } from './CurriculumCard'
+import { PrintDrillCard, TeacherTasksCard } from './TeacherTools'
 import { StudentsTab } from './StudentsTab'
+import { MessagesCard } from './Messages'
 import { CARD, errorKey, FieldError, INPUT, PRIMARY, SECONDARY } from './AuthScreen'
 import { ClassAssignmentReports } from './ClassAssignments'
 import { TeacherWorkshop } from './TeacherWorkshop'
@@ -449,17 +451,20 @@ export function ClassDashboard({ lang, classId }: { lang: Lang; classId: number 
       <section id={`${id}-roster`} aria-labelledby={`${id}-button-roster`} hidden={section !== 'roster'}>
         <div className="grid gap-4">
           <StudentsTab classId={classId} lang={lang} students={data.students} />
+          <MessagesCard as="teacher" lang={lang} />
         </div>
       </section>
       <section id={`${id}-assignments`} aria-labelledby={`${id}-button-assignments`} hidden={section !== 'assignments'}>
         <div className="grid items-start gap-4 lg:grid-cols-2">
           <div className="flex min-w-0 flex-col gap-4">
             <HomeworkCard classId={classId} lang={lang} />
+            <TeacherTasksCard classId={classId} lang={lang} />
             <ClassAssignmentReports classId={classId} lang={lang} />
           </div>
           <div className="flex min-w-0 flex-col gap-4">
             <ChapterAssignment lang={lang} />
             <GuardianAssignmentForm lang={lang} />
+            <PrintDrillCard lang={lang} />
             <CurriculumCard lang={lang} />
           </div>
         </div>
@@ -478,7 +483,7 @@ export function ClassDashboard({ lang, classId }: { lang: Lang; classId: number 
       </section>
 
       <section id={`${id}-overview`} aria-labelledby={`${id}-button-overview`} hidden={section !== 'overview'}>
-      <ClassAnalytics classId={classId} lang={lang} details={<>
+      <ClassAnalytics classId={classId} className={data.schoolClass.name} lang={lang} details={<>
         {data.heatmap.length > 0 && (rec || fewAnswers) && (
           <section className={`${CARD} ${rec ? 'border-rose-700 bg-rose-50' : 'bg-cream'}`} aria-labelledby={`${id}-review`}>
             <h2 id={`${id}-review`} className="text-lg font-black text-ink">{copy.first}</h2>

@@ -2,7 +2,7 @@ import { authToken } from './authToken'
 import { ApiError } from './errors'
 import type { BattleAnswerResult, BattleBoard, Leaderboard, PracticeReport, PracticeResult, PracticeTask, StudentBattle, StudentCredentials, WeakSpot } from './types'
 import type { ItemLore, VoiceAnswerKind } from './types'
-import type { Benchmark, Challenge, PracticeCalendar, StudentCard, ClassSummary, DailyResult, DailyTask, HomeworkItem, LessonBoard, LessonReport, MyHomework, ReviewItem, StudentLesson } from './types'
+import type { Benchmark, Challenge, DuelState, MessageThread, PracticeCalendar, PrepResult, PrepTest, SeasonEvent, TeacherTaskItem, StudentCard, ClassSummary, DailyResult, DailyTask, HomeworkItem, LessonBoard, LessonReport, MyHomework, ReviewItem, StudentLesson } from './types'
 import type { Billing, ChildSummary, PraiseCard } from './types'
 import type { AssignmentReport, ClassAssignment, ComicJobRequest, Lang, TeacherDraft, TeacherDraftJob, TeacherPublication, TeacherTask } from './types'
 import type { AccountApi, Api, AuthResponse, BossState, CheckResponse, ClassInfo, Comic, ComicJob, ComicJobCreated, ContinuationJobRequest, Dashboard, HintResponse, Me, Shop } from './types'
@@ -321,6 +321,75 @@ export function createHttpApi(baseUrl: string): Api & AccountApi & {
     },
     benchmark(childId, signal) {
       return request<Benchmark>(`/api/parent/children/${childId}/benchmark`, { signal })
+    },
+    objectiveCodes(signal) {
+      return request<Record<string, string>>('/api/teacher/objective-codes', { signal })
+    },
+    setObjectiveCodes(comicId, codes) {
+      return request<Record<string, string>>(`/api/teacher/objective-codes/${encodeURIComponent(comicId)}`, { method: 'PUT', body: JSON.stringify({ codes }) })
+    },
+    printDrill(topic, count, grade, lang) {
+      return request<{ prompt: string; answer: string }[]>(`/api/teacher/print/drill?topic=${topic}&count=${count}&grade=${grade}&lang=${lang}`)
+    },
+    teacherTasks(classId, signal) {
+      return request<TeacherTaskItem[]>(`/api/teacher/classes/${classId}/tasks`, { signal })
+    },
+    createTeacherTask(classId, body) {
+      return request<TeacherTaskItem>(`/api/teacher/classes/${classId}/tasks`, { method: 'POST', body: JSON.stringify(body) })
+    },
+    async deleteTeacherTask(taskId) {
+      await request<void>(`/api/teacher/tasks/${encodeURIComponent(taskId)}`, { method: 'DELETE' })
+    },
+    myTasks(signal) {
+      return request<TeacherTaskItem[]>('/api/me/tasks', { signal })
+    },
+    answerTask(taskId, answer) {
+      return request<{ status: 'correct' | 'incorrect' | 'invalid'; tries: number }>(`/api/me/tasks/${encodeURIComponent(taskId)}/answer`, { method: 'POST', body: JSON.stringify({ answer }) })
+    },
+    writeToParents(studentId, text, link) {
+      return request<MessageThread[]>(`/api/teacher/students/${studentId}/messages`, { method: 'POST', body: JSON.stringify(link ? { text, link } : { text }) })
+    },
+    studentParents(studentId) {
+      return request<number>(`/api/teacher/students/${studentId}/parents`)
+    },
+    teacherThreads(signal) {
+      return request<MessageThread[]>('/api/teacher/messages', { signal })
+    },
+    parentThreads(signal) {
+      return request<MessageThread[]>('/api/parent/messages', { signal })
+    },
+    parentReply(teacherId, studentId, text) {
+      return request<MessageThread[]>('/api/parent/messages', { method: 'POST', body: JSON.stringify({ teacherId, studentId, text }) })
+    },
+    async readThread(as, otherId, studentId) {
+      await request<void>(`/api/${as}/messages/read`, { method: 'POST', body: JSON.stringify({ otherId, studentId }) })
+    },
+    openDuel(topic, mode, lang) {
+      return request<DuelState>(`/api/me/duels?lang=${lang}`, { method: 'POST', body: JSON.stringify({ topic, mode }) })
+    },
+    joinDuel(code, lang) {
+      return request<DuelState>(`/api/me/duels/join?lang=${lang}`, { method: 'POST', body: JSON.stringify({ code }) })
+    },
+    duel(duelId, lang, signal) {
+      return request<DuelState>(`/api/me/duels/${encodeURIComponent(duelId)}?lang=${lang}`, { signal })
+    },
+    answerDuel(duelId, answer, lang) {
+      return request<{ status: 'correct' | 'incorrect' | 'invalid'; duel: DuelState }>(`/api/me/duels/${encodeURIComponent(duelId)}/answer`, { method: 'POST', body: JSON.stringify({ answer, lang }) })
+    },
+    startPrep(lang) {
+      return request<PrepTest>(`/api/me/prep/tests?lang=${lang}`, { method: 'POST' })
+    },
+    submitPrep(testId, answers, lang) {
+      return request<PrepResult>(`/api/me/prep/tests/${encodeURIComponent(testId)}/submit`, { method: 'POST', body: JSON.stringify({ answers, lang }) })
+    },
+    prepHistory(signal) {
+      return request<{ id: string; score: number; total: number; at: string }[]>('/api/me/prep/history', { signal })
+    },
+    myEvent(signal) {
+      return request<SeasonEvent | null>('/api/me/event', { signal })
+    },
+    claimEvent() {
+      return request<SeasonEvent>('/api/me/event/claim', { method: 'POST' })
     },
     weakSpot(signal) {
       return request<WeakSpot | null>('/api/me/practice/weak', { signal })

@@ -1,3 +1,4 @@
+import { EventCard, QuickLinks, TeacherTasksCard } from './StudentExtras'
 import { useCallback } from 'react'
 import { accounts, type Lang } from '../api'
 import { useAccount } from '../account'
@@ -100,10 +101,13 @@ function StudentClass({ lang }: { lang: Lang }) {
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <div className="flex min-w-0 flex-col gap-4">
           <TodayCard lang={lang} />
+          <QuickLinks lang={lang} />
           <StudentAssignments lang={lang} />
+          <TeacherTasksCard lang={lang} />
           {!battleLive && <BattleIdle lang={lang} />}
         </div>
         <div className="flex min-w-0 flex-col gap-4">
+          <EventCard lang={lang} />
           <ClassLeague lang={lang} limit={3} />
         </div>
       </div>

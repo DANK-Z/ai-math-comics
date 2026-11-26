@@ -90,7 +90,18 @@ async def print_drill(
 ):
     if topic not in TOPICS:
         raise HTTPException(422, "unknown_topic")
-    problems = [make_problem(topic, grade) for _ in range(count)]
+    # Avoid repeats on one sheet; a small topic may still repeat after enough tries.
+    problems, seen = [], set()
+    for _ in range(count * 10):
+        problem = make_problem(topic, grade)
+        if problem.prompt(lang) in seen:
+            continue
+        seen.add(problem.prompt(lang))
+        problems.append(problem)
+        if len(problems) == count:
+            break
+    while len(problems) < count:
+        problems.append(make_problem(topic, grade))
     return [PrintProblem(prompt=p.prompt(lang), answer=answer_text(p.expected)) for p in problems]
 
 
