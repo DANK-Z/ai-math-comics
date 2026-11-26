@@ -23,15 +23,17 @@ export function winsToPodium(rows: LeaderRow[]): number | null {
   return null
 }
 
-export function LeagueTable({ board, lang }: { board: Leaderboard; lang: Lang }) {
+export function LeagueTable({ board, lang, limit }: { board: Leaderboard; lang: Lang; limit?: number }) {
   const copy = CLASSROOM_COPY[lang].league
+  // A short table: the top rows, plus the student's own row when it is lower.
+  const rows = limit ? board.rows.filter((r, i) => i < limit || r.me) : board.rows
   return (
     <ol className="flex flex-col gap-1">
-      {board.rows.map((row) => (
+      {rows.map((row) => (
         <li
           key={`${row.rank}-${row.name}-${row.me}`}
           aria-current={row.me ? 'true' : undefined}
-          className={`grid grid-cols-[1.75rem_2.5rem_minmax(0,1fr)_auto_auto] items-center gap-2 rounded-xl border-2 px-2 py-1 text-sm font-bold ${
+          className={`grid grid-cols-[1.75rem_2.25rem_minmax(0,1fr)_auto_auto] items-center gap-2 rounded-xl border-2 px-2 py-0.5 text-sm font-bold ${
             row.me ? 'border-ink bg-sun' : 'border-transparent bg-sky-50'
           }`}
         >
@@ -39,7 +41,7 @@ export function LeagueTable({ board, lang }: { board: Leaderboard; lang: Lang })
             {row.rank <= 3 ? ['🥇', '🥈', '🥉'][row.rank - 1] : row.rank}
           </span>
           <PifikSprite rect={PORTRAITS.pifikFace} skin={row.skin ?? null} eager
-            className={`aspect-square w-10 overflow-hidden rounded-full border-2 border-ink bg-sky ${row.frame ? `league-frame ${frameClass(row.frame)}` : ''}`} />
+            className={`aspect-square w-9 overflow-hidden rounded-full border-2 border-ink bg-sky ${row.frame ? `league-frame ${frameClass(row.frame)}` : ''}`} />
           <span className="min-w-0">
             <span className="block truncate">
               {row.name}
@@ -51,17 +53,23 @@ export function LeagueTable({ board, lang }: { board: Leaderboard; lang: Lang })
               </span>
             )}
           </span>
-          <span className="tabular-nums" title={copy.stars}><span aria-hidden>⭐</span> {row.stars}<span className="sr-only"> {copy.stars}</span></span>
-          <span className="w-14 text-right tabular-nums" title={copy.coins}><span aria-hidden>🪙</span> {row.coins}<span className="sr-only"> {copy.coins}</span></span>
+          <span className={`rounded-md px-1 tabular-nums ${row.me ? 'bg-white' : ''}`} title={copy.stars}><span aria-hidden>⭐</span> {row.stars}<span className="sr-only"> {copy.stars}</span></span>
+          <span className={`w-16 rounded-md px-1 text-right tabular-nums ${row.me ? 'bg-white' : ''}`} title={copy.coins}><span aria-hidden>🪙</span> {row.coins}<span className="sr-only"> {copy.coins}</span></span>
         </li>
       ))}
     </ol>
   )
 }
 
+const LEAGUE_MORE = {
+  ru: { more: (n: number) => `Вся лига (${n})`, less: 'Свернуть' },
+  kk: { more: (n: number) => `Бүкіл лига (${n})`, less: 'Жию' },
+}
+
 /** Home page card for a student in a class. */
-export function ClassLeague({ lang }: { lang: Lang }) {
+export function ClassLeague({ lang, limit }: { lang: Lang; limit?: number }) {
   const copy = CLASSROOM_COPY[lang].league
+  const [all, setAll] = useState(false)
   const user = useAccount().user
   const id = useId()
   const inClass = user?.role === 'student' && !!user.schoolClass
@@ -96,7 +104,12 @@ export function ClassLeague({ lang }: { lang: Lang }) {
       ) : board && (
         <>
           <p className="mt-0.5 mb-2 text-xs font-bold text-ink/65">{copy.week}</p>
-          <LeagueTable board={board} lang={lang} />
+          <LeagueTable board={board} lang={lang} limit={all ? undefined : limit} />
+          {limit && board.rows.length > limit + 1 && (
+            <button type="button" onClick={() => setAll(!all)} className="mt-1.5 text-sm font-black text-brand-dark underline">
+              {all ? LEAGUE_MORE[lang].less : LEAGUE_MORE[lang].more(board.classSize)}
+            </button>
+          )}
           <p className="mt-2 rounded-xl bg-sun/30 px-2.5 py-1.5 text-sm leading-snug font-extrabold text-ink">
             {nobody ? copy.empty : me?.rank === 1 ? copy.leader : me && me.rank <= 3 ? copy.podium(me.rank) : wins ? copy.gap(wins) : copy.empty}
           </p>

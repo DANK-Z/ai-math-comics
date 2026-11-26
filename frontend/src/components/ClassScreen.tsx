@@ -40,12 +40,9 @@ const COPY = {
 const CARD = 'rounded-2xl border-[3px] border-ink bg-white p-4 shadow-[0_4px_0_var(--shadow-ink)] sm:p-5'
 const BUTTON = 'inline-flex min-h-12 items-center justify-center rounded-xl border-[3px] border-ink bg-sun px-5 font-black text-ink shadow-[0_3px_0_var(--shadow-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand'
 
-/** The battle slot: the live alert while a battle runs, otherwise a short note on how it starts. */
-function BattleSlot({ lang }: { lang: Lang }) {
+/** A short note on how a battle starts (while none is running). */
+function BattleIdle({ lang }: { lang: Lang }) {
   const c = COPY[lang]
-  const load = useCallback((signal: AbortSignal) => accounts.myBattle(lang, signal), [lang])
-  const { value: battle } = usePolled(load, 15000, true)
-  if (battle?.status === 'active') return <BattleAlert lang={lang} />
   return (
     <section aria-label={c.battleTitle} className="flex items-start gap-2.5 rounded-2xl border-2 border-ink/40 bg-white px-3 py-2.5">
       <span aria-hidden className="text-2xl leading-none">⚔️</span>
@@ -75,23 +72,7 @@ export function ClassScreen({ lang }: { lang: Lang }) {
       </div>
     )
   } else {
-    body = (
-      <>
-        <LessonAlert lang={lang} />
-        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-          <div className="flex min-w-0 flex-col gap-4">
-            <DailyCard lang={lang} />
-            <MyHomeworkCard lang={lang} />
-            <ReviewCard lang={lang} />
-            <StudentAssignments lang={lang} />
-          </div>
-          <div className="flex min-w-0 flex-col gap-4">
-            <BattleSlot lang={lang} />
-            <ClassLeague lang={lang} />
-          </div>
-        </div>
-      </>
-    )
+    body = <StudentClass lang={lang} />
   }
 
   return (
@@ -102,5 +83,30 @@ export function ClassScreen({ lang }: { lang: Lang }) {
       </div>
       {body}
     </section>
+  )
+}
+
+/** The class page of a student in a class: live alerts on top, then two balanced columns. */
+function StudentClass({ lang }: { lang: Lang }) {
+  const load = useCallback((signal: AbortSignal) => accounts.myBattle(lang, signal), [lang])
+  const { value: battle } = usePolled(load, 15000, true)
+  const live = battle?.status === 'active'
+  return (
+      <>
+        <LessonAlert lang={lang} />
+        {live && <BattleAlert lang={lang} />}
+        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+          <div className="flex min-w-0 flex-col gap-4">
+            <DailyCard lang={lang} />
+            <MyHomeworkCard lang={lang} />
+            <ReviewCard lang={lang} />
+            <StudentAssignments lang={lang} />
+            {!live && <BattleIdle lang={lang} />}
+          </div>
+          <div className="flex min-w-0 flex-col gap-4">
+            <ClassLeague lang={lang} limit={6} />
+          </div>
+        </div>
+      </>
   )
 }
