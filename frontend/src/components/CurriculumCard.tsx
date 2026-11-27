@@ -1,6 +1,6 @@
 import { useCallback, useId, useState } from 'react'
 import { accounts, LOCAL_COMICS, type Lang } from '../api'
-import { CURRICULUM, CURRICULUM_COPY, curriculumFor } from '../curriculum'
+import { CURRICULUM, CURRICULUM_COPY, curriculumFor, textbookRef } from '../curriculum'
 import { printSheet } from '../print'
 import { comicHref } from '../route'
 import { useLoaded } from '../usePolled'
@@ -52,6 +52,7 @@ export function printChapter(comicId: string, lang: Lang, codes?: string) {
   printSheet(c.printTitle(text.title), [
     { kind: 'h1', text: text.title },
     ...(goal ? [{ kind: 'p' as const, text: `${CURRICULUM_COPY[lang].grade(goal.grade)} · ${goal.section[lang]}. ${c.goal}: ${goal.goal[lang]}` }] : []),
+    ...(textbookRef(comicId, lang) ? [{ kind: 'small' as const, text: `📖 ${textbookRef(comicId, lang)}` }] : []),
     ...(codes ? [{ kind: 'small' as const, text: c.codesLine(codes) }] : []),
     { kind: 'panels', items: def.panels.map((p, i) => ({ image: p.image, caption: `${p.speaker}: ${text.dialogue[i]}` })) },
     { kind: 'h2', text: c.task },
@@ -120,6 +121,7 @@ export function CurriculumCard({ lang }: { lang: Lang }) {
                     {chapterTitle(item.comicId, lang)}
                   </a>
                   <span className="font-semibold text-ink/75"> — {item.goal}</span>
+                  {textbookRef(item.comicId, lang) && <span className="ml-1 inline-block rounded-md bg-white px-1.5 text-xs font-black text-ink/70">📖 {textbookRef(item.comicId, lang)}</span>}
                   {codes && (
                     <span className="flex flex-wrap items-center gap-2">
                       <CodesInput comicId={item.comicId} initial={codes[item.comicId] ?? ''} lang={lang} onSaved={setCodes} />

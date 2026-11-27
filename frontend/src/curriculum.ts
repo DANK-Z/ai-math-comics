@@ -66,10 +66,43 @@ export const CURRICULUM: Readonly<Record<string, CurriculumGoal>> = {
   'mars-signal': g(5, UNITS, t('Складывать время в минутах и секундах', 'Минут пен секундтағы уақытты қосу')),
   'mars-greenhouse': g(6, PROPORTION, t('Делить величину в данном отношении', 'Шаманы берілген қатынаста бөлу')),
   // The Secret of Burabay
-  'burabay-bus': g(6, DIVISIBILITY, t('Находить наименьшее общее кратное двух чисел', 'Екі санның ең кіші ортақ еселігін табу')),
+  'burabay-bus': g(5, DIVISIBILITY, t('Находить наименьшее общее кратное двух чисел', 'Екі санның ең кіші ортақ еселігін табу')),
   'burabay-water': g(5, VOLUME, t('Находить объём прямоугольного параллелепипеда и переводить см³ в литры', 'Тікбұрышты параллелепипедтің көлемін табу және см³-ті литрге айналдыру')),
   'burabay-trail': g(5, DECIMALS, t('Складывать десятичные дроби', 'Ондық бөлшектерді қосу')),
-  'burabay-snacks': g(6, DIVISIBILITY, t('Находить наибольший общий делитель двух чисел', 'Екі санның ең үлкен ортақ бөлгішін табу')),
+  'burabay-snacks': g(5, DIVISIBILITY, t('Находить наибольший общий делитель двух чисел', 'Екі санның ең үлкен ортақ бөлгішін табу')),
+}
+
+// Where the chapter's topic is in the most used textbook, Abylkasymova A.E. et al., «Мектеп»
+// (grade 5 — 2017, grade 6 — 2018, part 1). Only chapters checked against the table of
+// contents are listed; topics of part 2 (percent, decimals, volume, coordinates…) are not yet.
+const TEXTBOOK: Readonly<Record<string, { grade: 5 | 6; section: number }>> = {
+  'pizza-fractions': { grade: 5, section: 16 },
+  'mars-battery': { grade: 5, section: 26 },
+  'library-boxes': { grade: 5, section: 6 },
+  'museum-scales': { grade: 5, section: 6 },
+  'roads-flag': { grade: 5, section: 8 },
+  'roads-bridge': { grade: 5, section: 8 },
+  'roads-river': { grade: 5, section: 8 },
+  'roads-hill': { grade: 5, section: 8 },
+  'fair-garland': { grade: 5, section: 7 },
+  'lights-garland': { grade: 5, section: 7 },
+  'museum-carpet': { grade: 5, section: 7 },
+  'burabay-bus': { grade: 5, section: 15 },
+  'burabay-snacks': { grade: 5, section: 15 },
+  'school-quest-map': { grade: 6, section: 5 },
+  'lights-park': { grade: 6, section: 5 },
+  'museum-tower': { grade: 6, section: 5 },
+  'fair-lemonade': { grade: 6, section: 3 },
+  'mars-greenhouse': { grade: 6, section: 1 },
+  'weather-frost': { grade: 6, section: 15 },
+}
+
+/** «Абылкасымова, 5 кл., § 15» for a chapter checked against the textbook. */
+export function textbookRef(comicId: string, lang: Lang): string | undefined {
+  const ref = Object.hasOwn(TEXTBOOK, comicId) ? TEXTBOOK[comicId] : undefined
+  if (!ref) return undefined
+  // No-break spaces keep «5 кл.» and «§ 15» on one line.
+  return lang === 'kk' ? `Әбілқасымова, ${ref.grade}-сынып, § ${ref.section}` : `Абылкасымова, ${ref.grade} кл., § ${ref.section}`
 }
 
 export function curriculumFor(comicId: string): CurriculumGoal | undefined {
