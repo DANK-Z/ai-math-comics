@@ -6,6 +6,7 @@ import {
   CircleGeometry, PCFSoftShadowMap, type Texture,
 } from 'three'
 import type { BattleTopic, BossKind, Lang } from '../api'
+import { buildBoss, CLASSIC_LOOKS, lookFor, type BossLook } from '../bossModels'
 import { HERO_PORTRAITS } from '../sceneArt'
 
 // A boss fight in 3D (three.js), for the class board and (light) for the chapter boss.
@@ -33,6 +34,8 @@ export interface ArenaProps {
   autoAttack?: boolean
   /** Bumps when a student misses: the boss strikes back. */
   attackKey?: number
+  /** The boss model; the classic look of `kind` when not given. */
+  look?: BossLook
   /** Phones: no shadows, fewer effects, a lower stage. */
   lite?: boolean
 }
@@ -161,49 +164,6 @@ function texture(c: HTMLCanvasElement) {
   return t
 }
 
-function slimeTexture() {
-  const [c, g] = canvas(512, 512)
-  g.scale(8, 8)
-  g.lineJoin = 'round'
-  g.lineCap = 'round'
-  const fillStroke = (d: string, fill: string, width: number) => {
-    const p = new Path2D(d)
-    if (fill !== 'none') { g.fillStyle = fill; g.fill(p) }
-    g.strokeStyle = INK
-    g.lineWidth = width
-    g.stroke(p)
-  }
-  fillStroke('M8 52c0-18 9-36 24-36s24 18 24 36c0 4-4 6-8 6H16c-4 0-8-2-8-6z', '#7ad34f', 3)
-  g.globalAlpha = 0.7
-  g.strokeStyle = '#fff'
-  g.lineWidth = 3
-  g.stroke(new Path2D('M18 28c2-6 6-9 10-10'))
-  g.globalAlpha = 1
-  for (const [x, y] of [[24, 36], [40, 36]]) {
-    g.beginPath(); g.arc(x, y, 5, 0, Math.PI * 2); g.fillStyle = '#fff'; g.fill(); g.lineWidth = 2; g.strokeStyle = INK; g.stroke()
-    g.beginPath(); g.arc(x + 1, y + 1, 2.2, 0, Math.PI * 2); g.fillStyle = INK; g.fill()
-  }
-  fillStroke('M26 47q6 4 12 0', 'none', 2.5)
-  fillStroke('M26 17l6-13 6 13z', '#ffc83d', 2.5)
-  return texture(c)
-}
-
-function wizardTexture() {
-  const [c, g] = canvas(512, 512)
-  g.font = '470px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif'
-  g.textAlign = 'center'
-  g.textBaseline = 'middle'
-  g.fillText('🧙', 250, 290)
-  g.fillStyle = '#ffc83d'
-  g.strokeStyle = INK
-  g.lineWidth = 10
-  g.beginPath(); g.roundRect(360, 360, 120, 120, 20); g.fill(); g.stroke()
-  g.fillStyle = INK
-  g.font = 'bold 96px monospace'
-  g.fillText('x', 420, 416)
-  return texture(c)
-}
-
 function headTexture(src: string) {
   const [c, g] = canvas(256, 256)
   const t = texture(c)
@@ -317,6 +277,18 @@ function ringTexture(color: string) {
   return texture(c)
 }
 
+/** Local preview only: `?bosslook=owl` (or a boss name, e.g. `?bosslook=Медная Сова`). */
+function devLook(): BossLook | null {
+  if (!import.meta.env.DEV) return null
+  const q = new URLSearchParams(window.location.search).get('bosslook')
+  if (!q) return null
+  const [body, accessory] = q.split(':')
+  const bodies = ['slime', 'owl', 'dragon', 'robot', 'wizard', 'golem']
+  if (!bodies.includes(body)) return lookFor('x-master', q)
+  const look = { ...lookFor('x-master', 'boss', body), body: body as BossLook['body'] }
+  return accessory ? { ...look, accessory: accessory as BossLook['accessory'] } : look
+}
+
 // ---- the scene -------------------------------------------------------------------------------
 
 interface Fx { update: (dt: number) => boolean }
@@ -395,14 +367,14 @@ function createArena(host: HTMLDivElement, props: ArenaProps, sfx: ReturnType<ty
     scene.add(gem)
   }
 
-  // The boss in the middle.
-  const bossMap = props.kind === 'x-master' ? wizardTexture() : slimeTexture()
-  const boss = cutout(bossMap, 4.4)
+  // The boss in the middle: a 3D model built from shapes (see bossModels.ts).
+  const bossLook = devLook() ?? props.look ?? CLASSIC_LOOKS[props.kind]
+  let model = buildBoss(bossLook)
   const bossGroup = new Group()
-  bossGroup.add(boss)
-  bossGroup.position.set(0, 2.85, 0)
+  bossGroup.add(model.root)
+  bossGroup.position.set(0, 0.62, 0)
   scene.add(bossGroup)
-  const bossMat = boss.material as MeshStandardMaterial
+  const red = new Color('#ff4d4d')
 
   // The heroes in full height on the left front: body, head and a swinging arm.
   const heroes: Hero[] = (['aldiyar', 'aruna', 'pifik'] as const).map((id, i) => {
@@ -440,7 +412,7 @@ function createArena(host: HTMLDivElement, props: ArenaProps, sfx: ReturnType<ty
   let defeated = props.status === 'won'
   const live = { status: props.status }
   const resets: (() => void)[] = []
-  boss.visible = !defeated
+  model.root.visible = !defeated
 
   const sprite = (map: Texture, size: number, additive = false) => {
     const s = new Sprite(new SpriteMaterial({ map, transparent: true, depthWrite: false, blending: additive ? AdditiveBlending : NormalBlending }))
@@ -506,7 +478,7 @@ function createArena(host: HTMLDivElement, props: ArenaProps, sfx: ReturnType<ty
     let t = 0
     const hero = heroes[Math.floor(Math.random() * heroes.length)]
     const from = hero.group.position.clone().add(new Vector3(0.5, 3, 0.2))
-    const to = bossGroup.position.clone().add(new Vector3((Math.random() - 0.5) * 1.4, (Math.random() - 0.3) * 1.2, 0.3))
+    const to = bossGroup.position.clone().add(new Vector3((Math.random() - 0.5) * 1.4, 2.2 + (Math.random() - 0.3) * 1.2, 1.2))
     let orb: Sprite | null = null
     const duration = final ? 1.1 : 0.55
     fx.push({ update(dt) {
@@ -621,34 +593,32 @@ function createArena(host: HTMLDivElement, props: ArenaProps, sfx: ReturnType<ty
       hero.group.scale.setScalar(HERO_SCALE)
     })
   }
-  /** The boss breaks into pieces of its own drawing. */
+  /** The boss falls apart: every shape of the model flies off, bounces and fades. */
   function shatter(hero: Hero, name: string) {
     defeated = true
-    boss.visible = false
     spotlight(hero, name)
-    const n = lite ? 4 : 6
-    for (let i = 0; i < n * n; i++) {
-      const x = i % n
-      const y = Math.floor(i / n)
-      const geo = new PlaneGeometry(4.4 / n, 4.4 / n)
-      const uv = geo.attributes.uv
-      for (let k = 0; k < uv.count; k++) uv.setXY(k, (x + uv.getX(k)) / n, (y + uv.getY(k)) / n)
-      const piece = new Mesh(geo, new MeshBasicMaterial({ map: bossMap, alphaTest: 0.5, side: DoubleSide, transparent: true }))
-      piece.position.set(bossGroup.position.x + (x + 0.5 - n / 2) * (4.4 / n), bossGroup.position.y + (y + 0.5 - n / 2) * (4.4 / n), 0)
-      piece.quaternion.copy(boss.getWorldQuaternion(piece.quaternion))
-      scene.add(piece)
-      const v = new Vector3(piece.position.x * 1.4, 2 + Math.random() * 4, 1 + Math.random() * 3)
+    const center = bossGroup.position.clone().add(new Vector3(0, 2, 0))
+    const pieces = model.parts.slice()
+    for (const piece of pieces) {
+      scene.attach(piece)
+      piece.traverse((o) => {
+        const m = (o as Mesh).material as MeshBasicMaterial | undefined
+        if (m) m.transparent = true
+      })
+      const v = piece.position.clone().sub(center).setY(0).normalize().multiplyScalar(2 + Math.random() * 3).setY(3 + Math.random() * 4)
+      v.z += 1.5
       const spin = new Vector3(Math.random() * 6, Math.random() * 6, Math.random() * 6)
-      let life = 3.2
+      let life = 3.4
       fx.push({ update(dt) {
         life -= dt
-        v.y -= 7 * dt
+        v.y -= 9 * dt
         piece.position.addScaledVector(v, dt)
-        if (piece.position.y < 0.75) { piece.position.y = 0.75; v.y *= -0.3; v.x *= 0.7; v.z *= 0.7 }
+        if (piece.position.y < 0.9) { piece.position.y = 0.9; v.y *= -0.35; v.x *= 0.7; v.z *= 0.7 }
         piece.rotation.x += spin.x * dt
         piece.rotation.y += spin.y * dt
-        ;(piece.material as MeshBasicMaterial).opacity = Math.min(1, life)
-        if (life <= 0) { scene.remove(piece); geo.dispose(); (piece.material as MeshBasicMaterial).dispose(); return false }
+        const fade = Math.min(1, life)
+        piece.traverse((o) => { const m = (o as Mesh).material as MeshBasicMaterial | undefined; if (m) m.opacity = fade })
+        if (life <= 0) { scene.remove(piece); return false }
         return true
       } })
     }
@@ -713,14 +683,20 @@ function createArena(host: HTMLDivElement, props: ArenaProps, sfx: ReturnType<ty
     const size = 1 + rage * 0.12
     const hop = jump > 0 ? Math.sin((1 - jump) * Math.PI) * 2.2 : 0
     jump = Math.max(0, jump - dt * 1.1)
-    bossGroup.position.y = 2.85 + Math.sin(elapsed * 1.6 * speed) * 0.12 + hop
+    bossGroup.position.y = 0.62 + Math.abs(Math.sin(elapsed * 1.6 * speed)) * 0.15 + hop
     bossGroup.position.z = -knock
     knock = Math.max(0, knock - dt * 2)
-    boss.scale.set(size * (1 + Math.sin(elapsed * 2.4 * speed) * 0.03), size * (1 - Math.sin(elapsed * 2.4 * speed) * 0.03), 1)
-    boss.quaternion.copy(camera.quaternion)
-    bossMat.color.copy(angry.set('#ffffff').lerp(new Color('#ff6b6b'), rage * 0.45 + (rage ? Math.sin(elapsed * 6) * 0.08 : 0)))
-    bossMat.emissive.set('#ffffff')
-    bossMat.emissiveIntensity = flash * 0.9
+    // The model turns to the camera (mostly), breathes, squashes when hit and frowns when angry.
+    bossGroup.rotation.y = Math.atan2(camera.position.x, camera.position.z) * 0.8
+    const breath = Math.sin(elapsed * 2.4 * speed) * 0.03
+    model.root.scale.set(size * (1 + breath + flash * 0.12), size * (1 - breath - flash * 0.15), size * (1 + breath))
+    model.tick(elapsed, rage)
+    const tint = rage ? rage * 0.3 + Math.sin(elapsed * 6) * 0.06 : 0
+    for (const p of model.paints) {
+      p.mat.color.copy(p.base).lerp(red, tint)
+      p.mat.emissive.copy(angry.set('#ffffff'))
+      p.mat.emissiveIntensity = flash * 0.55
+    }
     flash = Math.max(0, flash - dt * 4)
     glow.color.set(rage ? '#ff5a5a' : look.glow)
     glow.intensity = 30 + Math.sin(elapsed * 3 * speed) * 8 + (defeated ? 0 : flash * 60)
@@ -767,7 +743,10 @@ function createArena(host: HTMLDivElement, props: ArenaProps, sfx: ReturnType<ty
     replay(name: string) {
       resets.splice(0).forEach((r) => r())
       defeated = false
-      boss.visible = true
+      bossGroup.remove(model.root)
+      model.dispose()
+      model = buildBoss(bossLook)
+      bossGroup.add(model.root)
       this.win(name)
     },
     attack,
