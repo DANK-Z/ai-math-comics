@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { accounts, type BattleBoard, type BattleDifficulty, type BattleTopic, type Lang, type StudentBattle } from '../api'
 import { useAccount } from '../account'
 import { BOSS_COPY } from '../boss'
@@ -16,6 +16,8 @@ import { Celebration } from './Celebration'
 // phones. The server chooses every problem and keeps the answers; the screens poll it.
 
 export const BATTLE_TOPICS = ['equations', 'fractions', 'decimals', 'gcd', 'parts'] as const
+
+const BattleArena3D = lazy(() => import('./BattleArena3D'))
 
 const STUDENT_POLL_MS = 3000
 const BOARD_POLL_MS = 2000
@@ -264,6 +266,7 @@ export function BattleBoardScreen({ battleId, lang }: { battleId: string; lang: 
   const [finished, setFinished] = useState(false)
   const { value: board, setValue, failed } = usePolled<BattleBoard>(load, BOARD_POLL_MS, !finished)
   const root = useRef<HTMLDivElement>(null)
+  const [threeD] = useState(() => import.meta.env.MODE !== 'test' && canRun3DLazy())
 
   useEffect(() => {
     if (board && board.status !== 'active') setFinished(true)
@@ -275,8 +278,14 @@ export function BattleBoardScreen({ battleId, lang }: { battleId: string; lang: 
   return (
     <div ref={root} className="flex flex-col gap-4 bg-[var(--color-sky,#eef4ff)] p-1">
       <section className={`overflow-hidden rounded-3xl border-[4px] border-ink text-white shadow-[0_8px_0_var(--shadow-ink)] ${kind === 'x-master' ? 'bg-[linear-gradient(160deg,#1d1450,#5b3cc4)]' : 'bg-[linear-gradient(160deg,#14361f,#3f9a4d)]'} ${board.status === 'active' ? 'boss-arena' : ''}`}>
-        <div className="flex flex-col items-center gap-5 p-5 sm:flex-row sm:p-8">
-          <BossAvatar kind={kind} shielded={false} hitKey={board.hits} big />
+        {threeD && (
+          <Suspense fallback={<div className="h-[46vh] min-h-72" />}>
+            <BattleArena3D kind={kind} topic={board.topic} hits={board.hits} damage={board.damagePerHit}
+              recent={board.recent.map((h) => h.name)} status={board.status} lang={lang} />
+          </Suspense>
+        )}
+        <div className={`flex flex-col items-center gap-5 p-5 sm:flex-row ${threeD ? 'border-t-4 border-ink sm:py-5' : 'sm:p-8'}`}>
+          {!threeD && <BossAvatar kind={kind} shielded={false} hitKey={board.hits} big />}
           <div className="w-full min-w-0 flex-1">
             <p className="text-sm font-black tracking-wide text-sun uppercase">{board.className} · {copy.topics[board.topic]}</p>
             <h1 className="text-4xl font-black sm:text-6xl">{BOSS_COPY[lang].names[kind]}</h1>
@@ -351,4 +360,17 @@ export function BattleBoardScreen({ battleId, lang }: { battleId: string; lang: 
       </div>
     </div>
   )
+}
+
+/** Mirrors canRun3D in BattleArena3D without loading three.js for the check. */
+function canRun3DLazy() {
+  try {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return false
+    if (new URLSearchParams(window.location.search).has('2d')) return false
+    const memory = (navigator as { deviceMemory?: number }).deviceMemory ?? 8
+    if (memory < 3 || (navigator.hardwareConcurrency ?? 8) < 4) return false
+    return !!document.createElement('canvas').getContext('webgl2')
+  } catch {
+    return false
+  }
 }
