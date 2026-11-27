@@ -35,6 +35,8 @@ export interface ArenaProps {
   attackKey?: number
   /** The boss model; the classic look of `kind` when not given. */
   look?: BossLook
+  /** Called once when the device draws the scene too slowly; the page then shows 2D. */
+  onSlow?: () => void
   /** Phones: no shadows, fewer effects, a lower stage. */
   lite?: boolean
 }
@@ -240,7 +242,7 @@ const HERO_SIZE = 3.5
 
 interface Hero { id: HeroId; group: Group; figure: Mesh; frames: Record<Pose, Texture>; pose: Pose; poseLeft: number; home: Vector3; lean: number }
 
-interface Events { onBanner: (text: string) => void }
+interface Events { onBanner: (text: string) => void; onSlow: () => void }
 
 function createArena(host: HTMLDivElement, props: ArenaProps, sfx: ReturnType<typeof createSfx>, events: Events) {
   const lite = !!props.lite
@@ -598,10 +600,24 @@ function createArena(host: HTMLDivElement, props: ArenaProps, sfx: ReturnType<ty
   let nextAttack = 15 + Math.random() * 5
   const target = new Vector3()
   const angry = new Color()
+  let watch = 0
+  let slowTime = 0
+  let fastTime = 0
   function tick(now: number) {
     frame = requestAnimationFrame(tick)
     if (document.hidden) { last = now; return }
-    const real = Math.min(0.05, (now - last) / 1000)
+    const raw = (now - last) / 1000
+    const real = Math.min(0.05, raw)
+    // Too slow for this device (under ~22 fps for 4 s after warming up): hand over to 2D.
+    // Paused or hidden frames (a background tab, a locked phone) say nothing about speed.
+    if (watch >= 0 && raw < 0.25 && document.visibilityState === 'visible') {
+      watch += raw
+      if (watch > 1.5) { slowTime += raw > 0.045 ? raw : 0; fastTime += raw > 0.045 ? 0 : raw }
+      if (watch > 5.5) {
+        if (slowTime > fastTime) events.onSlow()
+        watch = -1
+      }
+    }
     last = now
     const dt = real * timeScale
     elapsed += dt
@@ -750,7 +766,7 @@ export default function BattleArena3D(props: ArenaProps) {
 
   useEffect(() => {
     if (!host.current) return
-    const made = createArena(host.current, props, sfx.current!, { onBanner: (text) => setBanner({ text, key: Date.now() }) })
+    const made = createArena(host.current, props, sfx.current!, { onBanner: (text) => setBanner({ text, key: Date.now() }), onSlow: () => props.onSlow?.() })
     made.setRage(rageOf(props.hp, props.maxHp))
     arena.current = made
     return () => { made.dispose(); arena.current = null }
@@ -807,8 +823,9 @@ export default function BattleArena3D(props: ArenaProps) {
         </p>
       )}
       <button type="button" aria-pressed={sound} onClick={() => setSound(sfx.current!.toggle())}
-        className={`absolute bottom-3 left-3 ${chip} ${sound ? 'bg-sun' : 'bg-white/90'}`}>
-        {sound ? c.soundOn : c.soundOff}
+        aria-label={props.lite ? (sound ? c.soundOn : c.soundOff) : undefined}
+        className={`absolute ${props.lite ? 'top-2 right-2 px-2 py-1' : 'bottom-3 left-3'} ${chip} ${sound ? 'bg-sun' : 'bg-white/90'}`}>
+        {props.lite ? (sound ? '🔊' : '🔇') : sound ? c.soundOn : c.soundOff}
       </button>
       {won && (
         <button type="button" disabled={replaying}

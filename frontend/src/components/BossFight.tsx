@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react'
 import { lookFor } from '../bossModels'
-import { canRun3D } from '../arena3d'
+import { canRun3D, markSlow } from '../arena3d'
 import { HelperFace } from './HelperFace'
 import { Celebration } from './Celebration'
 import type { Boss, BossKind, BossRound, CheckResponse, Lang, Reward } from '../api'
@@ -191,7 +191,7 @@ export function BossFight({ boss, lang, active, cleared, onRoundCleared, misses,
     return () => clearTimeout(timer)
   }, [missCount])
   const { setCoins, user } = useAccount()
-  const [threeD] = useState(() => canRun3D())
+  const [threeD, setThreeD] = useState(() => canRun3D())
   // A named boss gets a model from its name; the same story gives the same boss in RU and KK.
   const look = useMemo(() => lookFor(boss.kind, character?.name, boss.rounds[0]?.exerciseId.replace(/-r?\d+$/, '')), [boss.kind, character?.name, boss.rounds])
   const hpId = useId()
@@ -249,7 +249,7 @@ export function BossFight({ boss, lang, active, cleared, onRoundCleared, misses,
         {threeD && (
           <div className="-mx-4 mt-3 overflow-hidden border-y-[3px] border-ink sm:-mx-5">
             <Suspense fallback={<div className="h-56 sm:h-64" />}>
-              <BattleArena3D lite look={look} kind={boss.kind} topic={boss.kind === 'x-master' ? 'equations' : 'fractions'}
+              <BattleArena3D lite look={look} onSlow={() => { markSlow(); setThreeD(false) }} kind={boss.kind} topic={boss.kind === 'x-master' ? 'equations' : 'fractions'}
                 hits={shownCleared} damage={damage} hp={hp} maxHp={boss.maxHp} attackKey={missCount} lang={lang}
                 recent={[user?.displayName.split(' ')[0] ?? '']}
                 status={defeated || hit?.round === total - 1 ? 'won' : 'active'} />

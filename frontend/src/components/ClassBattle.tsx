@@ -4,7 +4,7 @@ import { useAccount } from '../account'
 import { BOSS_COPY } from '../boss'
 import { BATTLE_BOSS, CLASSROOM_COPY } from '../classroomCopy'
 import { usePolled } from '../usePolled'
-import { canRun3D } from '../arena3d'
+import { canRun3D, markSlow } from '../arena3d'
 import { battleBoardHref, joinHref, SECTION_HREFS, teacherClassHref } from '../route'
 import { CARD, PRIMARY, SECONDARY } from './AuthScreen'
 import { BossAvatar } from './BossFight'
@@ -36,16 +36,47 @@ function HpBar({ hp, max, big = false }: { hp: number; max: number; big?: boolea
   )
 }
 
-/** The student's battle screen (#/battle). */
+const PHONE_COPY = {
+  ru: {
+    mine: (mine: number, all: number) => (all ? `Твой вклад: ${mine} из ${all} ударов класса` : ''),
+    slash: 'дробь',
+    comma: 'запятая',
+    keys: 'Быстрые знаки',
+  },
+  kk: {
+    mine: (mine: number, all: number) => (all ? `Сенің үлесің: сыныптың ${all} соққысының ${mine}` : ''),
+    slash: 'бөлшек',
+    comma: 'үтір',
+    keys: 'Жылдам белгілер',
+  },
+}
+
+/** Who hit since the last update: the student's own hits carry their name, the class's don't. */
+function useHitNames(myHits: number, classHits: number, name: string) {
+  const last = useRef({ mine: myHits, all: classHits, names: [] as string[] })
+  if (classHits !== last.current.all) {
+    const mine = Math.max(0, myHits - last.current.mine)
+    const others = Math.max(0, classHits - last.current.all - mine)
+    last.current = { mine: myHits, all: classHits, names: [...Array(mine).fill(name), ...Array(others).fill('')] }
+  }
+  return last.current.names
+}
+
+/** The student's battle screen (#/battle): the arena on top, the problem under it. */
 export function BattleScreen({ lang }: { lang: Lang }) {
   const copy = CLASSROOM_COPY[lang].battle
+  const phone = PHONE_COPY[lang]
   const user = useAccount().user
   const inClass = user?.role === 'student' && !!user.schoolClass
   const load = useCallback((signal: AbortSignal) => accounts.myBattle(lang, signal), [lang])
   const { value: battle, setValue, failed } = usePolled(load, STUDENT_POLL_MS, inClass)
   const id = useId()
+  const [threeD, setThreeD] = useState(() => import.meta.env.MODE !== 'test' && canRun3D())
   // Kept here: a hit brings a new problem (a fresh form), but "Hit!" should stay visible.
   const [feedback, setFeedback] = useState<Feedback | null>(null)
+  const [misses, setMisses] = useState(0)
+  const firstName = user?.displayName.split(' ')[0] ?? ''
+  const names = useHitNames(battle?.myHits ?? 0, battle?.classHits ?? 0, firstName)
 
   const header = (
     <div>
@@ -65,30 +96,43 @@ export function BattleScreen({ lang }: { lang: Lang }) {
     )
   }
   const kind = BATTLE_BOSS[battle.topic]
+  const dark = kind === 'x-master' ? 'bg-[linear-gradient(160deg,#2a1f6b,#5b3cc4)]' : 'bg-[linear-gradient(160deg,#1f5132,#3f9a4d)]'
   return (
-    <div className="flex max-w-2xl flex-col gap-4">
-      {header}
+    <div className="flex max-w-2xl flex-col gap-3">
       <section aria-labelledby={`${id}-boss`} className="overflow-hidden rounded-2xl border-[3px] border-ink bg-white shadow-[0_6px_0_var(--shadow-ink)]">
-        <div className={`flex items-center gap-4 p-4 ${kind === 'x-master' ? 'bg-[linear-gradient(160deg,#2a1f6b,#5b3cc4)]' : 'bg-[linear-gradient(160deg,#1f5132,#3f9a4d)]'}`}>
-          <BossAvatar kind={kind} shielded={false} hitKey={battle.classHits} />
+        {threeD && (
+          <Suspense fallback={<div className={`h-56 sm:h-64 ${dark}`} />}>
+            <BattleArena3D lite kind={kind} topic={battle.topic} hits={battle.classHits} damage={battle.damagePerHit} hp={battle.hp} maxHp={battle.maxHp}
+              recent={names} status={battle.status} lang={lang} attackKey={misses} onSlow={() => { markSlow(); setThreeD(false) }} />
+          </Suspense>
+        )}
+        {/* The boss strip: name, HP and the hit counters, compact under the arena. */}
+        <div className={`flex items-center gap-3 px-3 py-2.5 sm:px-4 ${dark} ${threeD ? 'border-t-[3px] border-ink' : ''}`}>
+          {!threeD && <BossAvatar kind={kind} shielded={false} hitKey={battle.classHits} />}
           <div className="min-w-0 flex-1">
-            <h2 id={`${id}-boss`} className="text-2xl font-black text-white">{BOSS_COPY[lang].names[kind]}</h2>
-            <p className="mt-1 mb-2 text-sm font-black text-white tabular-nums" aria-live="polite">{copy.hp(battle.hp, battle.maxHp)}</p>
-            <HpBar hp={battle.hp} max={battle.maxHp} />
+            <div className="flex flex-wrap items-baseline justify-between gap-x-2">
+              <h2 id={`${id}-boss`} className="text-xl leading-tight font-black text-white sm:text-2xl">{BOSS_COPY[lang].names[kind]}</h2>
+              <p className="shrink-0 text-sm font-black text-white tabular-nums" aria-live="polite">{copy.hp(battle.hp, battle.maxHp)}</p>
+            </div>
+            <div className="mt-1.5"><HpBar hp={battle.hp} max={battle.maxHp} /></div>
+            <p className="mt-2 flex flex-wrap gap-1.5 text-xs font-black sm:text-sm">
+              <span className="rounded-lg border-2 border-ink bg-sun px-2 py-0.5 text-ink">⚔️ {copy.myHits(battle.myHits)}</span>
+              <span className="rounded-lg border-2 border-ink bg-white/90 px-2 py-0.5 text-ink">👥 {copy.classHits(battle.classHits)}</span>
+            </p>
           </div>
         </div>
-        <div className="flex flex-wrap gap-2 px-4 pt-3 text-sm font-black">
-          <span className="rounded-lg border-2 border-ink bg-sun px-2 py-0.5">{copy.myHits(battle.myHits)}</span>
-          <span className="rounded-lg border-2 border-ink bg-sky-100 px-2 py-0.5">{copy.classHits(battle.classHits)}</span>
-        </div>
-        <div className="p-4">
+        <div className="p-3 sm:p-4">
           <Celebration when={battle.status === 'won'} />
           {battle.status === 'won' ? (
-            <p className="rounded-xl bg-emerald-100 p-3 text-lg font-black text-emerald-900"><span aria-hidden>🏆 </span>{copy.won}</p>
+            <div className="rounded-xl border-[3px] border-ink bg-emerald-100 p-3 text-emerald-950">
+              <p className="text-xl font-black"><span aria-hidden>🏆 </span>{copy.won}</p>
+              {battle.myHits > 0 && <p className="mt-1 font-bold">{phone.mine(battle.myHits, battle.classHits)}</p>}
+            </div>
           ) : battle.status === 'stopped' ? (
             <p className="rounded-xl bg-sky-100 p-3 font-black">{copy.stopped}</p>
           ) : battle.task && (
-            <BattleTaskForm key={battle.task.id} battle={battle} lang={lang} onResult={setValue} feedback={feedback} onFeedback={setFeedback} />
+            <BattleTaskForm key={battle.task.id} battle={battle} lang={lang} onResult={setValue} feedback={feedback} onFeedback={setFeedback}
+              onMiss={() => setMisses((n) => n + 1)} />
           )}
         </div>
       </section>
@@ -97,22 +141,26 @@ export function BattleScreen({ lang }: { lang: Lang }) {
   )
 }
 
-type Feedback = { status: string; message: string }
+type Feedback = { status: string; message: string; damage?: number }
 
-function BattleTaskForm({ battle, lang, onResult, feedback, onFeedback: setFeedback }: {
+function BattleTaskForm({ battle, lang, onResult, feedback, onFeedback: setFeedback, onMiss }: {
   battle: StudentBattle
   lang: Lang
   onResult: (b: StudentBattle) => void
   feedback: Feedback | null
   onFeedback: (f: Feedback) => void
+  onMiss: () => void
 }) {
   const copy = CLASSROOM_COPY[lang].battle
+  const phone = PHONE_COPY[lang]
   const task = battle.task!
   const [answer, setAnswer] = useState('')
   const [busy, setBusy] = useState(false)
   const [flash, setFlash] = useState(0)
   const input = useRef<HTMLInputElement>(null)
   const inputId = useId()
+  // Phone keypads have no «/» and sometimes no «,»: one tap adds them.
+  const extraKey = task.answerFormat === 'fraction' ? { key: '/', label: phone.slash } : task.answerFormat === 'decimal' ? { key: ',', label: phone.comma } : null
 
   async function submit(e: FormEvent) {
     e.preventDefault()
@@ -120,8 +168,8 @@ function BattleTaskForm({ battle, lang, onResult, feedback, onFeedback: setFeedb
     setBusy(true)
     try {
       const result = await accounts.answerBattle(battle.id, { taskId: task.id, answer, lang })
-      setFeedback({ status: result.status, message: result.message })
-      if (result.status === 'incorrect') setFlash((n) => n + 1)
+      setFeedback({ status: result.status, message: result.message, damage: result.damage })
+      if (result.status === 'incorrect') { setFlash((n) => n + 1); onMiss() }
       if (result.status !== 'invalid') setAnswer('')
       onResult(result.battle)
     } catch {
@@ -133,10 +181,10 @@ function BattleTaskForm({ battle, lang, onResult, feedback, onFeedback: setFeedb
   }
 
   return (
-    <form onSubmit={submit} className="relative flex flex-col gap-3">
+    <form onSubmit={submit} className="relative flex flex-col gap-2.5">
       {flash > 0 && <span key={flash} aria-hidden className="boss-miss-flash pointer-events-none absolute -inset-2 rounded-xl bg-rose-600/25 opacity-0" />}
-      <p className="text-lg leading-snug font-extrabold text-ink"><RichText text={task.prompt} /></p>
-      <label htmlFor={inputId} className="text-sm font-black text-ink/80">{copy.answer}</label>
+      <p className="text-xl leading-snug font-extrabold text-ink sm:text-2xl"><RichText text={task.prompt} /></p>
+      <label htmlFor={inputId} className="sr-only">{copy.answer}</label>
       <div className="flex gap-2">
         <input
           ref={input}
@@ -146,16 +194,29 @@ function BattleTaskForm({ battle, lang, onResult, feedback, onFeedback: setFeedb
           onChange={(e) => setAnswer(e.target.value)}
           inputMode={task.answerFormat === 'fraction' ? 'text' : task.answerFormat === 'decimal' ? 'decimal' : 'numeric'}
           autoComplete="off"
+          enterKeyHint="send"
           placeholder={task.answerFormat === 'fraction' ? copy.fractionHint : task.answerFormat === 'decimal' ? copy.decimalHint : copy.wholeHint}
           aria-invalid={feedback?.status === 'incorrect' || undefined}
-          className="min-h-12 w-full min-w-0 flex-1 rounded-xl border-[3px] border-ink bg-white px-3 font-mono text-2xl font-bold tabular-nums outline-none placeholder:font-sans placeholder:text-base placeholder:font-semibold focus-visible:ring-4 focus-visible:ring-sun aria-invalid:border-rose-600 aria-invalid:bg-rose-50"
+          className="min-h-14 w-full min-w-0 flex-1 rounded-xl border-[3px] border-ink bg-white px-3 font-mono text-3xl font-bold tabular-nums outline-none placeholder:font-sans placeholder:text-base placeholder:font-semibold focus-visible:ring-4 focus-visible:ring-sun aria-invalid:border-rose-600 aria-invalid:bg-rose-50"
         />
-        <button type="submit" disabled={busy || !answer.trim()} className={`${PRIMARY} shrink-0`}>
+        <button type="submit" disabled={busy || !answer.trim()} className={`${PRIMARY} min-h-14 shrink-0 px-4 text-lg`}>
           {busy ? copy.checking : <><span aria-hidden>⚔️ </span>{copy.hit}</>}
         </button>
       </div>
-      <p aria-live="polite" className={`min-h-6 text-base font-black ${feedback?.status === 'correct' ? 'text-emerald-700' : 'text-rose-700'}`}>
-        {feedback?.message}
+      {extraKey && (
+        <div className="flex gap-2" role="group" aria-label={phone.keys}>
+          <button type="button" onClick={() => { setAnswer((a) => (a.includes(extraKey.key) ? a : a + extraKey.key)); input.current?.focus() }}
+            className="min-h-10 rounded-xl border-2 border-ink bg-sky-50 px-4 font-mono text-xl font-black text-ink hover:bg-sky" aria-label={extraKey.label}>
+            {extraKey.key}
+          </button>
+        </div>
+      )}
+      <p aria-live="polite" className="min-h-7">
+        {feedback && (
+          <span key={`${feedback.status}-${battle.myHits}`} className={`boss-enter inline-flex items-center gap-2 rounded-xl px-3 py-1 text-base font-black ${feedback.status === 'correct' ? 'bg-emerald-100 text-emerald-800' : feedback.status === 'incorrect' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-900'}`}>
+            {feedback.message}
+          </span>
+        )}
       </p>
     </form>
   )
@@ -267,7 +328,7 @@ export function BattleBoardScreen({ battleId, lang }: { battleId: string; lang: 
   const [finished, setFinished] = useState(false)
   const { value: board, setValue, failed } = usePolled<BattleBoard>(load, BOARD_POLL_MS, !finished)
   const root = useRef<HTMLDivElement>(null)
-  const [threeD] = useState(() => import.meta.env.MODE !== 'test' && canRun3D())
+  const [threeD, setThreeD] = useState(() => import.meta.env.MODE !== 'test' && canRun3D())
 
   useEffect(() => {
     if (board && board.status !== 'active') setFinished(true)
@@ -282,7 +343,7 @@ export function BattleBoardScreen({ battleId, lang }: { battleId: string; lang: 
         {threeD && (
           <Suspense fallback={<div className="h-[46vh] min-h-72" />}>
             <BattleArena3D kind={kind} topic={board.topic} hits={board.hits} damage={board.damagePerHit} hp={board.hp} maxHp={board.maxHp}
-              recent={board.recent.map((h) => h.name)} status={board.status} lang={lang} top={board.top.slice(0, 3).map((f) => f.name)} autoAttack />
+              recent={board.recent.map((h) => h.name)} status={board.status} lang={lang} top={board.top.slice(0, 3).map((f) => f.name)} autoAttack onSlow={() => { markSlow(); setThreeD(false) }} />
           </Suspense>
         )}
         <div className={`flex flex-col items-center gap-5 p-5 sm:flex-row ${threeD ? 'border-t-4 border-ink sm:py-5' : 'sm:p-8'}`}>
