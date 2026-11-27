@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react'
+import { canRun3D } from '../arena3d'
 import { HelperFace } from './HelperFace'
 import { Celebration } from './Celebration'
 import type { Boss, BossKind, BossRound, CheckResponse, Lang, Reward } from '../api'
@@ -33,6 +34,8 @@ function SlimeArt() {
     </svg>
   )
 }
+
+const BattleArena3D = lazy(() => import('./BattleArena3D'))
 
 export function BossAvatar({ kind, shielded, hitKey, big = false }: { kind: BossKind; shielded: boolean; hitKey: number; big?: boolean }) {
   return (
@@ -186,7 +189,8 @@ export function BossFight({ boss, lang, active, cleared, onRoundCleared, misses,
     const timer = setTimeout(() => setShaking(false), MISS_SHAKE_MS)
     return () => clearTimeout(timer)
   }, [missCount])
-  const { setCoins } = useAccount()
+  const { setCoins, user } = useAccount()
+  const [threeD] = useState(() => !character && canRun3D())
   const hpId = useId()
   const heading = useRef<HTMLHeadingElement>(null)
   // While a hit plays, the bar already shows the new HP but the next round waits.
@@ -239,8 +243,18 @@ export function BossFight({ boss, lang, active, cleared, onRoundCleared, misses,
         <p className="inline-flex items-center gap-1.5 rounded-lg border-2 border-ink bg-sun px-2 py-0.5 text-xs font-black tracking-wide text-ink uppercase">
           <span aria-hidden>⚔️</span>{copy.arena}
         </p>
+        {threeD && (
+          <div className="-mx-4 mt-3 overflow-hidden border-y-[3px] border-ink sm:-mx-5">
+            <Suspense fallback={<div className="h-56 sm:h-64" />}>
+              <BattleArena3D lite kind={boss.kind} topic={boss.kind === 'x-master' ? 'equations' : 'fractions'}
+                hits={shownCleared} damage={damage} hp={hp} maxHp={boss.maxHp} attackKey={missCount} lang={lang}
+                recent={[user?.displayName.split(' ')[0] ?? '']}
+                status={defeated || hit?.round === total - 1 ? 'won' : 'active'} />
+            </Suspense>
+          </div>
+        )}
         <div className="mt-3 flex items-center gap-4">
-          {!character && <BossAvatar kind={boss.kind} shielded={!defeated && boss.kind === 'x-master'} hitKey={hit?.at ?? 0} />}
+          {!character && !threeD && <BossAvatar kind={boss.kind} shielded={!defeated && boss.kind === 'x-master'} hitKey={hit?.at ?? 0} />}
           <div className="min-w-0">
             <h2 id={`${hpId}-title`} ref={heading} tabIndex={-1} className="text-2xl font-black text-white outline-none sm:text-3xl">
               {name}

@@ -4,6 +4,7 @@ import { useAccount } from '../account'
 import { BOSS_COPY } from '../boss'
 import { BATTLE_BOSS, CLASSROOM_COPY } from '../classroomCopy'
 import { usePolled } from '../usePolled'
+import { canRun3D } from '../arena3d'
 import { battleBoardHref, joinHref, SECTION_HREFS, teacherClassHref } from '../route'
 import { CARD, PRIMARY, SECONDARY } from './AuthScreen'
 import { BossAvatar } from './BossFight'
@@ -266,7 +267,7 @@ export function BattleBoardScreen({ battleId, lang }: { battleId: string; lang: 
   const [finished, setFinished] = useState(false)
   const { value: board, setValue, failed } = usePolled<BattleBoard>(load, BOARD_POLL_MS, !finished)
   const root = useRef<HTMLDivElement>(null)
-  const [threeD] = useState(() => import.meta.env.MODE !== 'test' && canRun3DLazy())
+  const [threeD] = useState(() => import.meta.env.MODE !== 'test' && canRun3D())
 
   useEffect(() => {
     if (board && board.status !== 'active') setFinished(true)
@@ -280,8 +281,8 @@ export function BattleBoardScreen({ battleId, lang }: { battleId: string; lang: 
       <section className={`overflow-hidden rounded-3xl border-[4px] border-ink text-white shadow-[0_8px_0_var(--shadow-ink)] ${kind === 'x-master' ? 'bg-[linear-gradient(160deg,#1d1450,#5b3cc4)]' : 'bg-[linear-gradient(160deg,#14361f,#3f9a4d)]'} ${board.status === 'active' ? 'boss-arena' : ''}`}>
         {threeD && (
           <Suspense fallback={<div className="h-[46vh] min-h-72" />}>
-            <BattleArena3D kind={kind} topic={board.topic} hits={board.hits} damage={board.damagePerHit}
-              recent={board.recent.map((h) => h.name)} status={board.status} lang={lang} />
+            <BattleArena3D kind={kind} topic={board.topic} hits={board.hits} damage={board.damagePerHit} hp={board.hp} maxHp={board.maxHp}
+              recent={board.recent.map((h) => h.name)} status={board.status} lang={lang} top={board.top.slice(0, 3).map((f) => f.name)} autoAttack />
           </Suspense>
         )}
         <div className={`flex flex-col items-center gap-5 p-5 sm:flex-row ${threeD ? 'border-t-4 border-ink sm:py-5' : 'sm:p-8'}`}>
@@ -362,15 +363,3 @@ export function BattleBoardScreen({ battleId, lang }: { battleId: string; lang: 
   )
 }
 
-/** Mirrors canRun3D in BattleArena3D without loading three.js for the check. */
-function canRun3DLazy() {
-  try {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return false
-    if (new URLSearchParams(window.location.search).has('2d')) return false
-    const memory = (navigator as { deviceMemory?: number }).deviceMemory ?? 8
-    if (memory < 3 || (navigator.hardwareConcurrency ?? 8) < 4) return false
-    return !!document.createElement('canvas').getContext('webgl2')
-  } catch {
-    return false
-  }
-}
