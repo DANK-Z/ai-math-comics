@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import {
   AdditiveBlending, NormalBlending, CanvasTexture, Color, CylinderGeometry, DirectionalLight, DoubleSide, Fog, Group, HemisphereLight,
   Mesh, MeshBasicMaterial, MeshDepthMaterial, MeshStandardMaterial, PerspectiveCamera, PlaneGeometry, PointLight,
@@ -35,6 +35,10 @@ export interface ArenaProps {
   attackKey?: number
   /** The boss model; the classic look of `kind` when not given. */
   look?: BossLook
+  /** Tailwind height classes of the stage (defaults: phone or board). */
+  heightClass?: string
+  /** Overlay drawn over the stage (the board puts the boss name and HP here). */
+  children?: ReactNode
   /** Called once when the device draws the scene too slowly; the page then shows 2D. */
   onSlow?: () => void
   /** Phones: no shadows, fewer effects, a lower stage. */
@@ -812,28 +816,29 @@ export default function BattleArena3D(props: ArenaProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [topKey])
 
-  const height = props.lite ? 'h-56 sm:h-64' : 'h-[46vh] min-h-72'
+  const height = props.heightClass ?? (props.lite ? 'h-56 sm:h-64' : 'h-[46vh] min-h-72')
   const chip = 'rounded-xl border-[3px] border-ink px-3 py-1.5 text-sm font-black text-ink shadow-[2px_2px_0_#17233a]'
   return (
     <div className={`relative w-full overflow-hidden ${height}`}>
       <div ref={host} className="absolute inset-0" aria-hidden="true" />
       {banner && (
-        <p key={banner.key} role="status" className="boss-enter pointer-events-none absolute inset-x-0 top-3 mx-auto w-fit max-w-[90%] rounded-2xl border-[3px] border-ink bg-white px-4 py-2 text-center text-lg font-black text-ink shadow-[3px_3px_0_#17233a] sm:text-2xl">
+        <p key={banner.key} role="status" className="boss-enter pointer-events-none absolute inset-x-0 top-16 mx-auto w-fit max-w-[90%] rounded-2xl border-[3px] border-ink bg-white px-4 py-2 text-center text-lg font-black text-ink shadow-[3px_3px_0_#17233a] sm:text-2xl">
           {banner.text}
         </p>
       )}
       <button type="button" aria-pressed={sound} onClick={() => setSound(sfx.current!.toggle())}
         aria-label={props.lite ? (sound ? c.soundOn : c.soundOff) : undefined}
-        className={`absolute ${props.lite ? 'top-2 right-2 px-2 py-1' : 'bottom-3 left-3'} ${chip} ${sound ? 'bg-sun' : 'bg-white/90'}`}>
+        className={`absolute ${props.lite ? 'top-2 right-2 px-2 py-1' : 'top-3 left-3'} ${chip} ${sound ? 'bg-sun' : 'bg-white/90'}`}>
         {props.lite ? (sound ? '🔊' : '🔇') : sound ? c.soundOn : c.soundOff}
       </button>
       {won && (
         <button type="button" disabled={replaying}
           onClick={() => { arena.current?.replay(props.recent[0] ?? ''); setReplaying(true); setTimeout(() => setReplaying(false), 6000) }}
-          className={`absolute right-3 bottom-3 ${chip} bg-sun hover:bg-white disabled:opacity-50`}>
+          className={`absolute top-3 right-3 ${chip} bg-sun hover:bg-white disabled:opacity-50`}>
           {c.replay}
         </button>
       )}
+      {props.children}
     </div>
   )
 }

@@ -250,8 +250,32 @@ export function ReviewBattleButton({ classId, lang, topic }: { classId: number; 
 }
 
 /** Class page: start a battle on the board, or reopen the current one. */
-export function BattleLauncher({ classId, lang }: { classId: number; lang: Lang }) {
+const TEACHER_COPY = {
+  ru: {
+    boss: 'Выйдет на доску',
+    perStudent: (answers: number, students: number) => (students ? `≈ ${Math.ceil(answers / students)} на ученика` : `≈ ${answers} верных ответов`),
+    minutes: (hp: number) => (hp <= 300 ? '10–15 мин' : hp <= 600 ? '15–20 мин' : '25–30 мин'),
+    hideQr: 'Скрыть QR',
+    showQr: 'Показать QR',
+    code: (code: string) => `Код класса: ${code}`,
+    inBattle: 'В бою',
+  },
+  kk: {
+    boss: 'Тақтаға шығады',
+    perStudent: (answers: number, students: number) => (students ? `≈ оқушыға ${Math.ceil(answers / students)}` : `≈ ${answers} дұрыс жауап`),
+    minutes: (hp: number) => (hp <= 300 ? '10–15 мин' : hp <= 600 ? '15–20 мин' : '25–30 мин'),
+    hideQr: 'QR-ды жасыру',
+    showQr: 'QR-ды көрсету',
+    code: (code: string) => `Сынып коды: ${code}`,
+    inBattle: 'Шайқаста',
+  },
+}
+
+const TOPIC_ICON: Record<BattleTopic, string> = { equations: 'x', fractions: '½', decimals: '0,5', gcd: '÷', parts: '1:2' }
+
+export function BattleLauncher({ classId, lang, students = 0 }: { classId: number; lang: Lang; students?: number }) {
   const copy = CLASSROOM_COPY[lang].board
+  const t = TEACHER_COPY[lang]
   const id = useId()
   const [topic, setTopic] = useState<BattleTopic>('equations')
   const [difficulty, setDifficulty] = useState<BattleDifficulty>('basic')
@@ -260,6 +284,7 @@ export function BattleLauncher({ classId, lang }: { classId: number; lang: Lang 
   const [error, setError] = useState(false)
   const load = useCallback((signal: AbortSignal) => accounts.currentClassBattle(classId, signal), [classId])
   const { value: current } = usePolled(load, 15000)
+  const kind = BATTLE_BOSS[topic]
 
   async function launch() {
     setBusy(true)
@@ -273,46 +298,60 @@ export function BattleLauncher({ classId, lang }: { classId: number; lang: Lang 
     }
   }
 
-  const choice = (selected: boolean) =>
-    `min-h-11 rounded-xl border-[3px] border-ink px-3 text-sm font-black shadow-[0_3px_0_var(--shadow-ink)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand ${selected ? 'translate-y-[2px] bg-sun shadow-[0_1px_0_var(--shadow-ink)]' : 'bg-white hover:bg-sky'}`
+  const segment = (selected: boolean) =>
+    `min-h-10 flex-1 rounded-lg px-2 text-sm font-black whitespace-nowrap text-ink focus-visible:outline-3 focus-visible:outline-brand ${selected ? 'bg-sun shadow-[inset_0_0_0_2px_var(--color-ink)]' : 'hover:bg-sky'}`
   return (
-    <section className={CARD} aria-labelledby={`${id}-title`}>
-      <h2 id={`${id}-title`} className="flex items-center gap-2 text-xl font-black text-ink"><span aria-hidden>⚔️</span>{copy.start}</h2>
-      <p className="mt-1 text-sm font-semibold text-ink/80">{copy.startLead}</p>
-      {current?.status === 'active' && (
-        <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl bg-rose-50 p-3">
-          <p className="flex-1 font-bold text-ink">{copy.current(current.hp, current.maxHp)}</p>
-          <a href={battleBoardHref(current.id)} className={PRIMARY}>{copy.open} →</a>
+    <section className={`${CARD} !p-0 overflow-hidden`} aria-labelledby={`${id}-title`}>
+      {/* The boss of the chosen topic, so the teacher sees what the class will fight. */}
+      <div className={`flex items-center gap-3 p-4 text-white ${kind === 'x-master' ? 'bg-[linear-gradient(160deg,#2a1f6b,#5b3cc4)]' : 'bg-[linear-gradient(160deg,#1f5132,#3f9a4d)]'}`}>
+        <BossAvatar kind={kind} shielded={false} hitKey={0} />
+        <div className="min-w-0">
+          <h2 id={`${id}-title`} className="text-xl font-black">⚔️ {copy.start}</h2>
+          <p className="text-xs font-black tracking-wide text-sun uppercase">{t.boss}</p>
+          <p className="truncate text-lg font-black">{BOSS_COPY[lang].names[kind]}</p>
         </div>
-      )}
-      <div className="mt-3 flex flex-col gap-3">
+      </div>
+      <div className="flex flex-col gap-3 p-4">
+        {current?.status === 'active' && (
+          <div className="flex flex-wrap items-center gap-3 rounded-xl border-2 border-rose-300 bg-rose-50 p-3">
+            <p className="flex-1 font-bold text-ink">{copy.current(current.hp, current.maxHp)}</p>
+            <a href={battleBoardHref(current.id)} className={PRIMARY}>{copy.open} →</a>
+          </div>
+        )}
+        <p className="text-sm font-semibold text-ink/80">{copy.startLead}</p>
         <fieldset>
           <legend className="mb-1.5 text-sm font-black text-ink/80">{copy.topic}</legend>
-          <div className="flex flex-wrap gap-2">
-            {BATTLE_TOPICS.map((t) => (
-              <button key={t} type="button" aria-pressed={topic === t} onClick={() => setTopic(t)} className={choice(topic === t)}>{copy.topics[t]}</button>
+          <div className="grid grid-cols-2 gap-1.5">
+            {BATTLE_TOPICS.map((tp) => (
+              <button key={tp} type="button" aria-pressed={topic === tp} onClick={() => setTopic(tp)}
+                className={`flex min-h-11 items-center gap-2 rounded-xl border-2 px-2 text-left text-sm leading-tight font-black text-ink focus-visible:outline-3 focus-visible:outline-brand ${topic === tp ? 'border-ink bg-sun' : 'border-ink/25 bg-white hover:border-ink'}`}>
+                <span aria-hidden className="grid h-7 min-w-7 shrink-0 place-items-center rounded-md bg-ink px-1 font-mono text-xs text-white">{TOPIC_ICON[tp]}</span>
+                {copy.topics[tp]}
+              </button>
             ))}
           </div>
         </fieldset>
         <fieldset>
           <legend className="mb-1.5 text-sm font-black text-ink/80">{copy.difficulty}</legend>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex gap-1 rounded-xl border-2 border-ink/25 bg-white p-1">
             {(['basic', 'intermediate', 'advanced'] as const).map((d) => (
-              <button key={d} type="button" aria-pressed={difficulty === d} onClick={() => setDifficulty(d)} className={choice(difficulty === d)}>{copy.difficulties[d]}</button>
+              <button key={d} type="button" aria-pressed={difficulty === d} onClick={() => setDifficulty(d)} className={segment(difficulty === d)}>{copy.difficulties[d]}</button>
             ))}
           </div>
         </fieldset>
         <fieldset>
           <legend className="mb-1.5 text-sm font-black text-ink/80">{copy.hp}</legend>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex gap-1 rounded-xl border-2 border-ink/25 bg-white p-1">
             {[300, 600, 1000].map((value) => (
-              <button key={value} type="button" aria-pressed={hp === value} onClick={() => setHp(value)} className={choice(hp === value)}>
-                {value} HP <span className="font-semibold text-ink/70">· {copy.hpHint(value)}</span>
+              <button key={value} type="button" aria-pressed={hp === value} onClick={() => setHp(value)} className={`${segment(hp === value)} flex flex-col items-center justify-center py-1`}>
+                <span>{value} HP</span>
+                <span className="text-[11px] font-bold text-ink/65">{t.minutes(value)}</span>
               </button>
             ))}
           </div>
+          <p className="mt-1 text-xs font-semibold text-ink/70">{t.perStudent(hp / 10, students)}</p>
         </fieldset>
-        <button type="button" onClick={launch} disabled={busy} className={`${PRIMARY} self-start`}>
+        <button type="button" onClick={launch} disabled={busy} className={`${PRIMARY} w-full text-lg`}>
           <span aria-hidden>⚔️ </span>{copy.launch}
         </button>
         {error && <p role="alert" className="font-bold text-rose-700">{copy.error}</p>}
@@ -321,98 +360,134 @@ export function BattleLauncher({ classId, lang }: { classId: number; lang: Lang 
   )
 }
 
-/** The class board (#/teacher/battle/{id}): big boss, HP, join instructions, live hits. */
+const QR_KEY = 'amc.board.qrHidden'
+
+/** The boss name, HP and counters: over the 3D stage, or beside the 2D boss. */
+function BossInfo({ board, lang }: { board: BattleBoard; lang: Lang }) {
+  const copy = CLASSROOM_COPY[lang].board
+  const kind = BATTLE_BOSS[board.topic]
+  return (
+    <div className="min-w-0 text-white">
+      <p className="text-sm font-black tracking-wide text-sun uppercase">{board.className} · {copy.topics[board.topic]}</p>
+      <div className="flex flex-wrap items-end justify-between gap-x-4">
+        <h1 className="text-3xl leading-tight font-black sm:text-5xl">{BOSS_COPY[lang].names[kind]}</h1>
+        <p className="text-2xl font-black tabular-nums sm:text-4xl" aria-live="polite">{board.hp} / {board.maxHp} HP</p>
+      </div>
+      <div className="mt-2"><HpBar hp={board.hp} max={board.maxHp} big /></div>
+      <p className="mt-2 flex flex-wrap gap-2 text-base font-black sm:text-lg">
+        <span className="rounded-xl bg-black/30 px-3 py-0.5">⚔️ {copy.hits(board.hits)}</span>
+        <span className="rounded-xl bg-black/30 px-3 py-0.5">👥 {copy.fighters(board.fighters)}</span>
+      </p>
+    </div>
+  )
+}
+
+/** The class board (#/teacher/battle/{id}): one projector screen — the arena, and beside it the QR, the lobby and the hits. */
 export function BattleBoardScreen({ battleId, lang }: { battleId: string; lang: Lang }) {
   const copy = CLASSROOM_COPY[lang].board
+  const t = TEACHER_COPY[lang]
   const load = useCallback((signal: AbortSignal) => accounts.battleBoard(battleId, signal), [battleId])
   const [finished, setFinished] = useState(false)
   const { value: board, setValue, failed } = usePolled<BattleBoard>(load, BOARD_POLL_MS, !finished)
   const root = useRef<HTMLDivElement>(null)
   const [threeD, setThreeD] = useState(() => import.meta.env.MODE !== 'test' && canRun3D())
+  const [qrHidden, setQrHidden] = useState(() => { try { return localStorage.getItem(QR_KEY) === '1' } catch { return false } })
 
   useEffect(() => {
     if (board && board.status !== 'active') setFinished(true)
   }, [board])
 
+  function toggleQr() {
+    setQrHidden((hidden) => {
+      try { localStorage.setItem(QR_KEY, hidden ? '0' : '1') } catch { /* remembered for this page only */ }
+      return !hidden
+    })
+  }
+
   if (!board) return failed ? <p role="alert" className="font-bold text-rose-700">{copy.error}</p> : null
   const kind = BATTLE_BOSS[board.topic]
+  const active = board.status === 'active'
   const battleUrl = `${window.location.origin}${window.location.pathname}${joinHref(board.classCode, 'battle')}`
+  const panel = 'rounded-2xl border-[3px] border-ink bg-white p-3 text-ink shadow-[0_4px_0_var(--shadow-ink)]'
   return (
-    <div ref={root} className="flex flex-col gap-4 bg-[var(--color-sky,#eef4ff)] p-1">
-      <section className={`overflow-hidden rounded-3xl border-[4px] border-ink text-white shadow-[0_8px_0_var(--shadow-ink)] ${kind === 'x-master' ? 'bg-[linear-gradient(160deg,#1d1450,#5b3cc4)]' : 'bg-[linear-gradient(160deg,#14361f,#3f9a4d)]'} ${board.status === 'active' ? 'boss-arena' : ''}`}>
-        {threeD && (
-          <Suspense fallback={<div className="h-[46vh] min-h-72" />}>
-            <BattleArena3D kind={kind} topic={board.topic} hits={board.hits} damage={board.damagePerHit} hp={board.hp} maxHp={board.maxHp}
-              recent={board.recent.map((h) => h.name)} status={board.status} lang={lang} top={board.top.slice(0, 3).map((f) => f.name)} autoAttack onSlow={() => { markSlow(); setThreeD(false) }} />
-          </Suspense>
-        )}
-        <div className={`flex flex-col items-center gap-5 p-5 sm:flex-row ${threeD ? 'border-t-4 border-ink sm:py-5' : 'sm:p-8'}`}>
-          {!threeD && <BossAvatar kind={kind} shielded={false} hitKey={board.hits} big />}
-          <div className="w-full min-w-0 flex-1">
-            <p className="text-sm font-black tracking-wide text-sun uppercase">{board.className} · {copy.topics[board.topic]}</p>
-            <h1 className="text-4xl font-black sm:text-6xl">{BOSS_COPY[lang].names[kind]}</h1>
-            <p className="mt-2 mb-2 text-2xl font-black tabular-nums sm:text-4xl" aria-live="polite">{board.hp} / {board.maxHp} HP</p>
-            <HpBar hp={board.hp} max={board.maxHp} big />
-            <p className="mt-3 flex flex-wrap gap-2 text-base font-black sm:text-xl">
-              <span className="rounded-xl bg-white/15 px-3 py-1">⚔️ {copy.hits(board.hits)}</span>
-              <span className="rounded-xl bg-white/15 px-3 py-1">👥 {copy.fighters(board.fighters)}</span>
-            </p>
-          </div>
-        </div>
-        <Celebration when={board.status === 'won'} />
-        {board.status === 'won' && (
-          <p className="border-t-4 border-ink bg-sun p-4 text-center text-3xl font-black text-ink sm:text-5xl"><span aria-hidden>🏆 </span>{copy.won}</p>
-        )}
-        {board.status === 'stopped' && <p className="border-t-4 border-ink bg-white p-3 text-center text-xl font-black text-ink">{copy.stopped}</p>}
-      </section>
-
-      {board.status === 'active' && (
-        <section className="flex flex-col items-center gap-4 rounded-2xl border-[3px] border-ink bg-sun p-4 text-ink sm:flex-row sm:p-5">
-          <QrCode value={battleUrl} label={copy.qrLabel} className="size-44 shrink-0 border-[3px] border-ink p-1 sm:size-52" />
-          <div className="min-w-0 text-center sm:text-left">
-            <p className="text-2xl font-black sm:text-3xl">{copy.qrTitle}</p>
-            <p className="mt-1 text-lg font-bold sm:text-xl">{copy.join(board.classCode)}</p>
-            <p className="mt-2 font-mono text-base font-bold break-all opacity-80 sm:text-lg">{battleUrl}</p>
-          </div>
-        </section>
-      )}
-
-      {board.status === 'active' && <Lobby classId={board.classId} present={board.present} lang={lang} />}
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <section className={CARD}>
-          <h2 className="text-xl font-black">{copy.top}</h2>
-          {board.top.length === 0 ? <p className="mt-2 font-bold text-ink/70">{copy.noHits}</p> : (
-            <ol className="mt-2 flex flex-col gap-1.5">
-              {board.top.map((f, i) => (
-                <li key={f.name} className="flex items-center gap-2 text-lg font-black">
-                  <span aria-hidden className="w-8 text-center">{['🥇', '🥈', '🥉'][i] ?? i + 1}</span>
-                  <span className="flex-1 truncate">{f.name}</span>
-                  <span className="tabular-nums">{copy.hits(f.hits)}</span>
-                </li>
-              ))}
-            </ol>
+    <div ref={root} className="flex flex-col gap-3 bg-[var(--color-sky,#eef4ff)] p-1 lg:h-[calc(100dvh-7.5rem)] [&:fullscreen]:h-dvh [&:fullscreen]:p-4">
+      <div className="grid gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)]">
+        <section className={`relative flex flex-col overflow-hidden rounded-3xl border-[4px] border-ink shadow-[0_8px_0_var(--shadow-ink)] lg:min-h-0 ${kind === 'x-master' ? 'bg-[linear-gradient(160deg,#1d1450,#5b3cc4)]' : 'bg-[linear-gradient(160deg,#14361f,#3f9a4d)]'} ${active ? 'boss-arena' : ''}`}>
+          {threeD ? (
+            <Suspense fallback={<div className="h-[52vh] lg:h-full" />}>
+              <BattleArena3D heightClass="h-[52vh] min-h-72 lg:h-full lg:flex-1" kind={kind} topic={board.topic} hits={board.hits} damage={board.damagePerHit} hp={board.hp} maxHp={board.maxHp}
+                recent={board.recent.map((h) => h.name)} status={board.status} lang={lang} top={board.top.slice(0, 3).map((f) => f.name)} autoAttack
+                onSlow={() => { markSlow(); setThreeD(false) }}>
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/40 to-transparent p-4 pt-16 sm:p-6 sm:pt-20">
+                  <BossInfo board={board} lang={lang} />
+                </div>
+              </BattleArena3D>
+            </Suspense>
+          ) : (
+            <div className="flex flex-1 flex-col items-center justify-center gap-5 p-5 sm:flex-row sm:p-8">
+              <BossAvatar kind={kind} shielded={false} hitKey={board.hits} big />
+              <div className="w-full min-w-0 flex-1"><BossInfo board={board} lang={lang} /></div>
+            </div>
           )}
-        </section>
-        <section className={CARD}>
-          <h2 className="text-xl font-black">{copy.recent}</h2>
-          {board.recent.length === 0 ? <p className="mt-2 font-bold text-ink/70">{copy.noHits}</p> : (
-            <ul className="mt-2 flex flex-col gap-1.5">
-              {board.recent.map((h, i) => (
-                <li key={`${h.at}-${h.name}`} className={`flex items-center gap-2 text-lg font-bold ${i === 0 ? 'boss-enter' : ''}`}>
-                  <span aria-hidden>💥</span><span className="flex-1 truncate">{h.name}</span>
-                  <span className="font-black text-rose-600">−{board.damagePerHit} HP</span>
-                </li>
-              ))}
-            </ul>
+          <Celebration when={board.status === 'won'} />
+          {board.status === 'won' && (
+            <p className="border-t-4 border-ink bg-sun p-3 text-center text-3xl font-black text-ink sm:text-4xl"><span aria-hidden>🏆 </span>{copy.won}</p>
           )}
+          {board.status === 'stopped' && <p className="border-t-4 border-ink bg-white p-3 text-center text-xl font-black text-ink">{copy.stopped}</p>}
         </section>
+
+        <aside className="flex flex-col gap-3 lg:min-h-0 lg:overflow-y-auto">
+          {active && (qrHidden ? (
+            <div className={`${panel} flex items-center justify-between gap-2 bg-sun`}>
+              <p className="font-black">{t.code(board.classCode)}</p>
+              <button type="button" onClick={toggleQr} className="rounded-lg border-2 border-ink bg-white px-2.5 py-1 text-sm font-black hover:bg-sky">📱 {t.showQr}</button>
+            </div>
+          ) : (
+            <section className={`${panel} bg-sun`}>
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-xl leading-tight font-black">{copy.qrTitle}</p>
+                <button type="button" onClick={toggleQr} className="shrink-0 rounded-lg border-2 border-ink bg-white px-2 py-0.5 text-sm font-black hover:bg-sky">✕ {t.hideQr}</button>
+              </div>
+              <QrCode value={battleUrl} label={copy.qrLabel} className="mx-auto mt-2 aspect-square w-full max-w-56 border-[3px] border-ink p-1" />
+              <p className="mt-2 text-center text-2xl font-black tracking-wider">{board.classCode}</p>
+              <p className="text-center text-xs font-bold opacity-80">{copy.join(board.classCode)}</p>
+            </section>
+          ))}
+
+          {active && <Lobby classId={board.classId} present={board.present} lang={lang} />}
+
+          <section className={panel}>
+            <h2 className="text-lg font-black">{copy.top}</h2>
+            {board.top.length === 0 ? <p className="mt-1 font-bold text-ink/70">{copy.noHits}</p> : (
+              <ol className="mt-1 flex flex-col gap-1">
+                {board.top.slice(0, 5).map((f, i) => (
+                  <li key={f.name} className="flex items-center gap-2 text-base font-black">
+                    <span aria-hidden className="w-7 text-center">{['🥇', '🥈', '🥉'][i] ?? i + 1}</span>
+                    <span className="flex-1 truncate">{f.name}</span>
+                    <span className="tabular-nums">{copy.hits(f.hits)}</span>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </section>
+          <section className={panel}>
+            <h2 className="text-lg font-black">{copy.recent}</h2>
+            {board.recent.length === 0 ? <p className="mt-1 font-bold text-ink/70">{copy.noHits}</p> : (
+              <ul className="mt-1 flex flex-col gap-1">
+                {board.recent.slice(0, 5).map((h, i) => (
+                  <li key={`${h.at}-${h.name}`} className={`flex items-center gap-2 text-base font-bold ${i === 0 ? 'boss-enter' : ''}`}>
+                    <span aria-hidden>💥</span><span className="flex-1 truncate">{h.name}</span>
+                    <span className="font-black text-rose-600">−{board.damagePerHit} HP</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </aside>
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {board.status === 'active' ? (
-          <button type="button" className={SECONDARY} onClick={() => accounts.stopBattle(board.id).then(setValue, () => {})}>{copy.stop}</button>
-        ) : null}
+        {active && <button type="button" className={SECONDARY} onClick={() => accounts.stopBattle(board.id).then(setValue, () => {})}>{copy.stop}</button>}
         <a href={teacherClassHref(board.classId)} className={SECONDARY}>{copy.back}</a>
         {document.fullscreenEnabled && (
           <button type="button" className={SECONDARY} onClick={() => (document.fullscreenElement ? document.exitFullscreen() : root.current?.requestFullscreen())?.catch(() => {})}>
@@ -423,4 +498,3 @@ export function BattleBoardScreen({ battleId, lang }: { battleId: string; lang: 
     </div>
   )
 }
-

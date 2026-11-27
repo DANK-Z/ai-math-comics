@@ -473,7 +473,7 @@ export function ClassDashboard({ lang, classId }: { lang: Lang; classId: number 
         <div className="grid items-start gap-4 lg:grid-cols-2">
           <div className="flex min-w-0 flex-col gap-4">
             <LessonLauncher classId={classId} lang={lang} />
-            <BattleLauncher classId={classId} lang={lang} />
+            <BattleLauncher classId={classId} lang={lang} students={data.students.length} />
           </div>
           <div className="flex min-w-0 flex-col gap-4">
             <LessonReports classId={classId} lang={lang} />
