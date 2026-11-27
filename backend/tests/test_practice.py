@@ -20,7 +20,8 @@ def test_every_topic_makes_sound_problems(topic, grade):
         assert restored.expected == problem.expected
         assert restored.prompt("ru") == problem.prompt("ru")
         assert problem.prompt("kk")
-        assert problem.expected > 0
+        if topic not in ("negatives", "linear"):
+            assert problem.expected > 0
         if topic in ("gcd", "parts"):
             assert problem.expected.denominator == 1
 
@@ -123,3 +124,38 @@ def test_class_battle_on_a_new_topic(env):
     view = client.get("/api/me/battle", headers=auth(aruna)).json()
     assert view["topic"] == "decimals" and view["task"]["answerFormat"] == "decimal"
     assert "Вычисли" in view["task"]["prompt"]
+
+
+def test_textbook_gap_topics():
+    from app.answers import parse_equation_answer
+    from app.practice import (
+        DecimalOpsProblem,
+        FractionSumProblem,
+        LinearProblem,
+        SignedProblem,
+        check,
+    )
+
+    assert FractionSumProblem("add", "1/4", "1/6").expected == Fraction(5, 12)
+    assert FractionSumProblem("sub", "2 1/3", "1 3/4").expected == Fraction(7, 12)
+    # A mixed number, an improper fraction and an unreduced one are all right.
+    assert check(FractionSumProblem("add", "1 1/2", "3/4"), "2 1/4") == "correct"
+    assert check(FractionSumProblem("add", "1 1/2", "3/4"), "9/4") == "correct"
+    assert check(FractionSumProblem("add", "1/4", "1/4"), "2/4") == "correct"
+    assert parse_equation_answer("-1 3/4") == Fraction(-7, 4)
+
+    assert SignedProblem("sub", "-4", "12").expected == -16
+    assert SignedProblem("mix", "-5", "-3", "3").expected == -14
+    assert "(−3)" in SignedProblem("mix", "-5", "-3", "3").prompt("ru")
+    assert check(SignedProblem("div", "-36", "9"), "−4") == "correct"
+
+    assert LinearProblem(7, 3, 8, -7).expected == 10
+    assert "7x + 3 = 8x − 7" in LinearProblem(7, 3, 8, -7).prompt("ru")
+    assert LinearProblem(4, -6, 0, -44, brackets=True).expected == -5
+    assert "4(x − 6) = −44" in LinearProblem(4, -6, 0, -44, brackets=True).prompt("ru")
+
+    assert DecimalOpsProblem("div", "5.52", "0.6").expected == Fraction("9.2")
+    assert DecimalOpsProblem("round", "25.686", "0.1").expected == Fraction("25.7")
+    assert DecimalOpsProblem("round", "3.145", "0.01").expected == Fraction("3.15")
+    assert check(DecimalOpsProblem("shift", "47.79", "1000"), "47 790") == "correct"
+    assert "ондыққа дейін" in DecimalOpsProblem("round", "25.686", "0.1").prompt("kk")

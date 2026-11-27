@@ -74,7 +74,7 @@ const COPY = {
   },
 }
 
-const TOPICS: BattleTopic[] = ['equations', 'fractions', 'decimals', 'gcd', 'parts']
+const TOPICS: BattleTopic[] = ['equations', 'fractions', 'addfractions', 'decimals', 'decimalops', 'gcd', 'parts', 'negatives', 'linear']
 const SELECT = 'mt-1 min-h-10 w-full rounded-xl border-[3px] border-ink bg-white px-2 font-bold text-ink focus-visible:ring-4 focus-visible:ring-sun'
 const FIELD = 'mt-1 w-full rounded-xl border-[3px] border-ink bg-white px-3 py-2 font-semibold text-ink focus-visible:ring-4 focus-visible:ring-sun'
 

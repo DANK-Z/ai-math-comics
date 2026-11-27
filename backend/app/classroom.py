@@ -34,7 +34,7 @@ from .db import (
     SchoolClass,
     User,
 )
-from .practice import Topic, answer_format, check, from_stored, make_problem
+from .practice import AnswerFormat, Topic, answer_format, check, from_stored, make_problem
 from .presence import Present, present, touch
 from .schemas import Language
 
@@ -228,7 +228,7 @@ class BattleBoard(BaseModel):
 class BattleTaskOut(BaseModel):
     id: str
     prompt: str
-    answerFormat: Literal["fraction", "decimal", "whole-number"]
+    answerFormat: AnswerFormat
 
 
 class StudentBattle(BaseModel):

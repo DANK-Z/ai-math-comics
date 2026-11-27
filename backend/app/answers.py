@@ -1,7 +1,8 @@
 """Exact parsing of equation answers with SymPy.
 
 Accepted, all meaning the same value: ``3``, ``3.0``, ``3,0`` (Russian/Kazakh decimal comma),
-``x = 3``, ``x=3.0``, ``х = 3`` (Cyrillic х), ``3 = x``, ``6/2``, ``1 200`` (thousands spaces)
+``x = 3``, ``x=3.0``, ``х = 3`` (Cyrillic х), ``3 = x``, ``6/2``, ``1 1/2`` (a mixed number),
+``1 200`` (thousands spaces)
 and a leading minus. Values are compared exactly, never as floats, so ``3.0000001`` is simply
 incorrect.
 
@@ -23,6 +24,8 @@ X = Symbol("x")
 NUMBER = re.compile(r"[+-]?[0-9]+(?:[.,][0-9]+)?")
 RATIO = re.compile(r"([+-]?[0-9]+)\s*/\s*([+-]?[0-9]+)")
 GROUPED = re.compile(r"[+-]?[0-9]{1,3}(?: [0-9]{3})+(?:[.,][0-9]+)?")
+# A mixed number: "2 1/3", "-1 3/4".
+MIXED = re.compile(r"([+-]?)([0-9]+) ([0-9]+)/([0-9]+)")
 # "x = …" or "… = x", with a Latin or Cyrillic x.
 X_LEFT = re.compile(r"[xXхХ]\s*=\s*(.+)")
 X_RIGHT = re.compile(r"(.+?)\s*=\s*[xXхХ]")
@@ -41,6 +44,13 @@ def _literal(text: str) -> Rational | None:
         text = text.replace(" ", "")
     if NUMBER.fullmatch(text):
         return Rational(text.replace(",", "."))
+    mixed = MIXED.fullmatch(text)
+    if mixed:
+        sign, whole, numerator, denominator = mixed.groups()
+        if int(denominator) == 0:
+            return None
+        value = Rational(int(whole)) + Rational(int(numerator), int(denominator))
+        return -value if sign == "-" else value
     ratio = RATIO.fullmatch(text)
     if ratio:
         numerator, denominator = (int(part) for part in ratio.groups())

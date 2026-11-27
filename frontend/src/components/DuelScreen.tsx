@@ -76,7 +76,7 @@ const COPY = {
   },
 }
 
-const TOPICS: BattleTopic[] = ['equations', 'fractions', 'decimals', 'gcd', 'parts']
+const TOPICS: BattleTopic[] = ['equations', 'fractions', 'addfractions', 'decimals', 'decimalops', 'gcd', 'parts', 'negatives', 'linear']
 
 function Progress({ label, value, total, me }: { label: string; value: number; total: number; me?: boolean }) {
   return (

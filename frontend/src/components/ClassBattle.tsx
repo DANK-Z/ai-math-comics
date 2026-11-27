@@ -16,7 +16,7 @@ import { Celebration } from './Celebration'
 // Class battle. The teacher puts a giant boss on the class board; students fight it from their
 // phones. The server chooses every problem and keeps the answers; the screens poll it.
 
-export const BATTLE_TOPICS = ['equations', 'fractions', 'decimals', 'gcd', 'parts'] as const
+export const BATTLE_TOPICS = ['equations', 'fractions', 'addfractions', 'decimals', 'decimalops', 'gcd', 'parts', 'negatives', 'linear'] as const
 
 const BattleArena3D = lazy(() => import('./BattleArena3D'))
 
@@ -40,12 +40,14 @@ const PHONE_COPY = {
   ru: {
     mine: (mine: number, all: number) => (all ? `Твой вклад: ${mine} из ${all} ударов класса` : ''),
     slash: 'дробь',
+    minus: 'минус',
     comma: 'запятая',
     keys: 'Быстрые знаки',
   },
   kk: {
     mine: (mine: number, all: number) => (all ? `Сенің үлесің: сыныптың ${all} соққысының ${mine}` : ''),
     slash: 'бөлшек',
+    minus: 'минус',
     comma: 'үтір',
     keys: 'Жылдам белгілер',
   },
@@ -160,7 +162,7 @@ function BattleTaskForm({ battle, lang, onResult, feedback, onFeedback: setFeedb
   const input = useRef<HTMLInputElement>(null)
   const inputId = useId()
   // Phone keypads have no «/» and sometimes no «,»: one tap adds them.
-  const extraKey = task.answerFormat === 'fraction' ? { key: '/', label: phone.slash } : task.answerFormat === 'decimal' ? { key: ',', label: phone.comma } : null
+  const extraKey = task.answerFormat === 'fraction' ? { key: '/', label: phone.slash } : task.answerFormat === 'decimal' ? { key: ',', label: phone.comma } : task.answerFormat === 'signed' ? { key: '−', label: phone.minus } : null
 
   async function submit(e: FormEvent) {
     e.preventDefault()
@@ -192,10 +194,10 @@ function BattleTaskForm({ battle, lang, onResult, feedback, onFeedback: setFeedb
           autoFocus
           value={answer}
           onChange={(e) => setAnswer(e.target.value)}
-          inputMode={task.answerFormat === 'fraction' ? 'text' : task.answerFormat === 'decimal' ? 'decimal' : 'numeric'}
+          inputMode={task.answerFormat === 'fraction' || task.answerFormat === 'signed' ? 'text' : task.answerFormat === 'decimal' ? 'decimal' : 'numeric'}
           autoComplete="off"
           enterKeyHint="send"
-          placeholder={task.answerFormat === 'fraction' ? copy.fractionHint : task.answerFormat === 'decimal' ? copy.decimalHint : copy.wholeHint}
+          placeholder={task.answerFormat === 'fraction' ? copy.fractionHint : task.answerFormat === 'decimal' ? copy.decimalHint : task.answerFormat === 'signed' ? copy.signedHint : copy.wholeHint}
           aria-invalid={feedback?.status === 'incorrect' || undefined}
           className="min-h-14 w-full min-w-0 flex-1 rounded-xl border-[3px] border-ink bg-white px-3 font-mono text-3xl font-bold tabular-nums outline-none placeholder:font-sans placeholder:text-base placeholder:font-semibold focus-visible:ring-4 focus-visible:ring-sun aria-invalid:border-rose-600 aria-invalid:bg-rose-50"
         />
@@ -271,7 +273,7 @@ const TEACHER_COPY = {
   },
 }
 
-const TOPIC_ICON: Record<BattleTopic, string> = { equations: 'x', fractions: '½', decimals: '0,5', gcd: '÷', parts: '1:2' }
+const TOPIC_ICON: Record<BattleTopic, string> = { equations: 'x', fractions: '½', decimals: '0,5', gcd: '÷', parts: '1:2', addfractions: '⅓+', negatives: '−5', linear: '2x', decimalops: '×0,1' }
 
 export function BattleLauncher({ classId, lang, students = 0 }: { classId: number; lang: Lang; students?: number }) {
   const copy = CLASSROOM_COPY[lang].board

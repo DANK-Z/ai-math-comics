@@ -24,7 +24,7 @@ from .auth import Session, current_student, current_teacher
 from .classroom import own_class, short_name
 from .db import ObjectiveCodes, Role, SchoolClass, TeacherTask, TeacherTaskAnswer, User
 from .lessons import CHAPTERS
-from .practice import TOPICS, make_problem
+from .practice import STEPPED_TOPICS, TOPICS, _dec, _frac, make_problem
 
 router = APIRouter(prefix="/api")
 Teacher = Annotated[User, Depends(current_teacher)]
@@ -93,7 +93,10 @@ async def print_drill(
     # Avoid repeats on one sheet; a small topic may still repeat after enough tries.
     problems, seen = [], set()
     for _ in range(count * 10):
-        problem = make_problem(topic, grade)
+        # The newer topics get harder down the sheet: 40% basic, 40% intermediate, 20% advanced.
+        share = len(problems) / count
+        step = "basic" if share < 0.4 else "intermediate" if share < 0.8 else "advanced"
+        problem = make_problem(topic, grade, step if topic in STEPPED_TOPICS else "basic")
         if problem.prompt(lang) in seen:
             continue
         seen.add(problem.prompt(lang))
@@ -102,16 +105,21 @@ async def print_drill(
             break
     while len(problems) < count:
         problems.append(make_problem(topic, grade))
-    return [PrintProblem(prompt=p.prompt(lang), answer=answer_text(p.expected)) for p in problems]
+    fractions = topic in ("fractions", "addfractions")
+    return [
+        PrintProblem(prompt=p.prompt(lang), answer=answer_text(p.expected, fractions))
+        for p in problems
+    ]
 
 
-def answer_text(value) -> str:
-    """12, 3/4 or 4,2 — the way a student writes it."""
+def answer_text(value, fractions: bool = False) -> str:
+    """12, −5, 3/4 or 2 1/4 for fraction topics, 4,2 or 0,0047 for decimals."""
     if value.denominator == 1:
-        return str(value.numerator)
-    if 10 % value.denominator == 0 or 100 % value.denominator == 0:
-        return f"{float(value):g}".replace(".", ",")
-    return f"{value.numerator}/{value.denominator}"
+        return str(value.numerator).replace("-", "−")
+    if fractions or 10**6 % value.denominator:
+        sign = "−" if value < 0 else ""
+        return sign + _frac(abs(value))
+    return _dec(value)
 
 
 # ---- the teacher's own tasks ---------------------------------------------------------------

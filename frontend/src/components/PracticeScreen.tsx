@@ -12,7 +12,10 @@ import { RichText } from './RichText'
 // Reached from the home page («Повтори слабое место»), from a chapter after two wrong answers,
 // and from the topic list here.
 
-export const PRACTICE_TOPICS: readonly BattleTopic[] = ['fractions', 'equations', 'decimals', 'gcd', 'parts']
+/** The grade where the topic is taught (Abylkasymova's textbook) and the topics added for its gaps. */
+const TOPIC_GRADE: Record<BattleTopic, 5 | 6> = { fractions: 5, addfractions: 5, equations: 5, decimals: 5, decimalops: 5, gcd: 5, parts: 6, negatives: 6, linear: 6 }
+const NEW_TOPICS: readonly BattleTopic[] = ['addfractions', 'negatives', 'linear', 'decimalops']
+export const PRACTICE_TOPICS: readonly BattleTopic[] = ['fractions', 'addfractions', 'equations', 'decimals', 'decimalops', 'gcd', 'parts', 'negatives', 'linear']
 
 export function practiceHref(topic: BattleTopic, skill?: string | null) {
   return `#/practice/${topic}${skill ? `?skill=${encodeURIComponent(skill)}` : ''}`
@@ -123,7 +126,18 @@ export function PracticeScreen({ lang, topic, skill }: { lang: Lang; topic: Batt
           <h2 className="text-lg font-black">{copy.pick}</h2>
           <ul className="mt-3 grid gap-2 sm:grid-cols-2">
             {PRACTICE_TOPICS.map((t) => (
-              <li key={t}><a href={practiceHref(t)} className={`${SECONDARY} w-full justify-between`}>{topics[t]} <span aria-hidden>→</span></a></li>
+              <li key={t}>
+                <a href={practiceHref(t)} className="flex min-h-14 w-full items-center justify-between gap-2 rounded-xl border-[3px] border-ink bg-white px-3 py-2 text-left font-black text-ink shadow-[0_3px_0_var(--shadow-ink)] hover:bg-sky focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand">
+                  <span className="min-w-0">
+                    {topics[t]}
+                    <span className="mt-1 flex gap-1 text-[11px] font-black">
+                      <span className="rounded bg-sky-100 px-1.5 text-ink/75">{TOPIC_GRADE[t]} {lang === 'kk' ? 'сынып' : 'кл.'}</span>
+                      {NEW_TOPICS.includes(t) && <span className="rounded bg-sun px-1.5 text-ink">{lang === 'kk' ? 'жаңа' : 'новое'}</span>}
+                    </span>
+                  </span>
+                  <span aria-hidden>→</span>
+                </a>
+              </li>
             ))}
           </ul>
         </section>
@@ -206,8 +220,8 @@ function Drill({ lang, topic, skill }: { lang: Lang; topic: BattleTopic; skill: 
               onChange={(e) => setAnswer(e.target.value)}
               autoComplete="off"
               autoFocus
-              inputMode={task.answerFormat === 'fraction' ? 'text' : task.answerFormat === 'decimal' ? 'decimal' : 'numeric'}
-              placeholder={task.answerFormat === 'fraction' ? hints.fractionHint : task.answerFormat === 'decimal' ? hints.decimalHint : hints.wholeHint}
+              inputMode={task.answerFormat === 'fraction' || task.answerFormat === 'signed' ? 'text' : task.answerFormat === 'decimal' ? 'decimal' : 'numeric'}
+              placeholder={task.answerFormat === 'fraction' ? hints.fractionHint : task.answerFormat === 'decimal' ? hints.decimalHint : task.answerFormat === 'signed' ? hints.signedHint : hints.wholeHint}
               aria-invalid={feedback?.status === 'incorrect' || undefined}
               className="min-h-12 w-full min-w-0 flex-1 rounded-xl border-[3px] border-ink bg-white px-3 font-mono text-2xl font-bold tabular-nums outline-none placeholder:font-sans placeholder:text-base placeholder:font-semibold focus-visible:ring-4 focus-visible:ring-sun aria-invalid:border-rose-600 aria-invalid:bg-rose-50"
             />

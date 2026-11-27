@@ -195,6 +195,38 @@ export function mockProblem(topic: BattleTopic): { prompt: Record<Lang, string>;
       },
     }
   }
+  if (topic === 'addfractions') {
+    const d = [5, 7, 8, 9, 12][pick(0, 4)]
+    const [x, y] = [pick(1, d - 1), pick(1, d - 1)]
+    const [hi, lo] = x >= y ? [x, y] : [y, x]
+    const sum = Math.random() < 0.5 || hi === lo
+    const expr = sum ? `${x}/${d} + ${y}/${d}` : `${hi}/${d} − ${lo}/${d}`
+    return {
+      answer: `${sum ? x + y : hi - lo}/${d}`,
+      prompt: {
+        ru: `Вычисли: ${expr}. Запиши ответ дробью (например 5/8) или смешанным числом (например 1 1/2).`,
+        kk: `Есепте: ${expr}. Жауапты бөлшекпен (мысалы 5/8) немесе аралас санмен (мысалы 1 1/2) жаз.`,
+      },
+    }
+  }
+  if (topic === 'negatives') {
+    const a = -pick(2, 20)
+    const b = pick(2, 20) * (Math.random() < 0.5 ? 1 : -1)
+    const sum = Math.random() < 0.5
+    const show = (n: number) => (n < 0 ? `(−${-n})` : String(n))
+    const expr = `−${-a} ${sum ? '+' : '−'} ${show(b)}`
+    return { answer: String(sum ? a + b : a - b), prompt: { ru: `Вычисли: ${expr}. Не забудь про знак ответа.`, kk: `Есепте: ${expr}. Жауаптың таңбасын ұмытпа.` } }
+  }
+  if (topic === 'linear') {
+    const [a, x, b] = [pick(2, 9), pick(-9, 12) || 4, pick(1, 20) * (Math.random() < 0.5 ? 1 : -1)]
+    const right = a * x + b
+    const eq = `${a}x ${b > 0 ? '+' : '−'} ${Math.abs(b)} = ${right < 0 ? `−${-right}` : right}`
+    return { answer: String(x), prompt: { ru: `Реши уравнение: ${eq}. Чему равен x?`, kk: `Теңдеуді шеш: ${eq}. x неге тең?` } }
+  }
+  if (topic === 'decimalops') {
+    const [a, b] = [pick(11, 99), pick(2, 9)]
+    return { answer: `${a * b}/10`, prompt: { ru: `Вычисли: ${tenths(a)} · ${b}. Запиши ответ десятичной дробью, например 4,2.`, kk: `Есепте: ${tenths(a)} · ${b}. Жауапты ондық бөлшекпен жаз, мысалы 4,2.` } }
+  }
   const [pizzas, friends] = [pick(1, 3), pick(4, 7)]
   return {
     answer: `${pizzas}/${friends}`,
@@ -205,22 +237,30 @@ export function mockProblem(topic: BattleTopic): { prompt: Record<Lang, string>;
   }
 }
 
-export const answerFormatOf = (topic: BattleTopic): AnswerFormat => (topic === 'fractions' ? 'fraction' : topic === 'decimals' ? 'decimal' : 'whole-number')
+export const answerFormatOf = (topic: BattleTopic): AnswerFormat =>
+  topic === 'fractions' || topic === 'addfractions' ? 'fraction'
+    : topic === 'decimals' || topic === 'decimalops' ? 'decimal'
+      : topic === 'negatives' || topic === 'linear' ? 'signed' : 'whole-number'
 
 function mockTask(topic: BattleTopic): MockBattle['tasks'][number] {
   return { id: `task-${Date.now()}-${pick(0, 9999)}`, misses: 0, ...mockProblem(topic) }
 }
 
 export function checkMockAnswer(answer: string, expected: string): 'correct' | 'incorrect' | 'invalid' {
-  const value = answer.trim().replace(/^x\s*=\s*/i, '')
+  const raw = answer.trim().replace(/^x\s*=\s*/i, '').replace(/[−–]/g, '-')
+  const sign = raw.startsWith('-') ? -1 : 1
+  const value = raw.replace(/^[+-]/, '')
   const [en, ed] = expected.includes('/') ? expected.split('/').map(Number) : [Number(expected), 1]
+  const mixed = /^(\d+)\s+(\d+)\s*\/\s*(\d+)$/.exec(value)
   const fraction = /^(\d+)\s*\/\s*(\d+)$/.exec(value)
   const decimal = /^(\d+)(?:[.,](\d+))?$/.exec(value)
   let n: number
   let d: number
-  if (fraction) [n, d] = [Number(fraction[1]), Number(fraction[2])]
+  if (mixed) [n, d] = [Number(mixed[1]) * Number(mixed[3]) + Number(mixed[2]), Number(mixed[3])]
+  else if (fraction) [n, d] = [Number(fraction[1]), Number(fraction[2])]
   else if (decimal) [n, d] = [Number(decimal[1] + (decimal[2] ?? '')), 10 ** (decimal[2]?.length ?? 0)]
   else return 'invalid'
+  n *= sign
   return d === 0 ? 'invalid' : n * ed === en * d ? 'correct' : 'incorrect'
 }
 

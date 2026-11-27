@@ -27,7 +27,15 @@ from .db import (
     StudentProfile,
     User,
 )
-from .practice import FEEDBACK, TOPICS, answer_format, check, from_stored, new_task
+from .practice import (
+    DAILY_TOPICS,
+    FEEDBACK,
+    AnswerFormat,
+    answer_format,
+    check,
+    from_stored,
+    new_task,
+)
 from .schemas import Language
 
 router = APIRouter(prefix="/api")
@@ -51,7 +59,7 @@ def almaty_today() -> date:
 
 
 def daily_topic(user_id: int, day: date) -> str:
-    return TOPICS[(day.toordinal() + user_id) % len(TOPICS)]
+    return DAILY_TOPICS[(day.toordinal() + user_id) % len(DAILY_TOPICS)]
 
 
 # ---- daily task --------------------------------------------------------------------------
@@ -67,7 +75,7 @@ class DailyOut(BaseModel):
     taskId: str
     topic: str
     prompt: str
-    answerFormat: Literal["fraction", "decimal", "whole-number"]
+    answerFormat: AnswerFormat
     solved: bool
     streak: int
     """Days in a row with the daily task solved (today, or up to yesterday if not yet)."""

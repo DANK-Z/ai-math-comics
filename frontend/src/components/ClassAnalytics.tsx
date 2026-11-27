@@ -113,7 +113,7 @@ const COPY = {
 
 export const pct = (correct: number, total: number) => (total ? Math.round((correct / total) * 100) : 0)
 const inDays = (n: number) => new Date(Date.now() + n * 86400_000).toISOString().slice(0, 10)
-const BATTLE_TOPICS: BattleTopic[] = ['fractions', 'equations', 'gcd', 'decimals', 'parts']
+const BATTLE_TOPICS: BattleTopic[] = ['fractions', 'equations', 'gcd', 'decimals', 'parts', 'addfractions', 'negatives', 'linear', 'decimalops']
 const MIN_ANSWERS = 2
 const WEAK = 60
 const STRONG = 80

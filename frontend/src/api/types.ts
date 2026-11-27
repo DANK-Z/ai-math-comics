@@ -286,8 +286,8 @@ export interface LobbyStudent {
   name: string
 }
 
-export type BattleTopic = 'fractions' | 'equations' | 'gcd' | 'decimals' | 'parts'
-export type AnswerFormat = 'fraction' | 'decimal' | 'whole-number'
+export type BattleTopic = 'fractions' | 'equations' | 'gcd' | 'decimals' | 'parts' | 'addfractions' | 'negatives' | 'linear' | 'decimalops'
+export type AnswerFormat = 'fraction' | 'decimal' | 'whole-number' | 'signed'
 export type BattleDifficulty = 'basic' | 'intermediate' | 'advanced'
 export type BattleStatus = 'active' | 'won' | 'stopped'
 

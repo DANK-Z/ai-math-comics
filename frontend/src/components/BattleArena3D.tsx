@@ -53,6 +53,10 @@ const THEMES: Record<BattleTopic, { glyphs: string[]; color: string }> = {
   decimals: { glyphs: ['0,5', '1,2', '3,7', ','], color: '#33c3ff' },
   gcd: { glyphs: ['÷', '×', '6', '12'], color: '#3ee08a' },
   parts: { glyphs: ['1:2', '3:4', '2:5', ':'], color: '#ff6b8b' },
+  addfractions: { glyphs: ['+', '−', '⅔', '¾'], color: '#ff9f43' },
+  negatives: { glyphs: ['−5', '+3', '−', '±'], color: '#4dabf7' },
+  linear: { glyphs: ['x', '2x', '=', '−x'], color: '#b197fc' },
+  decimalops: { glyphs: ['0,1', '×10', ':', '2,5'], color: '#38d9a9' },
 }
 
 // Brighter than a night arena: the board is shown on a projector in a lit classroom.
