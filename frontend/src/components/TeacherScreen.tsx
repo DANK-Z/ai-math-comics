@@ -449,13 +449,13 @@ export function ClassDashboard({ lang, classId }: { lang: Lang; classId: number 
       </nav>
 
       <section id={`${id}-roster`} aria-labelledby={`${id}-button-roster`} hidden={section !== 'roster'}>
-        <div className="grid gap-4">
+        <div className="grid grid-cols-1 gap-4">
           <StudentsTab classId={classId} lang={lang} students={data.students} />
           <MessagesCard as="teacher" lang={lang} />
         </div>
       </section>
       <section id={`${id}-assignments`} aria-labelledby={`${id}-button-assignments`} hidden={section !== 'assignments'}>
-        <div className="grid items-start gap-4 lg:grid-cols-2">
+        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
           <div className="flex min-w-0 flex-col gap-4">
             <HomeworkCard classId={classId} lang={lang} />
             <TeacherTasksCard classId={classId} lang={lang} />
@@ -470,7 +470,7 @@ export function ClassDashboard({ lang, classId }: { lang: Lang; classId: number 
         </div>
       </section>
       <section id={`${id}-games`} aria-labelledby={`${id}-button-games`} hidden={section !== 'games'}>
-        <div className="grid items-start gap-4 lg:grid-cols-2">
+        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
           <div className="flex min-w-0 flex-col gap-4">
             <LessonLauncher classId={classId} lang={lang} />
             <BattleLauncher classId={classId} lang={lang} students={data.students.length} />
@@ -494,7 +494,7 @@ export function ClassDashboard({ lang, classId }: { lang: Lang; classId: number 
           </section>
         )}
 
-        <div className="grid items-start gap-4 lg:grid-cols-2">
+        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
         <section className={CARD} aria-labelledby={`${id}-heat`}>
           <h2 id={`${id}-heat`} className="text-xl font-black text-ink">{d.heatmap}</h2>
           <p className="mt-1 text-sm font-semibold text-ink/75">{d.heatmapLead}</p>

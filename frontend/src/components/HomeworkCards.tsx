@@ -172,7 +172,7 @@ export function HomeworkCard({ classId, lang }: { classId: number; lang: Lang })
           {(all ? items : items.slice(0, SHOWN)).map((item) => (
             <li key={item.id} className="rounded-xl border-2 border-ink/25 p-3">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="min-w-0 flex-1 font-black text-ink">{homeworkTitle(item.kind, item.target, lang)}</span>
+                <span className="w-full font-black text-ink sm:w-auto sm:min-w-0 sm:flex-1">{homeworkTitle(item.kind, item.target, lang)}</span>
                 {item.targeted && <span className="rounded-lg bg-orange-100 px-2 py-0.5 text-xs font-black text-orange-900">{copy.targeted(item.total)}</span>}
                 <span className={`rounded-lg px-2 py-0.5 text-xs font-black ${item.overdue ? 'bg-rose-100 text-rose-700' : 'bg-sky-100 text-ink'}`}>
                   {item.overdue ? copy.overdue : copy.until(formatDate(item.dueDate, lang))}

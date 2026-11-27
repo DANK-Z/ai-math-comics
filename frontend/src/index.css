@@ -749,3 +749,16 @@ html {
   body.printing-summary .print-summary { position: absolute; inset: 0 0 auto 0; box-shadow: none; border: 0; background: #fff; color: #1d2766; }
   body.printing-summary .print-summary details > :not(summary) { display: block; }
 }
+
+/* iOS Safari draws date fields wider than their box and centres the value: keep them inside. */
+input[type='date'],
+input[type='time'] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+}
+input[type='date']::-webkit-date-and-time-value {
+  text-align: left;
+}

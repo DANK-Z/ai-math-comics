@@ -108,7 +108,7 @@ function ReportItem({ report, classId, lang }: { report: LessonReport; classId: 
   return (
     <li className="rounded-xl border-2 border-ink/25 p-3">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <span className="min-w-0 flex-1 font-black text-ink">{chapterTitle(report.comicId, lang)}</span>
+        <span className="w-full font-black text-ink sm:w-auto sm:min-w-0 sm:flex-1">{chapterTitle(report.comicId, lang)}</span>
         <span className="text-sm font-bold text-ink/60">{dayMonth(new Date(report.createdAt), lang)}</span>
       </div>
       <p className="mt-1 text-sm font-black text-ink">

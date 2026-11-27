@@ -155,9 +155,43 @@ export function StudentsTab({ classId, lang, students }: { classId: number; lang
   const rowsForCard = summary ? topicRows(summary, lang) : []
   const small = 'rounded-lg border-2 border-ink bg-white px-2 py-0.5 text-xs font-black text-ink hover:bg-sky focus-visible:outline-3 focus-visible:outline-brand disabled:opacity-50'
 
+  const openCard = (r: (typeof shown)[number]) => setCard(r.pupil ?? emptyPupil(r.id, shortName(r.displayName)))
+  const week = (p: (typeof shown)[number]['pupil']) => {
+    const accuracy = p ? pct(p.correct, p.answers) : 0
+    return (
+      <>
+        {!p?.activeDays ? <span className="font-bold text-orange-800">{copy.idle}</span> : (
+          <span className="flex items-center gap-2">
+            <span className="h-2 w-14 shrink-0 overflow-hidden rounded-full border border-ink/50 bg-white" aria-hidden>
+              <span className={`block h-full ${accuracy >= 80 ? 'bg-[#16a36a]' : accuracy < 60 ? 'bg-[#fb9a3c]' : 'bg-[#f5c542]'}`} style={{ width: `${p.answers ? Math.max(6, accuracy) : 0}%` }} />
+            </span>
+            <span className="font-bold text-ink tabular-nums">{p.answers ? copy.accuracy(accuracy, p.answers) : copy.noAnswers}</span>
+          </span>
+        )}
+        {p?.lastActive && <span className="block text-xs text-ink/55">{copy.lastSeen(dayMonth(new Date(p.lastActive), lang))}</span>}
+      </>
+    )
+  }
+  const actions = (r: (typeof shown)[number]) => (
+    <span className="flex flex-wrap gap-1">
+      <button type="button" className={small} onClick={() => openCard(r)}>📋 {copy.card}</button>
+      <button type="button" className={small} disabled={busy !== null} onClick={() => newPassword(r)}>{busy === r.id ? '…' : `🔑 ${copy.password}`}</button>
+      <button type="button" className={`${small} hover:bg-rose-50`} disabled={busy !== null} onClick={() => remove(r)}>✕ {copy.remove}</button>
+    </span>
+  )
+  const resetNote = (r: (typeof shown)[number]) => reset?.id === r.id && (
+    <div role="status" className="flex flex-wrap items-center gap-2 rounded-xl border-2 border-emerald-600 bg-emerald-50 p-2.5 text-sm font-bold text-emerald-900">
+      <span>🔑 {copy.newPassword}:</span>
+      <span><code className="font-mono">{reset.login}</code> / <code className="font-mono text-base">{reset.password}</code></span>
+      <span className="flex-1" />
+      <button type="button" className={small} onClick={() => printCards(lang, [reset])}>{copy.printOne}</button>
+      <button type="button" className={small} onClick={() => setReset(null)} aria-label="×">×</button>
+    </div>
+  )
+
   return (
-    <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
-      <section className={CARD} aria-labelledby={`${id}-title`}>
+    <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
+      <section className={`${CARD} min-w-0`} aria-labelledby={`${id}-title`}>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <h2 id={`${id}-title`} className="flex items-center gap-2 text-xl font-black text-ink"><span aria-hidden>🧑‍🎓</span>{copy.title(rows.length)}</h2>
           <span className="flex-1" />
@@ -178,7 +212,30 @@ export function StudentsTab({ classId, lang, students }: { classId: number; lang
         {error && <p role="alert" className="mt-2 font-bold text-rose-700">{copy.error}</p>}
 
         {shown.length === 0 ? <p className="mt-3 font-semibold text-ink/70">{copy.nobody}</p> : (
-          <div className="mt-3 overflow-x-auto">
+          <>
+          {/* Phones: one card per student instead of a wide table. */}
+          <ul className="mt-3 flex flex-col gap-2 md:hidden">
+            {shown.map((r) => (
+              <li key={r.id} className={`flex flex-col gap-1.5 rounded-xl border-2 border-ink/15 p-2.5 text-sm ${r.pupil?.lagging ? 'bg-orange-50' : 'bg-white'}`}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <button type="button" onClick={() => openCard(r)} className="text-left font-black text-brand-dark underline decoration-2 underline-offset-2">
+                      {r.pupil?.lagging ? '⚠️ ' : ''}{r.displayName}
+                    </button>
+                    <span className="block font-mono text-xs text-ink/60">{r.login}</span>
+                  </div>
+                  <span className={`shrink-0 rounded-lg px-2 py-0.5 text-xs font-black tabular-nums ${r.hwDone < r.hwTotal ? 'bg-orange-100 text-orange-800' : 'bg-emerald-100 text-emerald-800'}`}>
+                    {copy.cols.homework}: {r.hwTotal ? copy.hw(r.hwDone, r.hwTotal) : copy.hwNone}
+                  </span>
+                </div>
+                <div>{week(r.pupil)}</div>
+                {r.drills > 0 && <p className="text-xs text-ink/75">{copy.cols.drills}: {copy.drills(r.drills, r.solved)}</p>}
+                {actions(r)}
+                {resetNote(r)}
+              </li>
+            ))}
+          </ul>
+          <div className="mt-3 hidden overflow-x-auto md:block">
             <table className="w-full min-w-[40rem] border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b-2 border-ink text-xs text-ink/70">
@@ -243,6 +300,7 @@ export function StudentsTab({ classId, lang, students }: { classId: number; lang
               </tbody>
             </table>
           </div>
+          </>
         )}
       </section>
 
