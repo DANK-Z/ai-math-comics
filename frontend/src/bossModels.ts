@@ -1,7 +1,7 @@
 import {
   BackSide, BoxGeometry, Color, ConeGeometry, CylinderGeometry, DataTexture, DodecahedronGeometry, DoubleSide, Group, Mesh,
   MeshBasicMaterial, MeshToonMaterial, NearestFilter, RedFormat, Shape, ShapeGeometry, SphereGeometry, TorusGeometry,
-  Vector3, type BufferGeometry, type Object3D,
+  Box3, Vector3, type BufferGeometry, type Object3D,
 } from 'three'
 import type { BossKind } from './api'
 
@@ -84,6 +84,8 @@ function toonRamp() {
 
 export interface BossModel {
   root: Group
+  /** Scale that brings the model to the common height. */
+  fit: number
   /** Pieces that fly apart when the boss is beaten. */
   parts: Mesh[]
   /** Toon materials with their own colour, for the angry tint and the hit flash. */
@@ -273,8 +275,13 @@ export function buildBoss(look: BossLook): BossModel {
     }
   }
 
+  // Every boss fits the same height on the stage, the tall wizard included.
+  const box = new Box3().setFromObject(root)
+  const fit = Math.min(1, 4.6 / Math.max(0.1, box.max.y))
+
   return {
     root,
+    fit,
     parts: k.parts.filter((p) => p.parent === root),
     paints: k.paints,
     tick(time, rage) {

@@ -680,7 +680,7 @@ function createArena(host: HTMLDivElement, props: ArenaProps, sfx: ReturnType<ty
 
     // The boss: breathes faster and grows when angry, jumps when it strikes back.
     const speed = 1 + rage * 0.8
-    const size = 1 + rage * 0.12
+    const size = (1 + rage * 0.12) * model.fit
     const hop = jump > 0 ? Math.sin((1 - jump) * Math.PI) * 2.2 : 0
     jump = Math.max(0, jump - dt * 1.1)
     bossGroup.position.y = 0.62 + Math.abs(Math.sin(elapsed * 1.6 * speed)) * 0.15 + hop
