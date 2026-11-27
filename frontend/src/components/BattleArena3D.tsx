@@ -3,11 +3,10 @@ import {
   AdditiveBlending, NormalBlending, CanvasTexture, Color, CylinderGeometry, DirectionalLight, DoubleSide, Fog, Group, HemisphereLight,
   Mesh, MeshBasicMaterial, MeshDepthMaterial, MeshStandardMaterial, PerspectiveCamera, PlaneGeometry, PointLight,
   RGBADepthPacking, Scene, SRGBColorSpace, Sprite, SpriteMaterial, TorusGeometry, Vector3, WebGLRenderer, BoxGeometry,
-  CircleGeometry, PCFSoftShadowMap, type Texture,
+  CircleGeometry, PCFSoftShadowMap, TextureLoader, type Texture,
 } from 'three'
 import type { BattleTopic, BossKind, Lang } from '../api'
 import { buildBoss, CLASSIC_LOOKS, lookFor, type BossLook } from '../bossModels'
-import { HERO_PORTRAITS } from '../sceneArt'
 
 // A boss fight in 3D (three.js), for the class board and (light) for the chapter boss.
 // The boss and the heroes stay comic drawings: paper cut-outs on a lit arena that cast real
@@ -56,12 +55,11 @@ const ARENAS: Record<BossKind, { sky: string; floor: string; rim: string; glow: 
   'fraction-slime': { sky: '#2f7a4a', floor: '#55b86a', rim: '#ffc83d', glow: '#c8ff9a' },
 }
 
-const HEROES = {
-  aldiyar: { hoodie: '#2f5bd3', pants: '#24304f', skin: '#f3c9a5' },
-  aruna: { hoodie: '#8b5fd6', pants: '#2d2a4a', skin: '#f3c9a5' },
-  pifik: { hoodie: '#f4f7ff', pants: '#cfd8ee', skin: '#5ad1ff' },
-} as const
-type HeroId = keyof typeof HEROES
+type HeroId = 'aldiyar' | 'aruna' | 'pifik'
+type Pose = 'idle' | 'windup' | 'strike' | 'hurt' | 'win'
+// Pose frames drawn in Figma (one per pose, the green background keyed out).
+const FRAMES = import.meta.glob<string>('../assets/battle/*.webp', { eager: true, import: 'default' })
+const frameUrl = (id: HeroId, pose: Pose) => FRAMES[`../assets/battle/${id}-${pose}.webp`]
 
 const COPY = {
   ru: {
@@ -164,72 +162,8 @@ function texture(c: HTMLCanvasElement) {
   return t
 }
 
-function headTexture(src: string) {
-  const [c, g] = canvas(256, 256)
-  const t = texture(c)
-  const img = new Image()
-  img.onload = () => {
-    const s = Math.min(img.width, img.height)
-    g.save()
-    g.beginPath(); g.arc(128, 128, 118, 0, Math.PI * 2); g.clip()
-    g.fillStyle = '#fff'; g.fillRect(0, 0, 256, 256)
-    g.drawImage(img, (img.width - s) / 2, 0, s, s, 10, 10, 236, 236)
-    g.restore()
-    g.lineWidth = 12; g.strokeStyle = INK
-    g.beginPath(); g.arc(128, 128, 120, 0, Math.PI * 2); g.stroke()
-    t.needsUpdate = true
-  }
-  img.src = src
-  return t
-}
 
-/** A comic body in the hero's outfit colours: hoodie, trousers, shoes (Pifik: a robot body). */
-function bodyTexture(id: HeroId) {
-  const [c, g] = canvas(256, 384)
-  const { hoodie, pants } = HEROES[id]
-  g.lineJoin = 'round'
-  g.lineWidth = 9
-  g.strokeStyle = INK
-  if (id === 'pifik') {
-    g.fillStyle = hoodie
-    g.beginPath(); g.roundRect(48, 20, 160, 210, 70); g.fill(); g.stroke()
-    g.fillStyle = '#1b2a55'
-    g.beginPath(); g.roundRect(88, 80, 80, 60, 20); g.fill()
-    g.fillStyle = '#5ad1ff'
-    g.font = '900 40px system-ui'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('AI', 128, 112)
-    const grad = g.createRadialGradient(128, 300, 4, 128, 300, 70)
-    grad.addColorStop(0, '#ffffff'); grad.addColorStop(0.4, '#5ad1ff'); grad.addColorStop(1, 'rgba(90,209,255,0)')
-    g.fillStyle = grad
-    g.fillRect(40, 230, 176, 150)
-    return texture(c)
-  }
-  // Trousers and shoes.
-  g.fillStyle = pants
-  g.beginPath(); g.moveTo(78, 200); g.lineTo(178, 200); g.lineTo(184, 340); g.lineTo(136, 340); g.lineTo(128, 250); g.lineTo(120, 340); g.lineTo(72, 340); g.closePath(); g.fill(); g.stroke()
-  g.fillStyle = '#f4f4f4'
-  g.beginPath(); g.roundRect(60, 330, 66, 34, 14); g.fill(); g.stroke()
-  g.beginPath(); g.roundRect(132, 330, 66, 34, 14); g.fill(); g.stroke()
-  // Hoodie with a pocket and strings.
-  g.fillStyle = hoodie
-  g.beginPath(); g.moveTo(70, 30); g.quadraticCurveTo(128, 0, 186, 30); g.lineTo(206, 220); g.lineTo(50, 220); g.closePath(); g.fill(); g.stroke()
-  g.lineWidth = 6
-  g.beginPath(); g.roundRect(90, 140, 76, 46, 12); g.stroke()
-  g.strokeStyle = '#ffffff'
-  g.beginPath(); g.moveTo(112, 30); g.lineTo(108, 90); g.moveTo(144, 30); g.lineTo(148, 90); g.stroke()
-  return texture(c)
-}
 
-function armTexture(id: HeroId) {
-  const [c, g] = canvas(96, 256)
-  const { hoodie, skin } = HEROES[id]
-  g.lineWidth = 8
-  g.strokeStyle = INK
-  g.fillStyle = hoodie
-  g.beginPath(); g.roundRect(18, 6, 60, 190, 28); g.fill(); g.stroke()
-  g.fillStyle = skin
-  g.beginPath(); g.arc(48, 210, 32, 0, Math.PI * 2); g.fill(); g.stroke()
-  return texture(c)
-}
 
 function glyphTexture(text: string, color: string, orb: boolean) {
   const [c, g] = canvas(256, 256)
@@ -301,9 +235,10 @@ function cutout(map: Texture, w: number, h = w) {
   return mesh
 }
 
-const HERO_SCALE = 1.35
+const HERO_SCALE = 1
+const HERO_SIZE = 3.5
 
-interface Hero { id: HeroId; group: Group; arm: Group; home: Vector3; swing: number; lean: number }
+interface Hero { id: HeroId; group: Group; figure: Mesh; frames: Record<Pose, Texture>; pose: Pose; poseLeft: number; home: Vector3; lean: number }
 
 interface Events { onBanner: (text: string) => void }
 
@@ -376,25 +311,34 @@ function createArena(host: HTMLDivElement, props: ArenaProps, sfx: ReturnType<ty
   scene.add(bossGroup)
   const red = new Color('#ff4d4d')
 
-  // The heroes in full height on the left front: body, head and a swinging arm.
+  // The heroes on the left front, drawn in poses: ready, wind-up, strike, knocked back, victory.
+  const loader = new TextureLoader()
   const heroes: Hero[] = (['aldiyar', 'aruna', 'pifik'] as const).map((id, i) => {
+    const frames = Object.fromEntries((['idle', 'windup', 'strike', 'hurt', 'win'] as const).map((pose) => {
+      const t = loader.load(frameUrl(id, pose))
+      t.colorSpace = SRGBColorSpace
+      t.anisotropy = 4
+      return [pose, t]
+    })) as Record<Pose, Texture>
     const group = new Group()
-    const body = cutout(bodyTexture(id), 1.2, 1.8)
-    body.position.y = 0.9
-    const head = cutout(headTexture(HERO_PORTRAITS[id]), 1.25)
-    head.position.set(0, 2.15, 0.02)
-    const arm = new Group()
-    arm.position.set(0.5, 1.55, 0.03)
-    const armMesh = cutout(armTexture(id), 0.34, 0.9)
-    armMesh.position.y = -0.4
-    arm.add(armMesh)
-    group.add(body, head, arm)
+    // Pifik is a small helper robot: smaller than the kids, hovering a little above the floor.
+    const size = id === 'pifik' ? HERO_SIZE * 0.65 : HERO_SIZE
+    const figure = cutout(frames.idle, size)
+    figure.position.y = size / 2 - 0.05 + (id === 'pifik' ? 0.5 : 0)
+    group.add(figure)
     const home = (lite ? new Vector3(-4.2 + i * 1.5, 0.6, 3.6 - Math.abs(i - 1) * 0.4) : new Vector3(-5.2 + i * 1.9, 0.6, 3.4 - Math.abs(i - 1) * 0.5))
     group.position.copy(home)
     group.scale.setScalar(HERO_SCALE)
     scene.add(group)
-    return { id, group, arm, home, swing: 0, lean: 0 }
+    return { id, group, figure, frames, pose: 'idle', poseLeft: 0, home, lean: 0 }
   })
+
+  function pose(h: Hero, next: Pose, seconds = 0) {
+    h.pose = next
+    h.poseLeft = seconds
+    ;(h.figure.material as MeshStandardMaterial).map = h.frames[next]
+    ;(h.figure.customDepthMaterial as MeshDepthMaterial).map = h.frames[next]
+  }
 
   const glyphs: Texture[] = theme.glyphs.map((t) => glyphTexture(t, theme.color, true))
   const bits: Texture[] = theme.glyphs.map((t) => glyphTexture(t, theme.color, false))
@@ -413,6 +357,7 @@ function createArena(host: HTMLDivElement, props: ArenaProps, sfx: ReturnType<ty
   const live = { status: props.status }
   const resets: (() => void)[] = []
   model.root.visible = !defeated
+  if (defeated) heroes.forEach((h) => pose(h, 'win'))
 
   const sprite = (map: Texture, size: number, additive = false) => {
     const s = new Sprite(new SpriteMaterial({ map, transparent: true, depthWrite: false, blending: additive ? AdditiveBlending : NormalBlending }))
@@ -475,17 +420,24 @@ function createArena(host: HTMLDivElement, props: ArenaProps, sfx: ReturnType<ty
   /** One hit: a hero swings and a glowing symbol flies to the boss in an arc. */
   function shoot(name: string, delay: number, final: boolean) {
     let wait = delay
+    let windup = 0.2
     let t = 0
     const hero = heroes[Math.floor(Math.random() * heroes.length)]
-    const from = hero.group.position.clone().add(new Vector3(0.5, 3, 0.2))
+    const from = hero.group.position.clone().add(new Vector3(1.1, 2, 0.2))
     const to = bossGroup.position.clone().add(new Vector3((Math.random() - 0.5) * 1.4, 2.2 + (Math.random() - 0.3) * 1.2, 1.2))
     let orb: Sprite | null = null
     const duration = final ? 1.1 : 0.55
     fx.push({ update(dt) {
       if (wait > 0) { wait -= dt; return true }
+      // A short wind-up, then the strike frame as the symbol leaves the hand.
+      if (windup > 0) {
+        if (hero.pose !== 'windup' && hero.pose !== 'win') pose(hero, 'windup', 1)
+        windup -= dt
+        return true
+      }
       if (!orb) {
         orb = sprite(glyphs[Math.floor(Math.random() * glyphs.length)], final ? 2.8 : 1.9, true)
-        hero.swing = 1
+        if (hero.pose !== 'win') pose(hero, 'strike', 0.45)
         sfx.play('throw')
       }
       t += dt / duration
@@ -518,7 +470,7 @@ function createArena(host: HTMLDivElement, props: ArenaProps, sfx: ReturnType<ty
         landed = true
         sfx.play('attack')
         shake = 0.7
-        heroes.forEach((h) => { h.lean = 1 })
+        heroes.forEach((h) => { h.lean = 1; if (h.pose !== 'win') pose(h, 'hurt', 0.8) })
         const ring = new Mesh(new PlaneGeometry(2, 2), new MeshBasicMaterial({ map: wave, transparent: true, depthWrite: false }))
         ring.rotation.x = -Math.PI / 2
         ring.position.set(0, 0.68, 0)
@@ -596,6 +548,7 @@ function createArena(host: HTMLDivElement, props: ArenaProps, sfx: ReturnType<ty
   /** The boss falls apart: every shape of the model flies off, bounces and fades. */
   function shatter(hero: Hero, name: string) {
     defeated = true
+    heroes.forEach((h) => pose(h, 'win'))
     spotlight(hero, name)
     const center = bossGroup.position.clone().add(new Vector3(0, 2, 0))
     const pieces = model.parts.slice()
@@ -706,9 +659,10 @@ function createArena(host: HTMLDivElement, props: ArenaProps, sfx: ReturnType<ty
       if (h.lean > 0) h.lean = Math.max(0, h.lean - dt * 1.5)
       h.group.rotateZ(h.lean * 0.35)
       if (!defeated || h.group.position.distanceTo(h.home) < 0.01) h.group.position.y = h.home.y + Math.abs(Math.sin(elapsed * 2 + i)) * 0.06
-      // The swing: the arm goes up and forward, then back.
-      h.arm.rotation.z = Math.sin(Math.min(1, h.swing) * Math.PI) * 2.3
-      h.swing = Math.max(0, h.swing - dt * 2.6)
+      if (h.poseLeft > 0) {
+        h.poseLeft -= dt
+        if (h.poseLeft <= 0 && h.pose !== 'win') pose(h, 'idle')
+      }
     })
     runes.rotation.z += dt * 0.6 * speed
     for (let i = fx.length - 1; i >= 0; i--) if (!fx[i].update(dt)) fx.splice(i, 1)
@@ -742,6 +696,7 @@ function createArena(host: HTMLDivElement, props: ArenaProps, sfx: ReturnType<ty
     },
     replay(name: string) {
       resets.splice(0).forEach((r) => r())
+      heroes.forEach((h) => pose(h, 'idle'))
       defeated = false
       bossGroup.remove(model.root)
       model.dispose()
@@ -769,6 +724,7 @@ function createArena(host: HTMLDivElement, props: ArenaProps, sfx: ReturnType<ty
         for (const mm of mats) { (mm as MeshStandardMaterial).map?.dispose(); mm.dispose() }
       })
       shared.forEach((t) => t.dispose())
+      heroes.forEach((h) => Object.values(h.frames).forEach((t) => t.dispose()))
       renderer.dispose()
       renderer.domElement.remove()
     },
