@@ -44,7 +44,7 @@ export const CURRICULUM: Readonly<Record<string, CurriculumGoal>> = {
   'roads-flag': g(5, MOTION, t('Решать задачи на движение вдогонку', 'Қуып жету қозғалысына берілген есептерді шығару')),
   'roads-bridge': g(5, MOTION, t('Решать задачи на встречное движение', 'Қарсы қозғалысқа берілген есептерді шығару')),
   'roads-river': g(5, MOTION, t('Находить скорость по течению и против течения', 'Ағыспен және ағысқа қарсы жылдамдықты табу')),
-  'roads-hill': g(5, MOTION, t('Находить среднюю скорость на маршруте', 'Бағыттағы орташа жылдамдықты табу')),
+  'roads-hill': g(6, MOTION, t('Находить среднюю скорость на маршруте', 'Бағыттағы орташа жылдамдықты табу')),
   // Kokshetau Lights
   'lights-park': g(6, SCALE, t('Переводить расстояние с плана в реальное по масштабу', 'Масштаб бойынша жоспардағы қашықтықты шын қашықтыққа айналдыру')),
   'lights-launch': g(6, COORDINATES, t('Находить точку по её координатам', 'Нүктені координаталары бойынша табу')),
@@ -59,7 +59,7 @@ export const CURRICULUM: Readonly<Record<string, CurriculumGoal>> = {
   'weather-frost': g(6, NEGATIVE, t('Находить изменение температуры при переходе через ноль', 'Нөлден өткендегі температура өзгерісін табу')),
   'weather-rain': g(6, DATA, t('Читать данные с графика', 'Графиктен деректерді оқу')),
   'weather-units': g(5, UNITS, t('Переводить сантиметры в миллиметры', 'Сантиметрді миллиметрге айналдыру')),
-  'weather-average': g(5, DATA, t('Находить среднее арифметическое ряда чисел', 'Сандар қатарының арифметикалық ортасын табу')),
+  'weather-average': g(6, DATA, t('Находить среднее арифметическое ряда чисел', 'Сандар қатарының арифметикалық ортасын табу')),
   // Mars at Recess
   'mars-crater': g(6, COORDINATES, t('Находить длину пути по клеткам координатной сетки', 'Координаталық тордағы жолдың ұзындығын табу')),
   'mars-battery': g(5, FRACTIONS, t('Находить дробь от числа и от остатка', 'Саннан және қалдықтан бөлшек табу')),
@@ -73,17 +73,21 @@ export const CURRICULUM: Readonly<Record<string, CurriculumGoal>> = {
 }
 
 // Where the chapter's topic is in the most used textbook, Abylkasymova A.E. et al., «Мектеп»
-// (grade 5 — 2017, grade 6 — 2018, part 1). Only chapters checked against the table of
-// contents are listed; topics of part 2 (percent, decimals, volume, coordinates…) are not yet.
+// (grade 5 — 2017, grade 6 — 2018, parts 1 and 2), checked against the tables of contents.
+// Units and time (weather-units, mars-signal) have no paragraph of their own there.
 const TEXTBOOK: Readonly<Record<string, { grade: 5 | 6; section: number }>> = {
   'pizza-fractions': { grade: 5, section: 16 },
-  'mars-battery': { grade: 5, section: 26 },
+  'mars-battery': { grade: 5, section: 29 },
+  'school-store-discount': { grade: 5, section: 48 },
+  'lights-kiosks': { grade: 5, section: 48 },
+  'burabay-trail': { grade: 5, section: 34 },
+  'burabay-water': { grade: 5, section: 54 },
   'library-boxes': { grade: 5, section: 6 },
   'museum-scales': { grade: 5, section: 6 },
   'roads-flag': { grade: 5, section: 8 },
   'roads-bridge': { grade: 5, section: 8 },
   'roads-river': { grade: 5, section: 8 },
-  'roads-hill': { grade: 5, section: 8 },
+  'roads-hill': { grade: 6, section: 47 },
   'fair-garland': { grade: 5, section: 7 },
   'lights-garland': { grade: 5, section: 7 },
   'museum-carpet': { grade: 5, section: 7 },
@@ -95,6 +99,11 @@ const TEXTBOOK: Readonly<Record<string, { grade: 5 | 6; section: number }>> = {
   'fair-lemonade': { grade: 6, section: 3 },
   'mars-greenhouse': { grade: 6, section: 1 },
   'weather-frost': { grade: 6, section: 15 },
+  'weather-average': { grade: 6, section: 46 },
+  'weather-rain': { grade: 6, section: 49 },
+  'lights-launch': { grade: 6, section: 42 },
+  'mars-crater': { grade: 6, section: 42 },
+  'museum-mirror': { grade: 6, section: 43 },
 }
 
 /** «Абылкасымова, 5 кл., § 15» for a chapter checked against the textbook. */
