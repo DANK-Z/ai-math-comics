@@ -328,8 +328,8 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
           </div>
         )}
 
-        <nav aria-label={t.panelOf(current + 1, total)} className="mt-4 flex flex-col gap-3">
-          <ol className="mx-auto grid w-full max-w-xl gap-1.5 sm:gap-2.5" style={{ gridTemplateColumns: `repeat(${total}, minmax(0, 1fr))` }}>
+        <nav aria-label={t.panelOf(current + 1, total)} className="max-sm:contents sm:mt-4 sm:flex sm:flex-col sm:gap-3">
+          <ol className="mx-auto grid w-full max-w-xl gap-1.5 max-sm:mt-4 sm:gap-2.5" style={{ gridTemplateColumns: `repeat(${total}, minmax(0, 1fr))` }}>
             {comic.panels.map((p, i) => {
               const reachable = i <= maxIndex
               const active = i === current
@@ -372,7 +372,9 @@ export function ComicReader({ comic, lang, index, onIndexChange, onChapterComple
             })}
           </ol>
 
-          <div className="flex items-center justify-between gap-3">
+          {/* On phones Back / Next stay pinned to the bottom of the screen, so a new panel never
+              sends the reader scrolling for the button. */}
+          <div className="sticky bottom-0 z-20 -mx-3 mt-3 flex items-center justify-between gap-3 border-t-2 border-ink/10 bg-white/95 px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur sm:static sm:mx-0 sm:mt-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
             <button type="button" onClick={() => onIndexChange(current - 1)} disabled={current === 0} className={`${BTN} bg-white text-ink`}>
               <span aria-hidden>←</span> {t.prev}
             </button>
